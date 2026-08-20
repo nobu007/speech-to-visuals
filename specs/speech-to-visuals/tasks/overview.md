@@ -107,7 +107,7 @@
 
 ## タスク番号管理
 
-**使用済みタスク番号**: TASK-0001 ~ TASK-0249（Phase 131: TASK-0217、Phase 132: TASK-0218〜0222、Phase 140: TASK-0223〜0225、Phase 141: TASK-0226〜0228、Phase 142: TASK-0229、Phase 143: TASK-0230、Phase 144: TASK-0231、Phase 145: TASK-0232、Phase 146: TASK-0233、Phase 147: TASK-0234、Phase 148: TASK-0235、Phase 149: TASK-0236、Phase 150: TASK-0237、Phase 151: TASK-0238、Phase 152: TASK-0239、Phase 153: TASK-0240、Phase 154: TASK-0241、Phase 155: TASK-0242、Phase 156: TASK-0243、Phase 157〜159: TASK-0244〜0246、Phase 161: TASK-0247、Phase 162: TASK-0248、Phase 163: TASK-0249）
+**使用済みタスク番号**: TASK-0001 ~ TASK-0249（Phase 131: TASK-0217、Phase 132: TASK-0218〜0222、Phase 140: TASK-0223〜0225、Phase 141: TASK-0226〜0228、Phase 142: TASK-0229、Phase 143: TASK-0230、Phase 144: TASK-0231、Phase 145: TASK-0232、Phase 146: TASK-0233、Phase 147: TASK-0234、Phase 148: TASK-0235、Phase 149: TASK-0236、Phase 150: TASK-0237、Phase 151: TASK-0238、Phase 152: TASK-0239、Phase 153: TASK-0240、Phase 154: TASK-0241、Phase 155: TASK-0242、Phase 156: TASK-0243、Phase 157〜159: TASK-0244〜0246、Phase 161: TASK-0247、Phase 162: TASK-0248、Phase 163: TASK-0249、Phase 164: TASK-0250）
 **次回開始番号**: TASK-0250
 
 > **REQ 番号帯（Phase 140 決定）**: REQ-313〜322 は acceptance-criteria の TC 帯（TC-313〜321 実在・TC-322 は未 merge PR #9 提案中）との番号衝突回避のため予約（未使用）。機能要件は REQ-323 から、TC は TC-323 から採番する（REQ-326/TC-323 が適用例）。
@@ -2418,6 +2418,41 @@ mirror 対象は「真の mirror」のみ（信頼性レベル分布↔サマリ
 ### 次フェーズ開始番号
 
 **次回開始番号**: TASK-0250
+
+## Phase 164: specs mirror sync generator と sync-stamp 契約 + gate 配線（REQ-356・義務 B 後半・MW-032）
+
+**ステータス**: ✅完了（2026-08-20・TASK-0250 完了・実装 + specs を単一 commit に同梱）
+
+**背景**: TASK-0249 §残存 obligation の指定どおり義務 B 後半に着手。prose は機械生成できないため region 全体の verbatim copy 化（= 偽 sync・guard 検出力ゼロ）ではなく **所有権分割** で解いた: marker 行 / tokens / prose = 人間所有（TASK-0249 契約は不変）、region 内の sync-stamp 行 1 行 = generator 所有。stamp は正本節の正規化 sha256（先頭 12 hex）で、tokens に宣言されていない事実編集も含む正本節への **あらゆる** 編集を `STALE_SYNC_STAMP` として検出する。
+
+**成果物**:
+1. `tests/guards/specs-mirror-contract.ts` — `computeSourceDigest` / `renderSyncStamp` + stamp 検証（MISSING / DUPLICATE / STALE の 3 violation kind）。generator も同一 module を import し契約の単一ソースを維持
+2. `scripts/sync-mirror-from-requirements.ts`（新規）— dual-mode generator（repo の `sync:edge`/`verify:edge` 慣行に準拠）: `--check` = 書き込まない drift detector / default = stamp 再生成 → post-sync 検証で人手 curation 済みでない token drift があれば exit 1。構造違反ファイルは一切書き換えない fail-loud・冪等
+3. npm scripts `specs:mirror:check` / `specs:mirror:sync` + `verify:all` と `spine:validate`（`scripts/validate-spine-manifest.ts` CLI）への hook 配線 — manifest が gitignored auto-gen で SKIPPED でも specs/ は tracked なので clean checkout / CI で gate が実 teeth
+4. `tests/guards/specs-mirror-contract.test.ts` 12 → **23 tests**（stamp fixture 5 + generator 6・最終 test「generator output passes the full contract validation」= 受入検査）
+5. MW-032: requirements.md NFR-501 `$0.10 以下` → `$0.11 以下`（非 token 編集）で **1 failed / 22 passed**（STALE_SYNC_STAMP のみ・TOKEN_MISSING なし = stamp 検出力の isolate 実証）・check exit 1 → sync 修復 → revert GREEN 復元・監査 pin ≥31→≥32
+
+### タスク一覧
+
+- [x] [TASK-0250: specs mirror sync generator と sync-stamp 契約 + gate 配線（REQ-356・義務 B 後半・MW-032）](TASK-0250.md) - 1.5h (DIRECT) 🔵 ✅2026-08-20（generator 6 tests + stamp fixture 5 tests + MW-032 observed 実測 + pin ≥31→≥32 + REQ/TC/TASK/MW/overview を同一 commit 同梱）
+
+### 依存関係
+
+```
+TASK-0250 は TASK-0249 契約（REQ-355）の上に立つ後半 — 契約モジュールを scripts から import する単一ソース構造
+義務 B は本 Phase で完了（marker 契約 + guard → generator + sync-stamp + gate 配線）
+残存: 義務 C（tests/unit exact-0 + tests total ≤ 100 gate）・adaptive-quality-gates non-finite 対応・mirror 対象拡張（marker 追加時に stamp は sync script が自動挿入）
+運用: 正本節を更新する commit は npm run specs:mirror:sync を同 commit で実行（steering の link:spine drift 指摘と同型の規律）
+```
+
+### 信頼性レベルサマリー（Phase 164 追加分）
+
+- 全 1 タスク 🔵（generator/stamp の unit test 23 + 受入検査 test + MW-032 observed 実測 + check CLI の exit code 検証）
+
+### 次フェーズ開始番号
+
+**次回開始番号**: TASK-0251
+
 
 ## Spine: external references
 

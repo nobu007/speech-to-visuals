@@ -283,6 +283,14 @@ judge が再実行なしに主張を検証できるようにする（AI Hub stee
 - **command**: `NODE_OPTIONS='--experimental-vm-modules --max-old-space-size=4096' npx jest --config jest.config.cjs --testPathPatterns 'specs-mirror-contract'`
 - **observed** (2026-08-20・Phase 163 実施時): mutation 適用後 `Tests: 1 failed, 11 passed, 12 total` — real specs tree の zero-viololation test が **target RED**（`TOKEN_MISSING_IN_MIRROR` 1 violation・detail がトークン "60秒以内" を名指し）。fixture 系 10 tests（drift 検出ロジック自体の正しさ）と contract presence pin は影響を受けず GREEN。revert で 12/12 GREEN 復元。監査 pin **≥30 → ≥31** に引き上げ（MW-031 追加で 30 → 31 エントリ）。
 
+## MW-032 — specs mirror sync-stamp 契約（義務 B 後半）の非 token drift 検出と generator による機械再生成（REQ-356・Phase 164・TASK-0250・`npm run specs:mirror:sync`）
+
+- **claim**: MW-031 の tokens 双方向検証は「marker が宣言したトークン」の変化だけを検出する。義務 B 後半（TASK-0250）は各 mirror region に machine-owned の **sync-stamp** 行（`<!-- sync:mirror source-digest="…" -->` = 正本節 body の正規化 sha256 先頭 12 hex）を追加し、正本節への **あらゆる** 編集（token 未宣言の事実の変更・追記を含む）を `STALE_SYNC_STAMP` として検出する。機械的に解決できる分（stamp 再生成）は `scripts/sync-mirror-from-requirements.ts`（`npm run specs:mirror:sync`）が担ぎ、token 事实上の drift（人手 curation が必要な分）だけを人間に残す — これが義務 B「人間の手作業経由ではなく build hook での再生成」の所有権分割。`specs:mirror:check`（--check・書き込みなし）は `verify:all` と `spine:validate` gate（`scripts/validate-spine-manifest.ts` CLI）の両方に配線され、manifest が auto-gen・gitignored で SKIPPED になる clean checkout / CI でも specs/ は tracked なので mirror drift に対して常に実 teeth を持つ。MW-032 の mutation は「正本の token 未宣言の事実（NFR-501 のコスト上限 $0.10）だけが変わる編集」— tokens 検証が素通りし stamp だけが検出する形 — を選別している。
+- **target**: `specs/speech-to-visuals/architecture.md:631`（`<!-- sync:mirror source-digest="56cab125a152" -->` — generator 挿入行）+ `tests/guards/specs-mirror-contract.ts` の `computeSourceDigest` / `STALE_SYNC_STAMP` 検証
+- **mutation**: `specs/speech-to-visuals/requirements.md` NFR-501 の `コストは $0.10 以下` を `コストは $0.11 以下` に書き換え（10 トークンのいずれでもない = tokens 双方向検証を素通りする非 token 事実編集）
+- **command**: `NODE_OPTIONS='--experimental-vm-modules --max-old-space-size=4096' npx jest --config jest.config.cjs --testPathPatterns 'specs-mirror-contract'`
+- **observed** (2026-08-20・Phase 164 実施時): mutation 適用後 `Tests: 1 failed, 22 passed, 23 total` — real specs tree の zero-viololation test が **target RED**（`STALE_SYNC_STAMP` 1 violation・`TOKEN_MISSING_*` なし = 非 token 編集を stamp だけが検出したことの実証・detail は `stamp=56cab125a152・現 digest=b92633966624` を名指し）。同期して `npm run specs:mirror:check` が exit 1（violation 1）、`npm run specs:mirror:sync` が stamp を `b92633966624` に機械再生成して post-sync violations 0・exit 0 を返す（generator による修復経路の実証）。revert（requirements.md 復元 + sync 再実行で stamp を `56cab125a152` に復元）で 23/23 + census 11/11 GREEN 復元。監査 pin **≥31 → ≥32** に引き上げ（MW-032 追加で 31 → 32 エントリ）。
+
 ---
 
 ## 恒久 mutation test（ledger 対象外・常時 CI で走るもの）

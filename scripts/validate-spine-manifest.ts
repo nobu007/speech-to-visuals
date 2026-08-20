@@ -14,6 +14,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
+import { runMirrorContractCheck } from './sync-mirror-from-requirements';
 
 export interface SpineValidationResult {
   valid: boolean;
@@ -449,16 +450,23 @@ const isMainModule = process.argv[1] && path.basename(process.argv[1]) === 'vali
 if (isMainModule) {
   const result = validateSpineManifest();
 
+  // 義務 B 後半の hook 配線 (TASK-0250 / REQ-356): spine:validate gate は
+  // specs mirror 契約（requirements.md 正本 ↔ architecture.md mirror の marker
+  // 契約 + sync-stamp）も同時に検証する。specs/ は tracked（manifest と違い
+  // gitignored ではない）ので、manifest が無く SKIPPED になる clean checkout /
+  // CI でもこの gate は mirror drift に対して常に実 teeth を持つ。
+  const mirror = runMirrorContractCheck(
+    path.join(getRepoRoot(), 'specs', 'speech-to-visuals'),
+  );
+
   // Transparent (non-silent) skip: when the auto-generated manifest is absent,
-  // surface WHY validation did not run, then exit 0 so the gate does not break
-  // on a clean checkout / CI (see validateSpineManifest).
+  // surface WHY validation did not run (see validateSpineManifest). The mirror
+  // contract check below still runs and still decides the exit code.
   if (result.skipped) {
     console.log(`\n=== Spine Manifest Validation ===`);
     console.log(`⏭️  SKIPPED — spine manifest absent (auto-generated, gitignored).`);
     for (const w of result.warnings) console.log(`   ${w}`);
-    process.exit(0);
-  }
-
+  } else {
   console.log(`\n=== Spine Manifest Validation ===`);
   console.log(`Checked paths: ${result.checkedPaths}`);
   console.log(`Errors: ${result.errors.length}`);
@@ -482,11 +490,31 @@ if (isMainModule) {
     }
   }
 
-  if (result.valid) {
-    console.log('\n\u2705 Spine manifest is valid.');
+  }
+
+  console.log(`\n=== Specs Mirror Contract (hooked into spine:validate) ===`);
+  console.log(`Files checked: ${mirror.filesChecked}`);
+  console.log(`Mirror regions: ${mirror.regionsChecked}`);
+  console.log(`Violations: ${mirror.violations.length}`);
+  if (mirror.violations.length > 0) {
+    console.log('\n\u274c MIRROR VIOLATIONS:');
+    for (const v of mirror.violations) {
+      console.log(`  [${v.kind}] ${v.detail}`);
+    }
+    console.log(
+      `\n\u2192 run 'npm run specs:mirror:sync' (\u6b63\u672c\u7bc0\u66f4\u65b0\u5f8c\u306f\u540c commit \u3067\u5b9f\u884c)\u3002` +
+        `token \u4e8b\u5b9e\u4e0a\u306e\u5909\u66f4\u304c\u3042\u308c\u3070 marker \u306e tokens \u3068 prose \u306e curation \u3082\u5fc5\u8981\u3002`,
+    );
+  }
+
+  const spineOk = result.skipped ? true : result.valid;
+  const mirrorOk = mirror.violations.length === 0;
+
+  if (spineOk && mirrorOk) {
+    console.log('\n\u2705 Spine manifest + specs mirror contract are valid.');
     process.exit(0);
   } else {
-    console.log('\n\u274c Spine manifest validation FAILED.');
+    console.log('\n\u274c Validation FAILED (spine manifest and/or specs mirror contract).');
     process.exit(1);
   }
 }

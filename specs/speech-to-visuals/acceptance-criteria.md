@@ -5946,6 +5946,13 @@
 - [x] **TC-350-03**: mutation-verified で drift 検出が実証されていること — mutation（mirror region 内 `60秒以内（実績25.2秒）` → `90秒以内（実績25.2秒）` = 正本更新が mirror に未伝播の典型 drift）適用後の run が `Tests: 1 failed, 11 passed, 12 total`（real-tree zero-violation test が `TOKEN_MISSING_IN_MIRROR` 1 violation で target RED）を返すこと。revert で 12/12 GREEN 復元・MW-031 エントリが台帳に追加され監査 pin が **≥30 → ≥31** に引き上げられること（REQ-355）🔵
   - **再検証コマンド**: `NODE_OPTIONS='--experimental-vm-modules --max-old-space-size=4096' npx jest --config jest.config.cjs --testPathPatterns 'specs-mirror-contract|mutation-witness-ledger'`（2 suites / 12 + pin31 GREEN）
 
+### TC-351: specs mirror sync generator と sync-stamp 契約（義務 B 後半）（REQ-356・Phase 164・TASK-0250）
+
+- [x] **TC-351-01**: sync generator と sync-stamp 契約が 23 tests で検証されていること — `tests/guards/specs-mirror-contract.test.ts` が（a）stamp 欠落 `MISSING_SYNC_STAMP`・（b）正本節への token 未宣言の編集を検出する `STALE_SYNC_STAMP`（token 検証を素通りする編集も逃さない）・（c）重複 `DUPLICATE_SYNC_STAMP`・（d）malformed 行・（e）正規化ノイズ（CRLF・行末空白）無視、および `scripts/sync-mirror-from-requirements.ts` generator の（f）stamp 挿入と冪等・（g）stale stamp の機械再生成・（h）構造違反ファイルへの fail-loud 拒否・（i）節欠落 skip・（j）重複拒否・（k）generator 出力が TASK-0249 契約の検証全体を通ること（= 受入検査）を検証すること（REQ-356）🔵
+- [x] **TC-351-02**: npm scripts と gate 配線が CI teeth を持つこと — `npm run specs:mirror:check`（`--check` = 書き込まない drift detector・違反で exit 1）と `npm run specs:mirror:sync`（stamp 再生成 → post-sync 検証で残存違反 = 人手 curation が必要な token drift があれば exit 1）が `package.json` に定義され、`verify:all` と `spine:validate`（`scripts/validate-spine-manifest.ts` に hook 配線）の両方から実行されること。spine manifest が gitignored auto-gen で SKIPPED になる clean checkout でも mirror check は specs/（tracked）を対象に走り exit code に反映されること（REQ-356）🔵
+- [x] **TC-351-03**: mutation-verified で sync-stamp の検出力が実証されていること — mutation（requirements.md NFR-501 `コストは $0.10 以下` → `$0.11 以下` = 10 トークンいずれでもない非 token 事実編集）適用後の run が `Tests: 1 failed, 22 passed, 23 total`（`STALE_SYNC_STAMP` 1 violation・`TOKEN_MISSING` なし = token 検証だけでは素通りする編集を stamp が検出）を返し、`specs:mirror:check` が exit 1・`specs:mirror:sync` が stamp を機械再生成して post-sync violation ゼロになること。revert + sync で 23/23 GREEN 復元・MW-032 エントリが台帳に追加され監査 pin が **≥31 → ≥32** に引き上げられること（REQ-356）🔵
+  - **再検証コマンド**: `NODE_OPTIONS='--experimental-vm-modules --max-old-space-size=4096' npx jest --config jest.config.cjs --testPathPatterns 'specs-mirror-contract|mutation-witness-ledger'`（2 suites / 23 + pin32 GREEN）+ `npm run specs:mirror:check`（exit 0）
+
 
 
 ### Phase 111+ 受け入れ基準サマリー

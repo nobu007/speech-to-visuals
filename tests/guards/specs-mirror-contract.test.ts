@@ -1,5 +1,6 @@
 /**
- * specs mirror marker contract guard (TASK-0249 / REQ-355 / 義務 B 前半).
+ * specs mirror marker contract guard (TASK-0249 / REQ-355 / 義務 B 前半 +
+ * TASK-0250 / REQ-356 / 義務 B 後半の sync-stamp 拡張).
  *
  * 義務 B（TASK-0243 → TASK-0247 → TASK-0248 §残存 obligation で「未着手の最優先」）
  * の前半: requirements.md（正本）↔ architecture.md（mirror）の二重管理を marker 契約で
@@ -13,15 +14,26 @@
  *      （drift が存在すれば即 RED）+ 契約自体の presence pin（marker 削除で RED）
  *   2. 合成 fixture — drift 検出ロジックそのものの正しさ（正本更新・mirror 汚染・
  *      孤立 marker・nest・空 region・正本欠落の各 case がそれぞれ検出できること）
+ *
+ * TASK-0250 拡張（REQ-356）: 各 region は machine-owned の sync-stamp 行
+ * （正本節の正規化 sha256）を 1 つ持つ。stamp は正本節への **あらゆる** 編集を
+ * `STALE_SYNC_STAMP` として検出し（token 化されていない変更も逃さない）、
+ * 機械解決可能な分は scripts/sync-mirror-from-requirements.ts（npm run
+ * specs:mirror:sync）が再生成する。generator 出力が本契約検証を通ること
+ * （= 受入検査）も fixture で保証する。
  */
 import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { join } from 'node:path';
 import {
+  computeSourceDigest,
+  extractSection,
   parseMirrorMarkers,
+  renderSyncStamp,
   validateMirrorRegions,
   type MirrorViolation,
 } from './specs-mirror-contract';
+import { syncMirrorStamps } from '../../scripts/sync-mirror-from-requirements';
 
 const REPO_ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const SPECS_DIR = join(REPO_ROOT, 'specs/speech-to-visuals');
@@ -90,6 +102,13 @@ describe('specs mirror marker contract — drift detection fixtures (REQ-355)', 
     '<!-- mirror:requirements.md#非機能要件:start tokens="60秒以内|20秒以内" -->';
   const END = '<!-- mirror:requirements.md#非機能要件:end -->';
 
+  /** 正本内容に対応する現行の sync-stamp 行（REQ-356）。 */
+  function stamp(source = SOURCE): string {
+    return renderSyncStamp(
+      computeSourceDigest(extractSection(source, '非機能要件') ?? ''),
+    );
+  }
+
   function validate(mirrorContent: string, source = SOURCE): MirrorViolation[] {
     const { regions, violations } = parseMirrorMarkers(
       'architecture.md',
@@ -100,7 +119,7 @@ describe('specs mirror marker contract — drift detection fixtures (REQ-355)', 
 
   it('detects mirror-side drift (正本は 60秒以内・mirror は 90秒以内のまま)', () => {
     const violations = validate(
-      ['## 非機能要件の実現方法', START, '- 処理時間: 90秒以内（実績25.2秒）', '- LLM: P95 20秒以内', END].join('\n'),
+      ['## 非機能要件の実現方法', START, stamp(), '- 処理時間: 90秒以内（実績25.2秒）', '- LLM: P95 20秒以内', END].join('\n'),
     );
     expect(violations).toEqual([
       expect.objectContaining({ kind: 'TOKEN_MISSING_IN_MIRROR' }),
@@ -111,7 +130,7 @@ describe('specs mirror marker contract — drift detection fixtures (REQ-355)', 
   it('detects source-side drift (正本が 90秒以内に更新され mirror が stale)', () => {
     const updatedSource = SOURCE.replace('60秒以内', '90秒以内');
     const violations = validate(
-      ['## 非機能要件の実現方法', START, '- 処理時間: 60秒以内（実績25.2秒）', '- LLM: P95 20秒以内', END].join('\n'),
+      ['## 非機能要件の実現方法', START, stamp(updatedSource), '- 処理時間: 60秒以内（実績25.2秒）', '- LLM: P95 20秒以内', END].join('\n'),
       updatedSource,
     );
     expect(violations).toEqual([
@@ -122,7 +141,7 @@ describe('specs mirror marker contract — drift detection fixtures (REQ-355)', 
 
   it('passes when both sides carry every declared token', () => {
     const violations = validate(
-      ['## 非機能要件の実現方法', START, '- 処理時間: 60秒以内（実績25.2秒）', '- LLM: P95 20秒以内', END].join('\n'),
+      ['## 非機能要件の実現方法', START, stamp(), '- 処理時間: 60秒以内（実績25.2秒）', '- LLM: P95 20秒以内', END].join('\n'),
     );
     expect(violations).toEqual([]);
   });
@@ -172,10 +191,167 @@ describe('specs mirror marker contract — drift detection fixtures (REQ-355)', 
 
   it('section extraction is exact-match (prefix 見出しを誤 hit しない)', () => {
     // 誤って prefix 側（60秒以内のみ）を掴んだら 20秒以内 が source 側で欠落して RED になる
+    const source = '## 非機能要件の実現方法\n- 60秒以内のみ\n\n## 非機能要件\n- 60秒以内・20秒以内\n';
     const violations = validate(
-      ['## 見出し', START, '- 60秒以内', '- 20秒以内', END].join('\n'),
-      '## 非機能要件の実現方法\n- 60秒以内のみ\n\n## 非機能要件\n- 60秒以内・20秒以内\n',
+      ['## 見出し', START, stamp(source), '- 60秒以内', '- 20秒以内', END].join('\n'),
+      source,
     );
     expect(violations).toEqual([]);
+  });
+});
+
+describe('specs mirror contract — sync-stamp fixtures (REQ-356)', () => {
+  const SOURCE = [
+    '## 非機能要件',
+    '',
+    '- NFR-001: 処理時間は60秒以内でなければならない',
+    '- NFR-004: LLM API レスポンス時間の P95 は20秒以内でなければならない',
+    '',
+    '## 次の節',
+  ].join('\n');
+
+  const START =
+    '<!-- mirror:requirements.md#非機能要件:start tokens="60秒以内|20秒以内" -->';
+  const END = '<!-- mirror:requirements.md#非機能要件:end -->';
+
+  function validate(mirrorContent: string, source = SOURCE): MirrorViolation[] {
+    const { regions, violations } = parseMirrorMarkers(
+      'architecture.md',
+      mirrorContent,
+    );
+    return validateMirrorRegions(regions, violations, () => source);
+  }
+
+  it('detects a missing sync-stamp (npm run specs:mirror:sync で挿入されるべき)', () => {
+    const violations = validate(
+      ['## 見出し', START, '- 処理時間: 60秒以内', '- LLM: P95 20秒以内', END].join('\n'),
+    );
+    expect(violations).toEqual([
+      expect.objectContaining({ kind: 'MISSING_SYNC_STAMP' }),
+    ]);
+  });
+
+  it('detects a stale sync-stamp when the source section gained a non-token line (token 検証を素通りする編集でも検出)', () => {
+    const updatedSource = `${SOURCE.replace('## 次の節', '- NFR-999: 1動画あたりコストは$0.10以下（token 未宣言の事実）\n\n## 次の節')}`;
+    const oldStamp = renderSyncStamp(
+      computeSourceDigest(extractSection(SOURCE, '非機能要件') ?? ''),
+    );
+    const violations = validate(
+      ['## 見出し', START, oldStamp, '- 処理時間: 60秒以内', '- LLM: P95 20秒以内', END].join('\n'),
+      updatedSource,
+    );
+    // token は両側に存在する（TOKEN_MISSING_* なし）— stamp だけが正本編集を検出する
+    expect(violations).toEqual([
+      expect.objectContaining({ kind: 'STALE_SYNC_STAMP' }),
+    ]);
+  });
+
+  it('detects duplicate sync-stamp lines', () => {
+    const s = renderSyncStamp(
+      computeSourceDigest(extractSection(SOURCE, '非機能要件') ?? ''),
+    );
+    const violations = validate(
+      ['## 見出し', START, s, s, '- 60秒以内', '- 20秒以内', END].join('\n'),
+    );
+    expect(violations).toEqual([
+      expect.objectContaining({ kind: 'DUPLICATE_SYNC_STAMP' }),
+    ]);
+  });
+
+  it('detects a malformed sync-stamp line', () => {
+    const violations = validate(
+      ['## 見出し', START, '<!-- sync:mirror source-digest="not-hex!" -->', '- 60秒以内', '- 20秒以内', END].join('\n'),
+    );
+    expect(violations).toEqual([
+      expect.objectContaining({ kind: 'MALFORMED_MARKER' }),
+    ]);
+  });
+
+  it('digest normalization ignores trailing whitespace and CRLF noise', () => {
+    // 正規化（行末空白・\r・前後空行）を挟んだ同じ内容は同一 digest → 違反ゼロ
+    const noisy = (extractSection(SOURCE, '非機能要件') ?? '')
+      .split('\n')
+      .map(l => `${l}   `)
+      .join('\r\n');
+    const normalized = renderSyncStamp(computeSourceDigest(noisy));
+    const violations = validate(
+      ['## 見出し', START, normalized, '- 60秒以内', '- 20秒以内', END].join('\n'),
+    );
+    expect(violations).toEqual([]);
+  });
+});
+
+describe('specs mirror sync generator (scripts/sync-mirror-from-requirements.ts / REQ-356)', () => {
+  const SOURCE = [
+    '## 非機能要件',
+    '',
+    '- NFR-001: 処理時間は60秒以内でなければならない',
+    '- NFR-004: LLM API レスポンス時間の P95 は20秒以内でなければならない',
+    '',
+    '## 次の節',
+  ].join('\n');
+
+  const START =
+    '<!-- mirror:requirements.md#非機能要件:start tokens="60秒以内|20秒以内" -->';
+  const END = '<!-- mirror:requirements.md#非機能要件:end -->';
+
+  const currentStamp = () =>
+    renderSyncStamp(
+      computeSourceDigest(extractSection(SOURCE, '非機能要件') ?? ''),
+    );
+
+  it('inserts the current sync-stamp into a stamp-less region and is idempotent', () => {
+    const content = ['## 見出し', START, '- 処理時間: 60秒以内', '- LLM: P95 20秒以内', END].join('\n');
+    const result = syncMirrorStamps('architecture.md', content, () => SOURCE);
+    expect(result.errors).toEqual([]);
+    expect(result.changedRegions).toBe(1);
+    expect(result.content).toContain(currentStamp());
+    // 2 回目は no-op（冪等）— build hook として何度実行しても差分が安定する
+    const second = syncMirrorStamps('architecture.md', result.content, () => SOURCE);
+    expect(second.content).toBe(result.content);
+    expect(second.changedRegions).toBe(0);
+  });
+
+  it('replaces a stale sync-stamp with the current digest (正本更新後の機械再生成)', () => {
+    const stale = renderSyncStamp('000000000000');
+    const content = ['## 見出し', START, stale, '- 60秒以内', '- 20秒以内', END].join('\n');
+    const result = syncMirrorStamps('architecture.md', content, () => SOURCE);
+    expect(result.errors).toEqual([]);
+    expect(result.changedRegions).toBe(1);
+    expect(result.content).not.toContain(stale);
+    expect(result.content).toContain(currentStamp());
+  });
+
+  it('refuses to touch a file with structural violations (fail-loud・偽 sync 防止)', () => {
+    const content = ['## 見出し', START, '- 60秒以内'].join('\n'); // 孤立 start
+    const result = syncMirrorStamps('architecture.md', content, () => SOURCE);
+    expect(result.content).toBe(content);
+    expect(result.changedRegions).toBe(0);
+    expect(result.errors.length).toBeGreaterThan(0);
+  });
+
+  it('skips a region whose source section is missing, leaving content untouched', () => {
+    const content = ['## 見出し', START, '- 60秒以内', END].join('\n');
+    const result = syncMirrorStamps('architecture.md', content, () => '## 別の節\n- 中身\n');
+    expect(result.content).toBe(content);
+    expect(result.changedRegions).toBe(0);
+    expect(result.errors[0]).toContain('## 非機能要件');
+  });
+
+  it('refuses to guess when a region carries duplicate stamps', () => {
+    const s = renderSyncStamp('aaaaaaaaaaaa');
+    const content = ['## 見出し', START, s, s, '- 60秒以内', END].join('\n');
+    const result = syncMirrorStamps('architecture.md', content, () => SOURCE);
+    expect(result.content).toBe(content);
+    expect(result.errors.join('\n')).toContain('sync-stamp 行が 2 個');
+  });
+
+  it('generator output passes the full contract validation（受入検査 = TASK-0249 契約）', () => {
+    // 義務 B 後半の受入条件: generator が再生成した region は
+    // tokens 双方向検証 + sync-stamp 検証を含む契約検証全体を通る
+    const content = ['## 見出し', START, '- 処理時間: 60秒以内', '- LLM: P95 20秒以内', END].join('\n');
+    const generated = syncMirrorStamps('architecture.md', content, () => SOURCE).content;
+    const { regions, violations } = parseMirrorMarkers('architecture.md', generated);
+    expect(validateMirrorRegions(regions, violations, () => SOURCE)).toEqual([]);
   });
 });
