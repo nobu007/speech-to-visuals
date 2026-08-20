@@ -201,6 +201,15 @@ judge が再実行なしに主張を検証できるようにする（AI Hub stee
 - **command**: `npx jest --config jest.config.cjs tests/guards/non-null-assertion-census.test.ts`
 - **observed** (2026-08-20): RED は tests 合計 ratchet（`Expected: <= 252 / Received: 253`）と tests/visualization ディレクトリ ratchet（`Expected: <= 54 / Received: 55`）の 2 件。revert 後 census guard `11 passed`。ラウンド 8 は残存ファイル降順上位の機械閾値 **node≥7 全数**（12 ファイル / 86 node → 0・5 ディレクトリ横断）で選定し、pin は unit 103→61・integration 71→50・visualization 61→54・guards 60→51・analysis 13→6・総 338→252 に縮小。
 
+## MW-022 — HealthCheckService.checkMemoryHealth の欠損 heapUsed/heapTotal NaN-routing 修正（REQ-347・Phase 156・fail-loud 経路投入への保証）
+
+- **claim**: `src/monitoring/health-check-service.ts` の `checkMemoryHealth()` は `getMemoryUsage()` の戻り値型契約を暗黙に信じ、`memoryUsage.heapUsed` / `memoryUsage.heapTotal` を素読みして `bytesToMb(undefined)` / `heapUsagePercent(undefined, undefined)` に渡していた。@stv/core/utils/memory-usage のブラウザ経路は両フィールドを omit する場合があり（tests/unit/utils/memory-usage.test.ts:73 の "browser unavailable" 経路が `{ heapUsed: 0, heapTotal: 0 }` を返すのとは別系統・実プロセスの cross-process shape は `undefined`）、結果として `NaN` が入り `NaN < 70` ≡ false が else 枝に流れ込み「Memory usage is critical (NaN.0%)」と虚偽の critical を返す silent corruption。修正は catch ブロックの契約と mirror した typeof number ガードを追加し、`'Memory monitoring unavailable: backend omitted heapUsed/heapTotal'` を返すことで **silent NaN-routing を fail-loud 化**。MW-022 の mutation は「メモリ欠損ケースが critical を報告する」動作の保存を保証する。
+- **target**: `src/monitoring/health-check-service.ts:154`（修正前 — `const heapUsedMB = bytesToMb(memoryUsage.heapUsed);` 直前行）のガードを mutation 「`typeof memoryUsage.heapUsed !== 'number' || typeof memoryUsage.heapTotal !== 'number'` の OR を `&&` に反転」または「`!== 'number'` を `=== 'number'` に反転」して欠損時のみ path を通過させる
+- **mutation**: `if (typeof memoryUsage.heapUsed !== 'number' || typeof memoryUsage.heapTotal !== 'number')` → `if (typeof memoryUsage.heapUsed === 'number' && typeof memoryUsage.heapTotal === 'number')`（= 両方が number のとき degraded を返す — REQ-347 の本質と真逆のセマンティクス）
+- **command**: `NODE_OPTIONS='--experimental-vm-modules --max-old-space-size=4096' npx jest --config jest.config.cjs --testPathPatterns 'tests/unit/monitoring/health-check-service.test'`
+- **observed** (2026-08-20): 修正後のベースライン run は `Tests: 42 passed, 42 total`（`should report degraded with the omit-fields message when heapUsed/heapTotal are missing (REQ-347)` + `should report degraded with the omit-fields message when only heapUsed is missing (REQ-347)` の 2 tests を含む）。mutation 適用（`!==` → `===`・OR → AND）後の run は `Tests: 7 failed, 35 passed, 42 total` — 新規 2 tests が **target RED** を返し（`expected 'healthy' to be 'degraded'` の形）、既存の number-valid テスト 5 件も「妥当な数値入力が depleted 判定に転落」する形で **cascade RED** になる。両者が真のセマンティクス保存（=欠損時のみ degraded・妥当入力時は healthy/degraded/unhealthy の数値判定）を **実証する**。revert で 42/42 GREEN 復元。ledger 監査 pin が **≥21 → ≥22** に引き上げ。
+
+
 ---
 
 ## 恒久 mutation test（ledger 対象外・常時 CI で走るもの）

@@ -239,6 +239,46 @@ describe('HealthCheckService (REQ-122)', () => {
       const result = await healthCheckService.performHealthCheck();
       expect(result.checks.memory.status).toBe('unhealthy');
     });
+
+    // REQ-347 / TASK-0243 §義務 A — the browser path of
+    // @stv/core/utils/memory-usage omits both heapUsed and heapTotal (see
+    // tests/unit/utils/memory-usage.test.ts:73 — the mocked "browser
+    // unavailable" branch returns `{ heapUsed: 0, heapTotal: 0 }` in
+    // tests, but the real cross-process shape carries `undefined`).
+    // Before this fix, undefined fed into bytesToMb / heapUsagePercent
+    // produced NaN, and `NaN < 70` is `false`, routing every missing
+    // field case to the `else` branch and the spurious "Memory usage is
+    // critical (NaN.0%)" verdict. Verify the fail-loud degraded shape
+    // matches the catch block's contract.
+    test('should report degraded with the omit-fields message when heapUsed/heapTotal are missing (REQ-347)', async () => {
+      mockGetMemoryUsage.mockReturnValueOnce({
+        rss: 0,
+        // heapTotal omitted
+        // heapUsed omitted
+        external: 0,
+        arrayBuffers: 0,
+      });
+      const result = await healthCheckService.performHealthCheck();
+      expect(result.checks.memory.status).toBe('degraded');
+      expect(result.checks.memory.message).toBe(
+        'Memory monitoring unavailable: backend omitted heapUsed/heapTotal'
+      );
+    });
+
+    test('should report degraded with the omit-fields message when only heapUsed is missing (REQ-347)', async () => {
+      mockGetMemoryUsage.mockReturnValueOnce({
+        rss: 0,
+        heapTotal: 536870912,
+        // heapUsed omitted
+        external: 0,
+        arrayBuffers: 0,
+      });
+      const result = await healthCheckService.performHealthCheck();
+      expect(result.checks.memory.status).toBe('degraded');
+      expect(result.checks.memory.message).toBe(
+        'Memory monitoring unavailable: backend omitted heapUsed/heapTotal'
+      );
+    });
   });
 
   // =========================================================================

@@ -151,6 +151,30 @@ class HealthCheckService {
         lastChecked: Date.now(),
       };
     }
+    // Phase-145 (REQ-334) only guarded rss/external (`?? Number.NaN`) and
+    // left heapUsed/heapTotal as plain reads. The browser path of
+    // @stv/core/utils/memory-usage is documented to omit ALL fields
+    // (memory-usage.test.ts line 73), so an omitted backend now feeds
+    // `undefined` straight into bytesToMb / heapUsagePercent — the result
+    // is NaN, and `NaN < 70` is FALSE, which accidentally routes every
+    // missing-field case through the `else` branch and reports "unhealthy"
+    // ("Memory usage is critical (NaN%)"). Mirror the catch block's
+    // fail-loud contract so consumers see the real reason instead of a
+    // fabricated critical state (REQ-347, see specs/speech-to-visuals/
+    // tasks/TASK-0243.md §義務 A).
+    if (typeof memoryUsage.heapUsed !== 'number' || typeof memoryUsage.heapTotal !== 'number') {
+      logger?.warn?.(
+        `[HealthCheck] Memory health check unavailable: backend omitted heapUsed/heapTotal (${
+          memoryUsage.heapUsed === undefined ? 'undefined' : typeof memoryUsage.heapUsed
+        } / ${memoryUsage.heapTotal === undefined ? 'undefined' : typeof memoryUsage.heapTotal})`
+      );
+      return {
+        status: 'degraded',
+        message: 'Memory monitoring unavailable: backend omitted heapUsed/heapTotal',
+        latency: Date.now() - startTime,
+        lastChecked: Date.now(),
+      };
+    }
     const heapUsedMB = bytesToMb(memoryUsage.heapUsed);
     const heapTotalMB = bytesToMb(memoryUsage.heapTotal);
     const usagePercent = heapUsagePercent(memoryUsage.heapUsed, memoryUsage.heapTotal);

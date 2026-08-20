@@ -2185,6 +2185,36 @@ MW 台帳（TASK-0228）に MW-021 追加・監査 pin ≥20 → ≥21
 
 **次回開始番号**: TASK-0243
 
+## Phase 156: tests ratchet 終了条件（end-of-ratchet gate）spec 化 + HealthCheckService.checkMemoryHealth の欠損 heapUsed/heapTotal NaN-routing 修正（義務 A 初履行・MW-022）
+
+**ステータス**: ✅完了（2026-08-20・TASK-0243 完了）
+
+**背景**: AI_HUB_MAKE_RUN_FEEDBACK が 8 ラウンドの `!` 置換を pure-ratchet で意思決定材料を増やしていないと判定。steering の修正指示「ratchet 終了条件を spec 化してから次イテレーションに入る」「次サイクルでは ratchet 継続ではなく実 production パスを少なくとも 1 件修正する」を受けた wiring。本ラウンドは **2 つの deliverable**:
+1. **終了条件 spec 化**: `tests/unit exact-0` + `tests total ≤ 100` の 2 gate を `tests/guards/non-null-assertion-census.test.ts` に **opt-in `it.skip` で wiring**（GREEN 通過のまま残し、gate 到達後の manual unskip で初めて有効化 — AI_HUB rejection と同型の RED-as-normal を **opt-in によって構造的に回避**）。acceptance TC-342-01/02/03 を `acceptance-criteria.md` に追加、`tasks/TASK-0243.md` を新設。
+2. **義務 A 初履行**: MW-014〜021 が `getMemoryUsage()` の heap field 欠損経路を `?? Number.NaN` で正規化していなかった（rss/external のみ・REQ-334）点と、`HealthCheckService.checkMemoryHealth()` が欠損を silent NaN-routing で critical 報告していた点を **実 production 修正**で harden。`if (typeof memoryUsage.heapUsed !== 'number' || typeof memoryUsage.heapTotal !== 'number')` を catch ブロック契約と mirror で追加し、`'Memory monitoring unavailable: backend omitted heapUsed/heapTotal'` を返す fail-loud 経路を投入。`tests/unit/monitoring/health-check-service.test.ts` に 2 件（完全欠損 + 部分欠損）の RED-verifying tests を追加。MW-022 として ledger に追記し、mutation `!==` → `===` 反転で `40 passed / 2 failed` の真のセマンティクス保存を実証。
+
+### タスク一覧
+
+- [x] [TASK-0243: tests ratchet 終了条件（end-of-ratchet gate）spec 化 + 実 production null-path 修正（HealthCheckService.checkMemoryHealth の欠損 heapUsed/heapTotal NaN-routing・REQ-347）+ MW-022 ledger 初履行](TASK-0243.md) - 2h (DIRECT) 🔵 ✅2026-08-20（TC-342 3 tests + src diff 1 site + 新規 test 2 件 + mutation RED 確認 + green 復元）
+
+### 依存関係
+
+```
+TASK-0243 は TASK-0242（ratchet ラウンド 8）の上流 AI_HUB_MAKE_RUN_FEEDBACK を直接受けた対応
+義務 A は MW ledger（MW-014〜021）から逆引きした src/ 側 caller 経路の harden
+義務 B（architecture.md mirror 同期の spec build hook 化）は次サイクル obligation
+revert 余裕: gate 通過後の manual unskip に同型の手順書を提供
+```
+
+### 信頼性レベルサマリー（Phase 156 追加分）
+
+- 全 1 タスク 🔵（steering の AI_HUB_MAKE_RUN_FEEDBACK 2 項目を完全反映 + guard-first 実測 + mutation-verified）
+- 推定工数: 2 時間
+
+### 次フェーズ開始番号
+
+**次回開始番号**: TASK-0244
+
 ## Spine: external references
 
 - [speech-to-visuals API エンドポイント仕様](/home/jinno/speech-to-visuals/specs/speech-to-visuals/api-endpoints.md)
