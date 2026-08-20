@@ -643,8 +643,28 @@ class HealthCheckService {
     // Memory recommendations
     if (checks.memory.status === 'degraded' || checks.memory.status === 'unhealthy') {
       recommendations.push('Consider increasing memory allocation or implementing memory optimization');
-      if (metrics.system.memoryUsagePercent > 85) {
-        recommendations.push('CRITICAL: Memory usage is very high - immediate action required');
+      // REQ-352 (MW-028, Phase 162): the checkXxxHealth guards (REQ-347~351)
+      // close the *verdict* path, but this recommendation gate reads the SAME
+      // snapshot that carries the browser-path omission REQ-347 documented:
+      // `getSnapshot().system.memoryUsagePercent` is NaN when the memory
+      // backend omits heapUsed/heapTotal, and `NaN > 85` is FALSE — the
+      // CRITICAL escalation is then silently suppressed, indistinguishable
+      // from "not high". Surface an explicit unavailable note instead so the
+      // operator sees that criticality was NOT assessed (same fail-loud
+      // contract, applied to the recommendation layer).
+      if (isFiniteMetric(metrics.system.memoryUsagePercent)) {
+        if (metrics.system.memoryUsagePercent > 85) {
+          recommendations.push('CRITICAL: Memory usage is very high - immediate action required');
+        }
+      } else {
+        logger?.warn?.(
+          `[HealthCheck] memoryUsagePercent is non-finite ` +
+            `(${typeof metrics.system.memoryUsagePercent === 'number' ? metrics.system.memoryUsagePercent : 'undefined'})` +
+            ` - memory criticality could not be assessed`
+        );
+        recommendations.push(
+          'WARNING: Memory usage metric unavailable - criticality could not be assessed'
+        );
       }
     }
 
@@ -658,8 +678,23 @@ class HealthCheckService {
     // Pipeline recommendations
     if (checks.pipeline.status === 'degraded') {
       recommendations.push('Pipeline performance degraded - consider optimizing processing stages');
-      if (metrics.pipeline.activeRequests > 10) {
-        recommendations.push('High number of active requests - consider horizontal scaling');
+      // REQ-353 (MW-029, Phase 162): same FALSE-fication pattern as REQ-352 —
+      // `undefined/NaN > 10` is FALSE, so the horizontal-scaling advice is
+      // silently suppressed for an absent signal instead of being reported as
+      // unassessed. Mirror the fail-loud note contract.
+      if (isFiniteMetric(metrics.pipeline.activeRequests)) {
+        if (metrics.pipeline.activeRequests > 10) {
+          recommendations.push('High number of active requests - consider horizontal scaling');
+        }
+      } else {
+        logger?.warn?.(
+          `[HealthCheck] activeRequests is non-finite ` +
+            `(${typeof metrics.pipeline.activeRequests === 'number' ? metrics.pipeline.activeRequests : 'undefined'})` +
+            ` - scaling headroom could not be assessed`
+        );
+        recommendations.push(
+          'WARNING: Active-request count unavailable - scaling headroom could not be assessed'
+        );
       }
     } else if (checks.pipeline.status === 'unhealthy') {
       recommendations.push('CRITICAL: Pipeline experiencing severe issues - immediate investigation required');
@@ -733,14 +768,27 @@ class HealthCheckService {
       const memoryUsage = getMemoryUsage();
       const latency = Date.now() - startTime;
 
-      // System is alive if it can respond within reasonable time
-      const alive = latency < 1000 && memoryUsage.heapUsed > 0;
+      // REQ-354 (MW-030, Phase 162): the memory sanity conjunct
+      // `heapUsed > 0` FALSE-fies on the SAME browser-path omission REQ-347
+      // documented (backend omits heapUsed) and on non-finite values — the
+      // probe then reports alive=false with a LATENCY reason even though the
+      // measured latency was fine, fabricating a dead verdict (a restart
+      // trigger for GET /health/live) out of a missing metric. Treat an
+      // unavailable memory metric as "sanity check skipped" (latency remains
+      // the responsiveness signal) and name the real condition in the reason.
+      const memoryMetricAvailable =
+        typeof memoryUsage.heapUsed === 'number' && Number.isFinite(memoryUsage.heapUsed);
+      const alive = latency < 1000 && (!memoryMetricAvailable || memoryUsage.heapUsed > 0);
 
       return {
         alive,
         reason: alive
-          ? 'System is responsive'
-          : `System responsiveness issue (latency: ${latency}ms)`
+          ? memoryMetricAvailable
+            ? 'System is responsive'
+            : 'System is responsive (memory metric unavailable: backend omitted/non-finite heapUsed)'
+          : latency >= 1000
+            ? `System responsiveness issue (latency: ${latency}ms)`
+            : `Memory sanity check failed (heapUsed=${memoryUsage.heapUsed})`
       };
     } catch (error) {
       return {

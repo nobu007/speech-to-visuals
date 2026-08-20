@@ -251,6 +251,32 @@ judge が再実行なしに主張を検証できるようにする（AI Hub stee
 
 ---
 
+## MW-028 — HealthCheckService.generateRecommendations memory 推奨ゲートの non-finite memoryUsagePercent silent-suppress 修正（REQ-352・Phase 162・checkXxxHealth 横展開・recommendation 層の fail-loud 化）
+
+- **claim**: `src/monitoring/health-check-service.ts` の `generateRecommendations()` は REQ-347〜351 が閉じた *verdict* 経路とは別に、`performHealthCheck` が `realTimeMonitor.getSnapshot()` から取得した `metrics.system.memoryUsagePercent` を素読みして `metrics.system.memoryUsagePercent > 85` の CRITICAL escalation ゲートに使っていた。REQ-347 が documented した browser-path memory 欠損（`getMemoryUsage()` が heapUsed/heapTotal を omit）は snapshot 経路でも到達し、`getSnapshot()` の `roundTo(heapUsagePercent(undefined, undefined), 2)` = NaN（実測: stv-core metrics-utils は NaN を roundTo で素通し）を生む。`NaN > 85` は FALSE に化けるため、memory check が degraded/unhealthy のときでも "CRITICAL: Memory usage is very high - immediate action required" が **「高くない」と区別不可能なまま silently suppress** される（偽 verdict の対極 = 偽 calm。推奨層の silent corruption）。修正は isFiniteMetric ガードで finite のときのみ閾値評価し、non-finite のときは warn log + `'WARNING: Memory usage metric unavailable - criticality could not be assessed'` recommendation で fail-loud 化。
+- **target**: `src/monitoring/health-check-service.ts:655`（修正後 — `if (isFiniteMetric(metrics.system.memoryUsagePercent)) {`）
+- **mutation**: ガードを `if (!isFiniteMetric(metrics.system.memoryUsagePercent))` に反転（= non-finite のとき閾値評価・finite のとき WARNING note — 修正前の silent-suppress セマンティクスと真逆）
+- **command**: `NODE_OPTIONS='--experimental-vm-modules --max-old-space-size=4096' npx jest --config jest.config.cjs --testPathPatterns 'tests/unit/monitoring/health-check-service'`
+- **observed** (2026-08-20・Phase 162 実施時): ベースライン `Tests: 65 passed, 65 total`（REQ-352 の 3 tests = baseline 1 + NaN 1 + omitted 1 を含む。修正前 RED 実測は 5 failed / 60 passed・Phase 162 の 3 REQ 分）。mutation 適用後 `Tests: 3 failed, 62 passed, 65 total` — NaN/omit の 2 tests が **target RED**（WARNING note が消え `NaN > 85` の silent suppress に逆戻り）、baseline test（finite 90 で CRITICAL を期待）が **cascade RED**（finite 入力が WARNING note 判定に転落）。revert で 65/65 GREEN 復元。
+
+## MW-029 — HealthCheckService.generateRecommendations pipeline 推奨ゲートの non-finite activeRequests silent-suppress 修正（REQ-353・Phase 162・recommendation 層の fail-loud 化）
+
+- **claim**: 同じ `generateRecommendations()` 内の pipeline 推奨ゲート `metrics.pipeline.activeRequests > 10` も REQ-352 と同一の FALSE 化パターン（`undefined/NaN > 10` → FALSE）で horizontal-scaling 推奨 `'High number of active requests - consider horizontal scaling'` が silently suppress される。修正は同型の isFiniteMetric ガード + warn log + `'WARNING: Active-request count unavailable - scaling headroom could not be assessed'` note。
+- **target**: `src/monitoring/health-check-service.ts:685`（修正後 — `if (isFiniteMetric(metrics.pipeline.activeRequests)) {`）
+- **mutation**: ガードを `if (!isFiniteMetric(metrics.pipeline.activeRequests))` に反転（= non-finite のとき閾値評価・finite のとき note）
+- **command**: `NODE_OPTIONS='--experimental-vm-modules --max-old-space-size=4096' npx jest --config jest.config.cjs --testPathPatterns 'tests/unit/monitoring/health-check-service'`
+- **observed** (2026-08-20・Phase 162 実施時): mutation 適用後 `Tests: 2 failed, 63 passed, 65 total` — NaN test が **target RED**（note が消える）、baseline test（`activeRequests: 15` で scaling 推奨を期待）が **cascade RED**（finite 入力が note 判定に転落）。revert で 65/65 GREEN 復元。
+
+## MW-030 — HealthCheckService.checkLiveness の heapUsed 欠損/non-finite による fabricated dead verdict 修正（REQ-354・Phase 162・liveness probe の fail-loud 化）
+
+- **claim**: `src/monitoring/health-check-service.ts` の `checkLiveness()` は `alive = latency < 1000 && memoryUsage.heapUsed > 0` の連言で memory sanity check を含めていた。REQ-347 が documented した browser-path 欠損で `heapUsed` が omit（または non-finite）のとき `undefined > 0` / `NaN > 0` は FALSE に化け、**実測 latency が正常でも** alive=false を返す。さらに reason は常に latency を名指しするため（`System responsiveness issue (latency: Xms)`）、実際の原因（memory metric 欠損）を偽って隠す fabricated dead verdict となる — `src/api/routes/health.ts:48` の GET /health/live 消費者では restart 誘発。修正は `memoryMetricAvailable` 判定を導入して unavailable 時は sanity check を skip（latency が responsiveness signal のまま alive とし、reason に `memory metric unavailable: backend omitted/non-finite heapUsed` を明示）+ not-alive reason の原因別誠実化（latency 超過 / `heapUsed ≤ 0`）。
+- **target**: `src/monitoring/health-check-service.ts:781`（修正後 — `const alive = latency < 1000 && (!memoryMetricAvailable || memoryUsage.heapUsed > 0);`）
+- **mutation**: 連言を `latency < 1000 && (memoryMetricAvailable && memoryUsage.heapUsed > 0)` に反転（= memory metric が unavailable のとき必ず dead = 修正前の fabricated dead verdict セマンティクス）
+- **command**: `NODE_OPTIONS='--experimental-vm-modules --max-old-space-size=4096' npx jest --config jest.config.cjs --testPathPatterns 'tests/unit/monitoring/health-check-service'`
+- **observed** (2026-08-20・Phase 162 実施時): mutation 適用後 `Tests: 2 failed, 63 passed, 65 total` — omitted / NaN の 2 tests が **target RED**（alive=true + honest reason ではなく alive=false に逆戻り）。cascade なし — 既存の正常系（`should return alive=true when system is responsive`）は `memoryMetricAvailable=true` で影響を受けず、throw 系（`alive=false on error`）は catch 経由で無関係。revert で 65/65 GREEN 復元。監査 pin **≥27 → ≥30** に引き上げ（MW-028〜030 追加で 27 → 30 エントリ）。
+
+---
+
 ## 恒久 mutation test（ledger 対象外・常時 CI で走るもの）
 
 以下は「一時 mutant → RED 確認 → revert」ではなく mutant を恒久テスト化したもので、

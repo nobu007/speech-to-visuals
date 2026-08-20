@@ -706,6 +706,40 @@ describe('HealthCheckService (REQ-122)', () => {
       expect(result.alive).toBe(false);
       expect(result.reason).toContain('Liveness check failed');
     });
+
+    // ── REQ-354 (MW-030, Phase 162): liveness probe の FALSE 化 ──
+    // `memoryUsage.heapUsed > 0` は undefined/NaN で FALSE に化け、実測 latency は
+    // 正常なのに "System responsiveness issue (latency: Xms)" の偽 reason 付きで
+    // alive=false を返していた（GET /health/live の restart 誘発）。
+    test('should stay alive with the honest unavailable reason when heapUsed is omitted (REQ-354)', async () => {
+      mockGetMemoryUsage.mockReturnValueOnce({
+        rss: 0,
+        heapTotal: 536870912,
+        // heapUsed omitted (browser path — same shape REQ-347 documented)
+        external: 0,
+        arrayBuffers: 0,
+      });
+
+      const result = await healthCheckService.checkLiveness();
+
+      expect(result.alive).toBe(true);
+      expect(result.reason).toContain('memory metric unavailable');
+    });
+
+    test('should stay alive with the honest unavailable reason when heapUsed is non-finite (NaN) (REQ-354)', async () => {
+      mockGetMemoryUsage.mockReturnValueOnce({
+        rss: 0,
+        heapTotal: 536870912,
+        heapUsed: Number.NaN,
+        external: 0,
+        arrayBuffers: 0,
+      });
+
+      const result = await healthCheckService.checkLiveness();
+
+      expect(result.alive).toBe(true);
+      expect(result.reason).toContain('memory metric unavailable');
+    });
   });
 
   // =========================================================================
@@ -774,6 +808,97 @@ describe('HealthCheckService (REQ-122)', () => {
       const result = await healthCheckService.performHealthCheck();
       const criticalRecs = result.recommendations.filter((r: string) => r.includes('CRITICAL'));
       expect(criticalRecs.length).toBeGreaterThan(0);
+    });
+
+    // ── REQ-352 (MW-028, Phase 162): generateRecommendations 横展開 ──
+    // `metrics.system.memoryUsagePercent > 85` は NaN/undefined で FALSE に化け、
+    // "CRITICAL: Memory usage is very high" が「高くない」と区別不可能なまま
+    // silently suppress される（checkMemoryHealth の REQ-347 ガードと同じ
+    // browser omit 起点が snapshot 経路で残っていた）。
+    test('should push CRITICAL memory recommendation when snapshot memoryUsagePercent > 85 (REQ-352 baseline)', async () => {
+      getMemoryUsage.mockReturnValue({
+        rss: 536870912,
+        heapTotal: 536870912,
+        heapUsed: 503316480, // ~94% → memory check unhealthy
+        external: 8388608,
+        arrayBuffers: 4194304,
+      });
+      realTimeMonitor.getSnapshot.mockReturnValue({
+        ...defaultSnapshot,
+        system: { ...defaultSnapshot.system, memoryUsagePercent: 90 },
+      });
+
+      const result = await healthCheckService.performHealthCheck();
+      expect(result.checks.memory.status).toBe('unhealthy');
+      expect(result.recommendations).toContain('CRITICAL: Memory usage is very high - immediate action required');
+      expect(result.recommendations).not.toContain('WARNING: Memory usage metric unavailable - criticality could not be assessed');
+    });
+
+    test('should surface the unavailable note instead of silently suppressing the memory CRITICAL assessment when memoryUsagePercent is non-finite (NaN) (REQ-352)', async () => {
+      getMemoryUsage.mockReturnValue({
+        rss: 536870912,
+        heapTotal: 536870912,
+        heapUsed: 429496730, // ~80% → memory check degraded
+        external: 8388608,
+        arrayBuffers: 4194304,
+      });
+      realTimeMonitor.getSnapshot.mockReturnValue({
+        ...defaultSnapshot,
+        system: { ...defaultSnapshot.system, memoryUsagePercent: Number.NaN },
+      });
+
+      const result = await healthCheckService.performHealthCheck();
+      expect(result.checks.memory.status).toBe('degraded');
+      // 修正前: NaN > 85 は FALSE → CRITICAL が「高くない」と区別不可能に suppress
+      expect(result.recommendations).toContain('WARNING: Memory usage metric unavailable - criticality could not be assessed');
+      expect(result.recommendations).not.toContain('CRITICAL: Memory usage is very high - immediate action required');
+    });
+
+    test('should surface the unavailable note when snapshot memoryUsagePercent is omitted (REQ-352)', async () => {
+      getMemoryUsage.mockReturnValue({
+        rss: 536870912,
+        heapTotal: 536870912,
+        heapUsed: 429496730, // ~80% → memory check degraded
+        external: 8388608,
+        arrayBuffers: 4194304,
+      });
+      realTimeMonitor.getSnapshot.mockReturnValue({
+        ...defaultSnapshot,
+        system: {
+          ...defaultSnapshot.system,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          memoryUsagePercent: undefined as any,
+        },
+      });
+
+      const result = await healthCheckService.performHealthCheck();
+      expect(result.recommendations).toContain('WARNING: Memory usage metric unavailable - criticality could not be assessed');
+    });
+
+    // ── REQ-353 (MW-029, Phase 162): generateRecommendations 横展開 ──
+    // `metrics.pipeline.activeRequests > 10` も同一の FALSE 化パターン。
+    test('should push the scaling recommendation when activeRequests > 10 (REQ-353 baseline)', async () => {
+      realTimeMonitor.getSnapshot.mockReturnValue({
+        ...defaultSnapshot,
+        pipeline: { ...defaultSnapshot.pipeline, successRate: 0.85, activeRequests: 15 },
+      });
+
+      const result = await healthCheckService.performHealthCheck();
+      expect(result.checks.pipeline.status).toBe('degraded');
+      expect(result.recommendations).toContain('High number of active requests - consider horizontal scaling');
+      expect(result.recommendations).not.toContain('WARNING: Active-request count unavailable - scaling headroom could not be assessed');
+    });
+
+    test('should surface the unavailable note instead of silently suppressing the scaling assessment when activeRequests is non-finite (NaN) (REQ-353)', async () => {
+      realTimeMonitor.getSnapshot.mockReturnValue({
+        ...defaultSnapshot,
+        pipeline: { ...defaultSnapshot.pipeline, successRate: 0.85, activeRequests: Number.NaN },
+      });
+
+      const result = await healthCheckService.performHealthCheck();
+      expect(result.checks.pipeline.status).toBe('degraded');
+      expect(result.recommendations).toContain('WARNING: Active-request count unavailable - scaling headroom could not be assessed');
+      expect(result.recommendations).not.toContain('High number of active requests - consider horizontal scaling');
     });
   });
 

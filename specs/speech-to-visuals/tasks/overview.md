@@ -2353,6 +2353,39 @@ MW-024〜026 補填は Phase 158〜160 commit が台帳登録を怠っていた�
 
 **次回開始番号**: TASK-0248
 
+## Phase 162: HealthCheckService NaN-routing fail-loud 化の generateRecommendations・checkLiveness 横展開（REQ-352〜354・MW-028〜030）
+
+**ステータス**: ✅完了（2026-08-20・TASK-0248 完了・**実装 + specs を単一 commit に同梱**）
+
+**背景**: AI_HUB_MAKE_RUN_FEEDBACK の横展開指示。checkXxxHealth 系全完（Phase 158〜161）を受け、`realTimeMonitor.getSnapshot()` の consumer 全数（useAdminAnalytics・adaptive-quality-gates・checkPerformanceHealth・API verdict 層を含む）を scan し 3 hit を fail-loud 化:
+1. **generateRecommendations memory ゲート（REQ-352）**: `memoryUsagePercent > 85` の FALSE 化で CRITICAL escalation が「高くない」と区別不可能のまま silent suppress
+2. **generateRecommendations pipeline ゲート（REQ-353）**: `activeRequests > 10` の同一パターンで scaling 推奨が silent suppress
+3. **checkLiveness の fabricated dead verdict（REQ-354）**: `alive = latency < 1000 && heapUsed > 0` の連言で heapUsed 欠損時に **latency 正常でも alive=false**・reason は常に latency を名指し（GET /health/live 消費者で restart 誘発）
+
+no-hit の根拠（p95 は recordMetric の sanitizeFinite chokepoint・checkPerformanceHealth は trend 文字列のみ・API verdict は PerformanceDashboard 別 chain）と deferred 候補（adaptive-quality-gates の sticky threshold 汚染・PerformanceDashboard `cacheHitRate || 0`）は TASK-0248.md §scan 結果に table 化。
+
+### タスク一覧
+
+- [x] [TASK-0248: HealthCheckService generateRecommendations/checkLiveness の NaN-routing fail-loud 横展開（REQ-352〜354）+ MW-028〜030](TASK-0248.md) - 1.5h (DIRECT) 🔵 ✅2026-08-20（src diff 3 site + 新規 test 7 件 + 修正前 RED 5/60 実測 + mutation 3/2/2 failed 実測 + 監査 pin ≥27→≥30 + REQ/TC/TASK/MW/overview を同一 commit 同梱）
+
+### 依存関係
+
+```
+TASK-0248 は Phase 158〜161（REQ-347〜351）の isFiniteMetric パターンを getSnapshot consumer 全数へ横展開
+  — checkXxxHealth 系の policing は限界収穫という steering の判断どおり consumer scan ベースに移行
+Phase 158〜160 の教訓（specs 同期の分離が債務化）を受け、本 Phase から実装 + specs を単一 commit に同梱
+  （link:spine は本 repo に不存在 — ai-hub 側 script。相当物 = overview.md の同 commit 更新）
+義務 B（marker 契約）は TASK-0248 §残存 obligation に引き続き最優先として明記
+```
+
+### 信頼性レベルサマリー（Phase 162 追加分）
+
+- 全 1 タスク 🔵（scan 結果の全 consumer table 化 + 修正前 RED 5 件実測 + MW 3 エントリの mutation observed 実測 + pin 引き上げ GREEN 62/62）
+
+### 次フェーズ開始番号
+
+**次回開始番号**: TASK-0249
+
 ## Spine: external references
 
 - [speech-to-visuals API エンドポイント仕様](/home/jinno/speech-to-visuals/specs/speech-to-visuals/api-endpoints.md)

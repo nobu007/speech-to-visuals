@@ -22,8 +22,8 @@ import { join } from 'node:path';
 const REPO_ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const LEDGER = join(REPO_ROOT, 'specs/speech-to-visuals/mutation-witness-ledger.md');
 
-/** Ledger entries shipped with Phase 141 (6) + Phase 142 (MW-007) + Phase 143 (MW-008) + Phase 144 (MW-009) + Phase 145 (MW-010) + Phase 146 (MW-011) + Phase 147 (MW-012, MW-013) + Phase 148 (MW-014) + Phase 149 (MW-015) + Phase 150 (MW-016) + Phase 151 (MW-017) + Phase 152 (MW-018) + Phase 153 (MW-019) + Phase 154 (MW-020) + Phase 155 (MW-021) + Phase 156 (MW-022) + Phase 157 (MW-023) + Phase 161 backfill (MW-024 Phase 158, MW-025 Phase 159, MW-026 Phase 160, MW-027 Phase 161). Increases are fine; decreases fail. */
-const PINNED_MIN_ENTRIES = 27;
+/** Ledger entries shipped with Phase 141 (6) + Phase 142 (MW-007) + Phase 143 (MW-008) + Phase 144 (MW-009) + Phase 145 (MW-010) + Phase 146 (MW-011) + Phase 147 (MW-012, MW-013) + Phase 148 (MW-014) + Phase 149 (MW-015) + Phase 150 (MW-016) + Phase 151 (MW-017) + Phase 152 (MW-018) + Phase 153 (MW-019) + Phase 154 (MW-020) + Phase 155 (MW-021) + Phase 156 (MW-022) + Phase 157 (MW-023) + Phase 161 backfill (MW-024 Phase 158, MW-025 Phase 159, MW-026 Phase 160, MW-027 Phase 161) + Phase 162 (MW-028, MW-029, MW-030). Increases are fine; decreases fail. */
+const PINNED_MIN_ENTRIES = 30;
 const REQUIRED_CLAIMS = ['TC-205-04', 'TC-214-02', 'TC-304-04'];
 
 interface Entry {
