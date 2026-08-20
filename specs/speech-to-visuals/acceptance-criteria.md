@@ -5939,6 +5939,13 @@
 - [x] **TC-349-03**: mutation-verified で真逆セマンティクス保存が実証されていること — mutation（連言反転: `alive = latency < 1000 && (memoryMetricAvailable && memoryUsage.heapUsed > 0)` = memory metric が unavailable のとき必ず dead と判定 = 修正前の偽 verdict セマンティクス）適用後の run が `Tests: 2 failed, 63 passed, 65 total`（target RED 2・cascade なし — 既存の正常系は memoryMetricAvailable=true で影響不受）を返すこと。revert で GREEN 復元・MW-030 エントリが台帳に追加されること 🔵
   - **再検証コマンド**: `NODE_OPTIONS='--experimental-vm-modules --max-old-space-size=4096' npx jest --config jest.config.cjs --testPathPatterns 'tests/unit/monitoring/health-check-service|tests/guards/mutation-witness-ledger'`（2 suites / 65 + pin30 GREEN）
 
+### TC-350: specs mirror marker 契約（義務 B 前半）の drift 検出（REQ-355・Phase 163・TASK-0249）
+
+- [x] **TC-350-01**: mirror marker 契約が適用され real specs tree が zero-viololation であること — `specs/speech-to-visuals/architecture.md` §非機能要件の実現方法 が `<!-- mirror:requirements.md#非機能要件:start tokens="60秒以内|25.2秒|2秒以内|0.5倍|37-45 FPS|20秒以内|環境変数|express-rate-limit|Helmet|Supabase" -->` … `<!-- mirror:requirements.md#非機能要件:end -->` で囲まれ、`tests/guards/specs-mirror-contract.test.ts` の real-tree test が `specs/speech-to-visuals/*.md` 全体で violation ゼロを検証すること。10 トークンは正本節（requirements.md §非機能要件）と mirror region の両方に verbatim 存在することが手動検証済みであること（REQ-355）🔵
+- [x] **TC-350-02**: drift 検出ロジック自体が fixture で検証されていること — 同 test の fixture describe が（a）mirror 側 drift（正本 60秒以内・mirror 90秒以内 → `TOKEN_MISSING_IN_MIRROR`）、（b）source 側 drift（正本が 90秒以内に更新され mirror が stale → `TOKEN_MISSING_IN_SOURCE`）、（c）孤立 start / 孤立 end、（d）nest、（e）空 region、（f）正本ファイル欠落 / 節欠落、（g）節抽出の完全一致（prefix 見出し `## 非機能要件の実現方法` を誤 hit しない）の各 case を検出できること。契約自体の presence pin（architecture.md ↔ requirements.md#非機能要件 の region と 10 トークン配列の完全一致）も含まれ、marker 削除・tokens 縮小で RED になること（REQ-355）🔵
+- [x] **TC-350-03**: mutation-verified で drift 検出が実証されていること — mutation（mirror region 内 `60秒以内（実績25.2秒）` → `90秒以内（実績25.2秒）` = 正本更新が mirror に未伝播の典型 drift）適用後の run が `Tests: 1 failed, 11 passed, 12 total`（real-tree zero-violation test が `TOKEN_MISSING_IN_MIRROR` 1 violation で target RED）を返すこと。revert で 12/12 GREEN 復元・MW-031 エントリが台帳に追加され監査 pin が **≥30 → ≥31** に引き上げられること（REQ-355）🔵
+  - **再検証コマンド**: `NODE_OPTIONS='--experimental-vm-modules --max-old-space-size=4096' npx jest --config jest.config.cjs --testPathPatterns 'specs-mirror-contract|mutation-witness-ledger'`（2 suites / 12 + pin31 GREEN）
+
 
 
 ### Phase 111+ 受け入れ基準サマリー

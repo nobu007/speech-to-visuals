@@ -107,8 +107,8 @@
 
 ## タスク番号管理
 
-**使用済みタスク番号**: TASK-0001 ~ TASK-0240（Phase 131: TASK-0217、Phase 132: TASK-0218〜0222、Phase 140: TASK-0223〜0225、Phase 141: TASK-0226〜0228、Phase 142: TASK-0229、Phase 143: TASK-0230、Phase 144: TASK-0231、Phase 145: TASK-0232、Phase 146: TASK-0233、Phase 147: TASK-0234、Phase 148: TASK-0235、Phase 149: TASK-0236、Phase 150: TASK-0237、Phase 151: TASK-0238、Phase 152: TASK-0239、Phase 153: TASK-0240）
-**次回開始番号**: TASK-0241
+**使用済みタスク番号**: TASK-0001 ~ TASK-0249（Phase 131: TASK-0217、Phase 132: TASK-0218〜0222、Phase 140: TASK-0223〜0225、Phase 141: TASK-0226〜0228、Phase 142: TASK-0229、Phase 143: TASK-0230、Phase 144: TASK-0231、Phase 145: TASK-0232、Phase 146: TASK-0233、Phase 147: TASK-0234、Phase 148: TASK-0235、Phase 149: TASK-0236、Phase 150: TASK-0237、Phase 151: TASK-0238、Phase 152: TASK-0239、Phase 153: TASK-0240、Phase 154: TASK-0241、Phase 155: TASK-0242、Phase 156: TASK-0243、Phase 157〜159: TASK-0244〜0246、Phase 161: TASK-0247、Phase 162: TASK-0248、Phase 163: TASK-0249）
+**次回開始番号**: TASK-0250
 
 > **REQ 番号帯（Phase 140 決定）**: REQ-313〜322 は acceptance-criteria の TC 帯（TC-313〜321 実在・TC-322 は未 merge PR #9 提案中）との番号衝突回避のため予約（未使用）。機能要件は REQ-323 から、TC は TC-323 から採番する（REQ-326/TC-323 が適用例）。
 
@@ -2385,6 +2385,39 @@ Phase 158〜160 の教訓（specs 同期の分離が債務化）を受け、本 
 ### 次フェーズ開始番号
 
 **次回開始番号**: TASK-0249
+
+## Phase 163: specs mirror marker 契約の定義と guard による機械強制（REQ-355・義務 B 前半・MW-031）
+
+**ステータス**: ✅完了（2026-08-20・TASK-0249 完了・実装 + specs を単一 commit に同梱）
+
+**背景**: TASK-0243 §義務 B（requirements.md 正本 ↔ architecture.md mirror の手作業 sync の機械化）のうち、TASK-0247 が固定した DoD の「marker 契約先行」を履行。Phase 158〜161 の specs 債務（同期分離で台帳に穴）と ai-hub link:spine drift（正典 child 追加時の children ブロック再生成が作業 commit から漏れる）はともに「sync 状態が機械検査されていない」ことが根因 — 契約 + `tests/guards/` による CI 強制を先行させ、generator（義務 B 後半・TASK-0250）の出力受入検証に使う。
+
+**成果物**:
+1. mirror marker 契約（`<!-- mirror:<正本>#<節>:start tokens="…" -->` … `:end`）を定義し architecture.md §非機能要件の実現方法 に適用（10 トークン双方向 verbatim 検証）
+2. `tests/guards/specs-mirror-contract.{ts,test.ts}` — 純関数 parser/validator + 12 tests（real tree zero-violation・presence pin・fixture 10 種 = mirror/source 両 drift・孤立・nest・空 region・欠落・節抽出完全一致）
+3. MW-031: mirror 内 `60秒以内` → `90秒以内` 変異で **1 failed / 11 passed** 実測 + revert GREEN 復元・監査 pin ≥30→≥31・ledger guard target regex `(src|tests)` → `(src|tests|specs)` 拡張
+4. steering 指示の getSnapshot scan は Phase 162 実施済みを再確認（PerformanceDashboard chain は finite-by-construction で no-hit と close — TASK-0249.md §steering 指示への対応 に table 化）
+
+### タスク一覧
+
+- [x] [TASK-0249: specs mirror marker 契約の定義と guard による機械強制（REQ-355・義務 B 前半・MW-031）](TASK-0249.md) - 1.5h (DIRECT) 🔵 ✅2026-08-20（guard 12 tests + MW-031 mutation observed 実測 + pin ≥30→≥31 + REQ/TC/TASK/MW/overview を同一 commit 同梱）
+
+### 依存関係
+
+```
+TASK-0249 は TASK-0243 §義務 B の前半（marker 契約）— TASK-0247 が固定した DoD の順序どおり契約を先行
+義務 B 後半（TASK-0250）: sync-mirror-from-requirements generator + npm script + manifest hook 配線
+  — 本 guard が generator 出力の受入検査になる（契約固定により generator は region 再生成のみに専念可）
+mirror 対象は「真の mirror」のみ（信頼性レベル分布↔サマリーは母集団が違う・技術的制約は PIPELINE_FLOW.md 出典）— 偽 sync を避ける設計判断
+```
+
+### 信頼性レベルサマリー（Phase 163 追加分）
+
+- 全 1 タスク 🔵（契約適用前に 10 トークン両側 verbatim 存在の手動検証 + real-tree/fixture/presence pin の 3 層 test + MW-031 observed 実測）
+
+### 次フェーズ開始番号
+
+**次回開始番号**: TASK-0250
 
 ## Spine: external references
 

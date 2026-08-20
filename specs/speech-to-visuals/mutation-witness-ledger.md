@@ -275,6 +275,14 @@ judge が再実行なしに主張を検証できるようにする（AI Hub stee
 - **command**: `NODE_OPTIONS='--experimental-vm-modules --max-old-space-size=4096' npx jest --config jest.config.cjs --testPathPatterns 'tests/unit/monitoring/health-check-service'`
 - **observed** (2026-08-20・Phase 162 実施時): mutation 適用後 `Tests: 2 failed, 63 passed, 65 total` — omitted / NaN の 2 tests が **target RED**（alive=true + honest reason ではなく alive=false に逆戻り）。cascade なし — 既存の正常系（`should return alive=true when system is responsive`）は `memoryMetricAvailable=true` で影響を受けず、throw 系（`alive=false on error`）は catch 経由で無関係。revert で 65/65 GREEN 復元。監査 pin **≥27 → ≥30** に引き上げ（MW-028〜030 追加で 27 → 30 エントリ）。
 
+## MW-031 — specs mirror marker 契約（義務 B 前半）の drift 検出保証（REQ-355・Phase 163・TASK-0249・requirements.md 正本 ↔ architecture.md mirror の機械 sync）
+
+- **claim**: 義務 B（TASK-0243 §義務 B → TASK-0247 §残存 obligation で DoD concrete 化・TASK-0248 §残存 obligation で「未着手の最優先」）の前半として、`specs/speech-to-visuals/architecture.md` §非機能要件の実現方法（mirror）↔ `specs/speech-to-visuals/requirements.md` §非機能要件（正本）の二重管理に **marker 契約**（`<!-- mirror:requirements.md#非機能要件:start tokens="…" -->` … `:end -->`）を導入した。tokens（60秒以内・25.2秒・2秒以内・0.5倍・37-45 FPS・20秒以内・環境変数・express-rate-limit・Helmet・Supabase の 10 verbatim トークン）は正本節と mirror region の**両方**に存在しなければならず、片側でも欠ければ `tests/guards/specs-mirror-contract.test.ts` が RED になる。Phase 158〜161 で繰り返した specs 債務クラス（実装 commit が specs 同期を漏らし後から一括補填）と ai-hub link:spine drift が作業 commit から漏れた構造問題を「契約違反のまま commit すると CI RED」に変える。MW-031 の mutation は「正本は 60秒以内のまま mirror 側だけ 90秒以内に書き換わる drift」（= 正本更新が mirror に未伝播の典型形）を検出することを保証する。
+- **target**: `specs/speech-to-visuals/architecture.md:630`（`<!-- mirror:requirements.md#非機能要件:start tokens="60秒以内|…" -->` — 10 トークン宣言）
+- **mutation**: mirror region 内の `- **エンドツーエンド処理時間**: 60秒以内（実績25.2秒）` を `90秒以内（実績25.2秒）` に書き換え（= トークン "60秒以内" が mirror 側から消失する drift）
+- **command**: `NODE_OPTIONS='--experimental-vm-modules --max-old-space-size=4096' npx jest --config jest.config.cjs --testPathPatterns 'specs-mirror-contract'`
+- **observed** (2026-08-20・Phase 163 実施時): mutation 適用後 `Tests: 1 failed, 11 passed, 12 total` — real specs tree の zero-viololation test が **target RED**（`TOKEN_MISSING_IN_MIRROR` 1 violation・detail がトークン "60秒以内" を名指し）。fixture 系 10 tests（drift 検出ロジック自体の正しさ）と contract presence pin は影響を受けず GREEN。revert で 12/12 GREEN 復元。監査 pin **≥30 → ≥31** に引き上げ（MW-031 追加で 30 → 31 エントリ）。
+
 ---
 
 ## 恒久 mutation test（ledger 対象外・常時 CI で走るもの）

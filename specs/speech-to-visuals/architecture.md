@@ -627,6 +627,11 @@ Fallback LLM
 
 ## 非機能要件の実現方法
 
+<!-- mirror:requirements.md#非機能要件:start tokens="60秒以内|25.2秒|2秒以内|0.5倍|37-45 FPS|20秒以内|環境変数|express-rate-limit|Helmet|Supabase" -->
+<!-- TASK-0249 / REQ-355 mirror 契約: この marker で囲まれた領域は requirements.md §非機能要件（正本）の
+     事実を prose で言い換えた mirror。tokens は正本と本 region の両方に verbatim 存在しなければならず、
+     どちらかが欠けたら tests/guards/specs-mirror-contract.test.ts が RED になる（MW-031）。 -->
+
 ### パフォーマンス 🔵
 
 **信頼性**: 🔵 *QUALITY_METRICS.md §2-3・PIPELINE_FLOW.md より*
@@ -727,6 +732,8 @@ spec整合性の自動検証システム:
   - `remotion-nan-guards.test.ts`（248行）: EdgeAnimation・Video・scene-synchronizer・rendererのNaN/Infinity回帰テスト
   - `video-overlay-integration.test.ts`（58行拡張）: VideoオーバーレイのNaN durationMs統合テスト
   - `semantic-similarity.test.ts`（23行拡張）: SemanticMetricsTrackerのNaNスコアフィルタリング検証
+
+<!-- mirror:requirements.md#非機能要件:end -->
 
 ## 技術的制約
 
