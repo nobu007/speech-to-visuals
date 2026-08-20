@@ -79,6 +79,15 @@ export interface MirrorParseResult {
   violations: MirrorViolation[];
 }
 
+/** start marker を読んだ直後〜対応する end marker までの region の作業状態。 */
+interface OpenMirrorRegion {
+  sourceFile: string;
+  section: string;
+  tokens: string[];
+  startLine: number;
+  bodyLines: string[];
+}
+
 const START_RE =
   /^<!--\s*mirror:([^#\s]+)#([^:]+):start(?:\s+tokens="([^"]*)")?\s*-->$/;
 const END_RE = /^<!--\s*mirror:([^#\s]+)#([^:]+):end\s*-->$/;
@@ -96,13 +105,13 @@ export function parseMirrorMarkers(
   // CRLF 安全化: 行末 \r が marker の $ マッチを壊さないようにする
   const lines = content.split('\n').map(l => l.replace(/\r$/, ''));
 
-  let open: {
-    sourceFile: string;
-    section: string;
-    tokens: string[];
-    startLine: number;
-    bodyLines: string[];
-  } | null = null;
+  // 未閉鎖 region の hold。`= null` initializer を付けると CFA が closure 内の
+  // 代入を見られず（forEach callback でのみ代入される）外側の read を
+  // `null` 狭化のまま固定し、ループ後の `if (open)` truthy 分岐を `never` に
+  // 落とす（TS2339）。initializer なし + 宣言型に undefined を含める holder
+  // なら read は宣言型のまま narrow され TS2454 も発火しない（Phase 168 の
+  // `.catch()` holder と同じ gotcha 家系）。
+  let open: OpenMirrorRegion | undefined;
 
   lines.forEach((line, idx) => {
     const lineNumber = idx + 1;
@@ -165,7 +174,7 @@ export function parseMirrorMarkers(
         endLine: lineNumber,
         body,
       });
-      open = null;
+      open = undefined;
       return;
     }
 

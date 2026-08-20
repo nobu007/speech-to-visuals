@@ -25,9 +25,12 @@ import { CostEfficiencyResult } from '@/pipeline/cost-efficiency-metrics';
 
 // ── Helpers ────────────────────────────────────────────────────
 
-function requireDefined<T>(value: T | undefined, label: string): T {
-  if (value === undefined) {
-    throw new Error(`${label} returned undefined`);
+// `T | undefined` だけだと nullable field（`costComparison` 等）で T に `| null`
+// まで推論され戻り値が possibly-null になる（TS18047・MW-037 mutation (c) で
+// RED 実測）。null も捕捉する fail-loud 形が正解。
+function requireDefined<T>(value: T | null | undefined, label: string): T {
+  if (value === null || value === undefined) {
+    throw new Error(`${label} returned null/undefined`);
   }
   return value;
 }

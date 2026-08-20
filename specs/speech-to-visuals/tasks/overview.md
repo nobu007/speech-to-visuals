@@ -2575,11 +2575,42 @@ typed optional field の `x!.f as T` は `x?.f` + guard で cast ごと削除（
 
 ### 信頼性レベルサマリー（Phase 168 追加分）
 
-- 全 1 タスク 🔵（触 16 suites / 3216 tests + guards 76 suites / 3237 tests GREEN + census 14/14 + MW-036 4 独立 mutation 同時 RED 実測）
+- 全 1 タスク 🔵（触 16 suites / 3216 tests + guards 76 suites / 3241 tests GREEN + census 14/14 + MW-036 4 独立 mutation 同時 RED 実測）
 
 ### 次フェーズ開始番号
 
 **次回開始番号**: TASK-0255
+
+
+## Phase 169: tests tree strict lock-in 完結 — tsconfig.test baseline 14 → 0 + type-check:tests CI gate 化（REQ-363・MW-037）
+
+**ステータス**: ✅完了（2026-08-21・TASK-0255 完了・実装 + specs を単一 commit に同梱・**TASK-0224 の strict lock-in 完結**）
+
+**背景**: TASK-0224（tsconfig.test.json から strict 系 false 削除・真 baseline 156 露出）以降 Phase 148〜168 の `!` 撲滅で 14 まで減少していた tests tree の tsc error が (1) 残存したまま (2) CI type-check job は `tsconfig.app.json`（src のみ）しか検査しないため **CI から不可視** だった。義務 C 完結後の ratchet 系残件は本項のみ（TASK-0254 §残存 obligation 筆頭）。
+
+**実装**:
+
+- baseline 14 → **0**（3 家系）: (a) closure 内のみ代入の holder への `= null` initializer 再剔除（`open`・`captured`・`receivedReport`）— `= null` は CFA を null 狭化に固定し TS2339×3/TS18047×6・initializer なしだけでは宣言型に undefined が無いと TS2454 が発火（Phase 168 `.catch()` holder idiom の完結形: **initializer なし + 宣言型に `undefined`**）(b) requireDefined を `T | null | undefined` に widen（pipeline-health-score・null 素通しの潜在穴も同時閉塞）(c) census checker は `import type * as TS` で型のみ静的 import（CJS 読み込みは createRequire 維持）+ `isParameter` 分岐除去 — parameter `!:` は TS1005/TS1138 parse error で言語仕様上存在せず実行時も常に非カウントの dead detector だった
+- CI gate 配線: `package.json` に `type-check:tests` 追加・ci.yml type-check job 同一 step で実行（elapsed 両方込み・実測 23.5s ≪ 480s 予算）— baseline 14 回帰が main push/PR で捕捉される
+- MW-037: 3 mutation（`= null` 再注入 ×2・requireDefined 狭化復帰）で 4+3+2 error の独立 RED 実測 → revert 0 error GREEN 復元・監査 pin ≥36 → ≥37
+
+**タスク**:
+
+- [x] [TASK-0255: tsconfig.test baseline 14 → 0 + type-check:tests CI gate 化（REQ-363・MW-037）](TASK-0255.md) - 2h (DIRECT) 🔵 ✅2026-08-21（tsc 両 config 0・検証 pattern 9 suites / 234 tests + guards 76 suites / 3241 tests GREEN・MW-037 3 mutation 独立 RED 実測 + pin ≥36→≥37 + REQ/TC/TASK/MW/overview を同一 commit 同梱）
+
+```
+closure 内のみ代入の holder: `= null` は CFA null 固定（TS2339/TS18047）・initializer なしだけでは TS2454 — 「initializer なし + 宣言型に undefined」が完結形
+ParameterDeclaration に exclamationToken は無い — parameter `!:` は TS1005/TS1138 parse error。実行時常に非カウントの分岐は dead detector なので除去が正解
+CI type-check job が src しか見ない間は tests tree baseline は不可視 — 撲滅と同時に gate 配線しないと再び静かに増える
+```
+
+### 信頼性レベルサマリー（Phase 169 追加分）
+
+- 全 1 タスク 🔵（検証 pattern 9 suites / 234 tests + guards 76 suites / 3241 tests GREEN + tsc 両 config 0 + MW-037 3 独立 mutation RED 実測）
+
+### 次フェーズ開始番号
+
+**次回開始番号**: TASK-0256
 
 
 ## Spine: external references

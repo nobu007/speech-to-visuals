@@ -432,11 +432,14 @@ import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import { join, relative, sep } from 'node:path';
+// Type-only: erased at compile time, so the CJS `typescript` package still
+// loads exclusively through createRequire below (jest --experimental-vm-modules).
+import type * as TS from 'typescript';
 
 const require = createRequire(import.meta.url);
 // `typescript` ships CJS; createRequire keeps the import ESM-safe under
 // jest --experimental-vm-modules.
-const ts = require('typescript') as typeof import('typescript');
+const ts = require('typescript') as typeof TS;
 
 const REPO_ROOT = fileURLToPath(new URL('../../', import.meta.url));
 
@@ -627,7 +630,11 @@ function walk(dir: string, files: string[] = []): string[] {
 
 /**
  * AST-based assertion census: every `NonNullExpression` (`x!`) plus every
- * definite-assignment `!:` on a property / variable / parameter declaration.
+ * definite-assignment `!:` on a property / variable declaration (a parameter
+ * can never carry one — `constructor(private x!: T)` is a parse error
+ * (TS1005/TS1138) and `ParameterDeclaration` has no `exclamationToken` in
+ * the TS 5.9 AST, so a former `isParameter` arm here was dead by language
+ * design, never a live detector).
  * Comments, string content and JSX text are invisible to the parser, so the
  * historical regex false positives are gone by construction. `countInText`
  * is split out so the liveness test can drive the SAME scanner over a
@@ -638,16 +645,16 @@ function countInText(text: string, file: string): string[] {
   const hits: string[] = [];
   const scriptKind = file.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS;
   const sourceFile = ts.createSourceFile(file, text, ts.ScriptTarget.ES2022, /*setParentNodes*/ false, scriptKind);
-  const record = (node: ts.Node, kind: string): void => {
+  const record = (node: TS.Node, kind: string): void => {
     const { line } = sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile));
     const textOfLine = text.split('\n')[line]?.trim() ?? '';
     hits.push(`${file.replace(REPO_ROOT, '')}:${line + 1} [${kind}]: ${textOfLine.slice(0, 80)}`);
   };
-  const visit = (node: ts.Node): void => {
+  const visit = (node: TS.Node): void => {
     if (ts.isNonNullExpression(node)) {
       record(node, 'x!');
     } else if (
-      (ts.isPropertyDeclaration(node) || ts.isVariableDeclaration(node) || ts.isParameter(node)) &&
+      (ts.isPropertyDeclaration(node) || ts.isVariableDeclaration(node)) &&
       node.exclamationToken !== undefined
     ) {
       record(node, 'x!:');

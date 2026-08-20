@@ -113,6 +113,9 @@ jobs:
         run: |
           START=$(date +%s)
           npm run type-check
+          # tests tree（src+tests+supabase）— Phase 169 / REQ-363 で baseline 14 → 0
+          # にした strict 検査を CI gate 化（TASK-0224 の lock-in 完結）。
+          npm run type-check:tests
           END=$(date +%s)
           ELAPSED=$((END - START))
           echo "elapsed_seconds=$ELAPSED" >> $GITHUB_OUTPUT

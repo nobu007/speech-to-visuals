@@ -42,7 +42,12 @@ describe('reportCorruption frozen-object robustness', () => {
   });
 
   it('handler receives a report with all required fields', () => {
-    let captured: CorruptionReport | null = null;
+    // `= null` は付けない: closure 内でしか代入されない変数に initializer を
+    // 付けると CFA が read を null 狭化のまま固定し requireDefined の T を
+    // `null` に崩す（TS18047・MW-037 で再注入 mutation が 4 error RED なのを
+    // 実測済み）。initializer なし + 宣言型に undefined を含めれば宣言型が
+    // 伝播し TS2454 も発火しない。
+    let captured: CorruptionReport | undefined;
     setCorruptionHandler((r) => {
       captured = r;
     });

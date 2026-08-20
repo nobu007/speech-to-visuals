@@ -243,7 +243,10 @@ describe('reportCorruption TOCTOU boundary tests', () => {
       const midnight = new Date('2026-01-01T00:00:00.000Z').getTime();
       jest.useFakeTimers({ now: midnight });
 
-      let receivedReport: CorruptionReport | null = null;
+      // `= null` は付けない（closure 内のみ代入の変数への initializer は CFA を
+      // null 狭化に固定し requireDefined の T を崩す — TS18047）。宣言型に
+      // undefined を含めれば TS2454 も発火しない。
+      let receivedReport: CorruptionReport | undefined;
       setCorruptionHandler((r) => {
         receivedReport = r;
       });

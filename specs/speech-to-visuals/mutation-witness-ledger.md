@@ -323,7 +323,17 @@ judge が再実行なしに主張を検証できるようにする（AI Hub stee
 - **target**: `tests/pipeline/pipeline-health-score.test.ts:267` / `tests/quality/quality-gate.test.ts:251` / `tests/analysis/semantic-similarity.test.ts:150` / `tests/spine-manifest.test.ts:492`
 - **mutation**: (a) `expect(bnRec.priority).toBe('high');` → `expect(bnRec!.priority).toBe('high');`（pipeline・Phase-168 rewrite への単発 `!` 再注入）・(b) `expect(continuity.passed).toBe(true);` → `expect(continuity!.passed).toBe(true);`（quality・同）・(c) `expect(result.data).toBe('fox');` → `expect(result!.data).toBe('fox');`（analysis・同）・(d) `expect(children[0].path).toBe('acceptance-criteria.md');` → `expect(children![0].path).toBe('acceptance-criteria.md');`（(root) bucket・同）
 - **command**: 各 mutation 適用後に `NODE_OPTIONS='--experimental-vm-modules --max-old-space-size=4096' npx jest --config jest.config.cjs --testPathPatterns 'non-null-assertion-census'`
-- **observed** (2026-08-21・Phase 168 実施時): (a)(b)(c)(d) とも census 2 failed / 12 passed — directory ratchet `Expected: <= 0 / Received: 1` と tests-total ratchet `Expected: <= 0 / Received: 1` の**同時 RED**。各 revert で census 14/14 GREEN 復元・触 14 ファイル 16 suites / 3216 tests + guards 76 suites / 3237 tests GREEN。監査 pin **≥35 → ≥36** に引き上げ（MW-036 追加で 35 → 36 エントリ）。
+- **observed** (2026-08-21・Phase 168 実施時): (a)(b)(c)(d) とも census 2 failed / 12 passed — directory ratchet `Expected: <= 0 / Received: 1` と tests-total ratchet `Expected: <= 0 / Received: 1` の**同時 RED**。各 revert で census 14/14 GREEN 復元・触 14 ファイル 16 suites / 3216 tests + guards 76 suites / 3241 tests GREEN。監査 pin **≥35 → ≥36** に引き上げ（MW-036 追加で 35 → 36 エントリ）。
+
+---
+
+## MW-037 — tsconfig.test baseline 14 → 0 後の type-check:tests gate teeth（REQ-363・Phase 169・TASK-0255）
+
+- **claim**: TASK-0224 が露出させた `tsc -p tsconfig.test.json --noEmit` の baseline 14（Phase 148〜168 で 156 → 14 まで減少）を全数撲滅し、CI type-check job に `type-check:tests` を配線して tests tree の strict 検査を **CI gate 化** する（それまで CI は `tsconfig.app.json`（src のみ）しか検査せず baseline 14 は CI から不可視だった）。残存 14 は 3 家系: (a) closure 内のみ代入の holder への `= null` initializer が CFA を null 狭化に固定（`open` は truthy 分岐を `never` に落とし TS2339×3・`captured`/`receivedReport` は `requireDefined` の T を `null` に崩し TS18047×6）・(b) `T | undefined` だけの requireDefined が nullable field で戻り値を possibly-null（TS18047×2）・(c) census checker の値 import `ts` を型位置に使用（TS2503×2）+ `ParameterDeclaration` に存在しない `exclamationToken` 参照（TS2339×1 — parameter への `!:` は TS1005/TS1138 parse error で言語仕様上存在せず、当該分岐は実行時も常に非カウントの dead detector だった）。MW-037 の mutation は撲滅の 3 家系それぞれへの**再注入**が `tsc -p tsconfig.test.json` で独立に RED になる実 teeth を実証する。
+- **target**: `tests/unit/utils/report-corruption-frozen.test.ts:50` / `tests/guards/specs-mirror-contract.ts:114` / `tests/unit/pipeline/pipeline-health-score.test.ts:31`
+- **mutation**: (a) `let captured: CorruptionReport | undefined;` → `let captured: CorruptionReport | null = null;`（holder initializer 再注入）・(b) `let open: OpenMirrorRegion | undefined;` → `let open: OpenMirrorRegion | null | undefined = null;`（同）・(c) `requireDefined<T>(value: T | null | undefined, …)` → `requireDefined<T>(value: T | undefined, …)` に狭化復帰
+- **command**: 各 mutation 適用後に `node_modules/.bin/tsc -p tsconfig.test.json --noEmit`（CI では `npm run type-check:tests` として同一 step で走る）
+- **observed** (2026-08-21・Phase 169 実施時): (a) **TS18047×4**（`'received' is possibly 'null'`・行 57-60）・(b) **TS2339×3**（`Property 'startLine'/'sourceFile'/'section' does not exist on type 'never'`・行 189）・(c) **TS18047×2**（`'costComparison' is possibly 'null'`・行 436-437）の独立 RED。各 revert で 0 error GREEN 復元・検証 pattern 9 suites / 234 tests + guards 76 suites / 3241 tests GREEN・`tsc -p tsconfig.app.json` 0 error 不変。監査 pin **≥36 → ≥37** に引き上げ（MW-037 追加で 36 → 37 エントリ）。
 
 ---
 
