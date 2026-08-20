@@ -109,10 +109,14 @@ describe('findSceneAtTime – NaN durationMs guard', () => {
       makeScene({ id: 's2', durationMs: 5000, startMs: 0 }),
     ];
     const result = findSceneAtTime(scenes, 2000);
-    // Should find s2 because s1 has 0 duration (NaN→0)
-    expect(result).not.toBeNull();
-    expect(result!.scene.id).toBe('s2');
-    expect(Number.isFinite(result!.timeInScene)).toBe(true);
+    // Should find s2 because s1 has 0 duration (NaN→0). Fail-loud
+    // capture: the throw replaces the redundant `not.toBeNull()` pair
+    // (Phase 168 / REQ-362).
+    if (result === null) {
+      throw new Error('expected findSceneAtTime to return scene s2');
+    }
+    expect(result.scene.id).toBe('s2');
+    expect(Number.isFinite(result.timeInScene)).toBe(true);
   });
 });
 

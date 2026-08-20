@@ -11,9 +11,24 @@ import {
   scoreToGrade,
   generateRecommendations,
 } from '@/pipeline/pipeline-health-score';
+import type { HealthRecommendation } from '@/pipeline/pipeline-health-score';
 import type { BottleneckReport } from '@/pipeline/bottleneck-detector';
 import type { RegressionReport } from '@/pipeline/performance-regression-detector';
 import type { CostEfficiencyResult } from '@/pipeline/cost-efficiency-metrics';
+
+// Fail-loud capture over `recs.find(r => r.category === …)` — the throw
+// replaces the redundant `toBeDefined()` pair and keeps the RED verdict
+// naming the missing category (Phase 168 / REQ-362).
+function requireRecommendation(
+  recs: HealthRecommendation[],
+  category: string,
+): HealthRecommendation {
+  const found = recs.find(r => r.category === category);
+  if (found === undefined) {
+    throw new Error(`recommendation not found for category: ${category}`);
+  }
+  return found;
+}
 
 // ── scoreToGrade ─────────────────────────────────────────────────────
 
@@ -248,10 +263,9 @@ describe('generateRecommendations', () => {
       null,
     );
     expect(recs.length).toBeGreaterThanOrEqual(1);
-    const bnRec = recs.find(r => r.category === 'bottleneck');
-    expect(bnRec).toBeDefined();
-    expect(bnRec!.priority).toBe('high');
-    expect(bnRec!.message).toContain('analysis');
+    const bnRec = requireRecommendation(recs, 'bottleneck');
+    expect(bnRec.priority).toBe('high');
+    expect(bnRec.message).toContain('analysis');
   });
 
   test('recommends performance fix for regression', () => {
@@ -260,9 +274,8 @@ describe('generateRecommendations', () => {
       makeRegressionReport(true),
       null,
     );
-    const perfRec = recs.find(r => r.category === 'performance');
-    expect(perfRec).toBeDefined();
-    expect(perfRec!.message).toContain('layout');
+    const perfRec = requireRecommendation(recs, 'performance');
+    expect(perfRec.message).toContain('layout');
   });
 
   test('recommends cost review for cost regression', () => {
@@ -280,9 +293,8 @@ describe('generateRecommendations', () => {
       makeRegressionReport(false),
       comparison,
     );
-    const costRec = recs.find(r => r.category === 'cost');
-    expect(costRec).toBeDefined();
-    expect(costRec!.priority).toBe('high');
+    const costRec = requireRecommendation(recs, 'cost');
+    expect(costRec.priority).toBe('high');
   });
 
   test('recommends token optimization for token regression', () => {
@@ -301,8 +313,10 @@ describe('generateRecommendations', () => {
       comparison,
     );
     const tokenRec = recs.find(r => r.category === 'cost' && r.message.includes('Token'));
-    expect(tokenRec).toBeDefined();
-    expect(tokenRec!.priority).toBe('medium');
+    if (tokenRec === undefined) {
+      throw new Error('token-optimization recommendation not found for category: cost');
+    }
+    expect(tokenRec.priority).toBe('medium');
   });
 
   test('returns multiple recommendations when multiple issues exist', () => {

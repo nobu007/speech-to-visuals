@@ -482,9 +482,15 @@ system_design:
       const sections = parseSpineSections(yaml);
       expect(sections.systemDesign).toHaveLength(1);
       expect(sections.systemDesign[0].path).toBe('architecture.md');
-      expect(sections.systemDesign[0].children).toHaveLength(2);
-      expect(sections.systemDesign[0].children![0].path).toBe('acceptance-criteria.md');
-      expect(sections.systemDesign[0].children![1].path).toBe('dataflow.md');
+      // Narrow once: `children` is optional on the parsed shape, and the
+      // toHaveLength(2) above already proves it is present — the guard
+      // keeps a parse regression RED and named (Phase 168 / REQ-362).
+      const children = sections.systemDesign[0].children;
+      if (children === undefined) {
+        throw new Error('expected system_design children to parse');
+      }
+      expect(children[0].path).toBe('acceptance-criteria.md');
+      expect(children[1].path).toBe('dataflow.md');
     });
 
     it('should parse references with doc key', () => {

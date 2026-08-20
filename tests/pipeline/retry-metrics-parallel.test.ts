@@ -239,7 +239,14 @@ describe('ExtendedPipelineMetrics totalRetryAttempts', () => {
       totalRetryAttempts: 3,
     };
     expect(metrics.totalRetryAttempts).toBe(3);
-    expect(metrics.stageTimings![1].retryAttempts).toBe(2);
-    expect(metrics.stageTimings![2].retryAttempts).toBe(1);
+    // Optional field on ExtendedPipelineMetrics — narrow once instead of
+    // asserting it away; the throw keeps the RED verdict if the literal
+    // above ever drops the assignment (Phase 168 / REQ-362).
+    const stageTimings = metrics.stageTimings;
+    if (stageTimings === undefined) {
+      throw new Error('expected metrics to carry stageTimings');
+    }
+    expect(stageTimings[1].retryAttempts).toBe(2);
+    expect(stageTimings[2].retryAttempts).toBe(1);
   });
 });

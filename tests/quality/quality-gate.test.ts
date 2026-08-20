@@ -7,7 +7,25 @@ import {
   QualityGateEvaluator,
   createDefaultQualityGates,
 } from '@/quality/quality-gate';
-import type { QualityGateConfig } from '@/quality/quality-gate';
+import type {
+  QualityGateConfig,
+  StageCriterionResult,
+  StageEvaluationResult,
+} from '@/quality/quality-gate';
+
+// Fail-loud capture over `results.find(r => r.criterionName === …)` —
+// an absent criterion keeps the RED verdict and names it (Phase 168 /
+// REQ-362; same idiom as tests/unit/quality/quality-gate.test.ts).
+function requireCriterionResult(
+  evaluation: StageEvaluationResult,
+  criterionName: string,
+): StageCriterionResult {
+  const found = evaluation.results.find(r => r.criterionName === criterionName);
+  if (found === undefined) {
+    throw new Error(`criterion result not found: ${criterionName}`);
+  }
+  return found;
+}
 
 describe('StageQualityGate', () => {
   const passCriterion = {
@@ -119,8 +137,8 @@ describe('QualityGateEvaluator', () => {
         noiseLevelDb: -40,
       });
       expect(result.passed).toBe(false);
-      const durationResult = result.results.find(r => r.criterionName === 'audioDuration');
-      expect(durationResult!.passed).toBe(false);
+      const durationResult = requireCriterionResult(result, 'audioDuration');
+      expect(durationResult.passed).toBe(false);
     });
 
     test('fails when sampleRate < 16000', () => {
@@ -130,8 +148,8 @@ describe('QualityGateEvaluator', () => {
         noiseLevelDb: -40,
       });
       expect(result.passed).toBe(false);
-      const rateResult = result.results.find(r => r.criterionName === 'sampleRate');
-      expect(rateResult!.passed).toBe(false);
+      const rateResult = requireCriterionResult(result, 'sampleRate');
+      expect(rateResult.passed).toBe(false);
     });
 
     test('fails when noise level >= -30dB', () => {
@@ -141,8 +159,8 @@ describe('QualityGateEvaluator', () => {
         noiseLevelDb: -20,
       });
       expect(result.passed).toBe(false);
-      const noiseResult = result.results.find(r => r.criterionName === 'noiseLevel');
-      expect(noiseResult!.passed).toBe(false);
+      const noiseResult = requireCriterionResult(result, 'noiseLevel');
+      expect(noiseResult.passed).toBe(false);
     });
   });
 
@@ -217,8 +235,8 @@ describe('QualityGateEvaluator', () => {
         segments: [],
       });
       expect(result.passed).toBe(false);
-      const overlapResult = result.results.find(r => r.criterionName === 'zeroOverlap');
-      expect(overlapResult!.passed).toBe(false);
+      const overlapResult = requireCriterionResult(result, 'zeroOverlap');
+      expect(overlapResult.passed).toBe(false);
     });
 
     test('timeline continuity passes with continuous segments', () => {
@@ -229,8 +247,8 @@ describe('QualityGateEvaluator', () => {
           { startMs: 1000, endMs: 2000 },
         ],
       });
-      const continuity = result.results.find(r => r.criterionName === 'timelineContinuity');
-      expect(continuity!.passed).toBe(true);
+      const continuity = requireCriterionResult(result, 'timelineContinuity');
+      expect(continuity.passed).toBe(true);
     });
 
     test('timeline continuity fails with gaps > 100ms', () => {
@@ -241,8 +259,8 @@ describe('QualityGateEvaluator', () => {
           { startMs: 1000, endMs: 2000 },  // 500ms gap
         ],
       });
-      const continuity = result.results.find(r => r.criterionName === 'timelineContinuity');
-      expect(continuity!.passed).toBe(false);
+      const continuity = requireCriterionResult(result, 'timelineContinuity');
+      expect(continuity.passed).toBe(false);
     });
   });
 

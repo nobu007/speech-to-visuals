@@ -67,8 +67,20 @@ const MEMBERSHIP: Array<{ cp: string; label: string; kana: boolean; ideograph: b
 ];
 
 describe('unicode-script-ranges preset membership', () => {
+  // Fail-loud capture over `codePointAt(0): number | undefined` — every
+  // membership row is a single code point, so the throw keeps a malformed
+  // fixture row RED and named instead of asserting it away
+  // (Phase 168 / REQ-362).
+  function requireCodePoint(cp: string): number {
+    const code = cp.codePointAt(0);
+    if (code === undefined) {
+      throw new Error(`membership row has an empty code point: ${cp}`);
+    }
+    return code;
+  }
+
   test.each(MEMBERSHIP)('$label $cp', row => {
-    const code = row.cp.codePointAt(0)!;
+    const code = requireCodePoint(row.cp);
     expect(charInRanges(code, KANA_RANGES)).toBe(row.kana);
     expect(charInRanges(code, CJK_IDEOGRAPH_RANGES)).toBe(row.ideograph);
     expect(charInRanges(code, JAPANESE_TEXT_RANGES)).toBe(row.japanese);
@@ -77,7 +89,7 @@ describe('unicode-script-ranges preset membership', () => {
   });
 
   test('presets nest: kana+ideograph ⊂ japanese ⊂ token ⊂ wide', () => {
-    const all = [...MEMBERSHIP.map(m => m.cp.codePointAt(0)!)];
+    const all = MEMBERSHIP.map(m => requireCodePoint(m.cp));
     for (const code of all) {
       const ja = charInRanges(code, JAPANESE_TEXT_RANGES);
       if (ja) {

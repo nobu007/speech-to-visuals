@@ -107,7 +107,7 @@
 
 ## タスク番号管理
 
-**使用済みタスク番号**: TASK-0001 ~ TASK-0253（Phase 131: TASK-0217、Phase 132: TASK-0218〜0222、Phase 140: TASK-0223〜0225、Phase 141: TASK-0226〜0228、Phase 142: TASK-0229、Phase 143: TASK-0230、Phase 144: TASK-0231、Phase 145: TASK-0232、Phase 146: TASK-0233、Phase 147: TASK-0234、Phase 148: TASK-0235、Phase 149: TASK-0236、Phase 150: TASK-0237、Phase 151: TASK-0238、Phase 152: TASK-0239、Phase 153: TASK-0240、Phase 154: TASK-0241、Phase 155: TASK-0242、Phase 156: TASK-0243、Phase 157〜159: TASK-0244〜0246、Phase 161: TASK-0247、Phase 162: TASK-0248、Phase 163: TASK-0249、Phase 164: TASK-0250、Phase 165: TASK-0251、Phase 166: TASK-0252、Phase 167: TASK-0253)
+**使用済みタスク番号**: TASK-0001 ~ TASK-0253（Phase 131: TASK-0217、Phase 132: TASK-0218〜0222、Phase 140: TASK-0223〜0225、Phase 141: TASK-0226〜0228、Phase 142: TASK-0229、Phase 143: TASK-0230、Phase 144: TASK-0231、Phase 145: TASK-0232、Phase 146: TASK-0233、Phase 147: TASK-0234、Phase 148: TASK-0235、Phase 149: TASK-0236、Phase 150: TASK-0237、Phase 151: TASK-0238、Phase 152: TASK-0239、Phase 153: TASK-0240、Phase 154: TASK-0241、Phase 155: TASK-0242、Phase 156: TASK-0243、Phase 157〜159: TASK-0244〜0246、Phase 161: TASK-0247、Phase 162: TASK-0248、Phase 163: TASK-0249、Phase 164: TASK-0250、Phase 165: TASK-0251、Phase 166: TASK-0252、Phase 167: TASK-0253、Phase 168: TASK-0254)
 **次回開始番号**: TASK-0252
 
 > **REQ 番号帯（Phase 140 決定）**: REQ-313〜322 は acceptance-criteria の TC 帯（TC-313〜321 実在・TC-322 は未 merge PR #9 提案中）との番号衝突回避のため予約（未使用）。機能要件は REQ-323 から、TC は TC-323 から採番する（REQ-326/TC-323 が適用例）。
@@ -2546,6 +2546,40 @@ typed optional field の `x!.f as T` は `x?.f` + guard で cast ごと削除（
 ### 次フェーズ開始番号
 
 **次回開始番号**: TASK-0254
+
+
+## Phase 168: 義務 C 最終ゲート 残存 9 ディレクトリ 36 ノード撲滅 + 全 pin 集約 + ratchet 終了条件 active 化（REQ-362・MW-036）
+
+**ステータス**: ✅完了（2026-08-21・TASK-0254 完了・実装 + specs を単一 commit に同梱・**義務 C 完結**）
+
+**背景**: TASK-0243 が定義した義務 C の最終段階 — 第1ゲート（unit exact-0・Phase 165）・第2ゲート（total ≤ 100・Phase 167）通過後の残存 36 ノードを全数撲滅し、TASK-0243 が予告した「14 ディレクトリ個別 pin → tests 全体 exact-0 pin 集約」と ratchet 終了条件 3 ケース（TC-342-01 で it.skip 予定だったが guard 未実装のままだった — `git log -S "stillRoom" -- tests/` 空）の active 化を 1 commit に閉じる。
+
+**実装**:
+
+- 残存 9 dir 14 ファイル 36 ノード → 0（pipeline 11・quality 9・analysis 6・api 2・lib 2・remotion 2・(root) 2・acceptance 1・config 1）
+- fail-loud idiom: `requireCriterionResult`/`requireRecommendation`/`requireWorstBottleneck`/generic `requireBreaker<T>`/`requireMatch<T>`/`requireCodePoint` のファイル内 helper・optional field の one-shot narrowing guard・冗長 `toBeDefined`/`not.toBeNull` の labeled throw 畳込み
+- census pin 集約: `TESTS_DIR_PINS` 14 エントリ全て 0・`PINNED['tests (excl. __mocks__)']` 36 → **0** — **src と tests の両 tree が exact-0**
+- 終了条件 3 ケースを active 形式で guard に実装（total ≤ 100 / unit = 0 / `stillRoom === false`）— 「manual unskip 登火」の実体
+- vacuity check 入れ替え: 両 tree 0 で `count > 0` check は恒常 RED 化するため `countInText` を切り出し、`x!`/`x!:` 2 hit + string/comment 内 decoy 非カウントの fixture liveness test に置換
+- MW-036: 4 mutation（pipeline/quality/analysis/(root) 各 1 `!` 再注入）で dir ratchet 0→1 と total 0→1 の同時 RED 実測・監査 pin ≥35 → ≥36
+
+**タスク**:
+
+- [x] [TASK-0254: 義務 C 最終ゲート 残存 9 ディレクトリ 36 ノード exact-0 + 全 pin 集約 + ratchet 終了条件の active 化（REQ-362・MW-036）](TASK-0254.md) - 3h (DIRECT) 🔵 ✅2026-08-21（触 14 ファイル 16 suites / 3216 tests GREEN・guards 76 suites GREEN・tsc baseline 14 不変・MW-036 4 mutation 同時 RED 実測 + pin ≥35→≥36 + REQ/TC/TASK/MW/overview を同一 commit 同梱）
+
+```
+終了条件は it.skip→manual unskip でなく active GREEN として直接実装 — 両ゲート通過済みなら skip 儀式は RED-as-normal-state を生まない dead weight
+両 tree 0 で旧 vacuity check（count > 0）は恒常 RED — counting を countInText に切り出し fixture liveness（decoy 非カウント）で置換
+新規 `!` は dir ratchet × total ratchet（src なら + whole-src pin）の 3 重即 RED — ratchet 系の残は tsconfig.test baseline 14 のみ
+```
+
+### 信頼性レベルサマリー（Phase 168 追加分）
+
+- 全 1 タスク 🔵（触 16 suites / 3216 tests + guards 76 suites / 3237 tests GREEN + census 14/14 + MW-036 4 独立 mutation 同時 RED 実測）
+
+### 次フェーズ開始番号
+
+**次回開始番号**: TASK-0255
 
 
 ## Spine: external references

@@ -24,6 +24,18 @@ import {
   classifyBottleneck,
   detectBottlenecks,
 } from '@/pipeline/bottleneck-detector';
+import type { BottleneckInfo, BottleneckReport } from '@/pipeline/bottleneck-detector';
+
+// Fail-loud capture over the nullable `report.worstBottleneck` — the throw
+// replaces the redundant `not.toBeNull()` pair (Phase 168 / REQ-362; same
+// idiom as tests/pipeline/bottleneck-detector.test.ts).
+function requireWorstBottleneck(report: BottleneckReport): BottleneckInfo {
+  const worst = report.worstBottleneck;
+  if (worst === null) {
+    throw new Error('expected report to carry a worstBottleneck');
+  }
+  return worst;
+}
 
 // ── Test Case 1: Parallel execution produces same results as sequential ──
 
@@ -169,9 +181,9 @@ describe('TASK-0143: Bottleneck detection', () => {
 
     const report = detectBottlenecks(stages);
     expect(report.hasBottleneck).toBe(true);
-    expect(report.worstBottleneck).not.toBeNull();
-    expect(report.worstBottleneck!.stageName).toBe('analysis');
-    expect(report.worstBottleneck!.severity).toBe('warning');
+    const worst = requireWorstBottleneck(report);
+    expect(worst.stageName).toBe('analysis');
+    expect(worst.severity).toBe('warning');
     expect(report.summary).toContain('analysis');
   });
 
@@ -183,7 +195,7 @@ describe('TASK-0143: Bottleneck detection', () => {
 
     const report = detectBottlenecks(stages);
     expect(report.hasBottleneck).toBe(true);
-    expect(report.worstBottleneck!.severity).toBe('critical');
+    expect(requireWorstBottleneck(report).severity).toBe('critical');
   });
 
   test('no stage over 40% → no bottleneck', () => {
@@ -196,7 +208,7 @@ describe('TASK-0143: Bottleneck detection', () => {
     // 4000/10000 = 40% → warning
     const report = detectBottlenecks(stages);
     expect(report.hasBottleneck).toBe(true);
-    expect(report.worstBottleneck!.stageName).toBe('c');
+    expect(requireWorstBottleneck(report).stageName).toBe('c');
   });
 
   test('classifyBottleneck returns correct severities', () => {

@@ -25,6 +25,27 @@ beforeAll(async () => {
   globalErrorRecovery = mod.globalErrorRecovery;
 });
 
+// Structural shape of the private circuitBreakers map entries the
+// breaker-transition tests cast `recovery` into.
+interface BreakerShape {
+  state: 'closed' | 'open' | 'half-open';
+  failureCount: number;
+  successCount: number;
+  lastFailureTime: number;
+  timeout: number;
+  threshold: number;
+}
+
+// Fail-loud capture over `circuitBreakers.get(stage)` — same generic
+// `requireBreaker` idiom as Phase 155 (tests/unit/quality/
+// error-recovery-health-tracker.test.ts), naming the missing stage
+// (Phase 168 / REQ-362).
+function requireBreaker<T>(breakers: Map<string, T>, stage: string): T {
+  const breaker = breakers.get(stage);
+  if (breaker === undefined) throw new Error(`expected a circuit breaker for stage "${stage}"`);
+  return breaker;
+}
+
 describe('EnhancedErrorRecovery', () => {
   let recovery: InstanceType<typeof EnhancedErrorRecovery>;
 
@@ -1208,18 +1229,11 @@ describe('EnhancedErrorRecovery', () => {
 
     test('should transition from open to half-open after timeout', () => {
       const rec = recovery as unknown as {
-        circuitBreakers: Map<string, {
-          state: 'closed' | 'open' | 'half-open';
-          failureCount: number;
-          successCount: number;
-          lastFailureTime: number;
-          timeout: number;
-          threshold: number;
-        }>;
+        circuitBreakers: Map<string, BreakerShape>;
         evaluateCircuitBreakers: () => void;
       };
 
-      const breaker = rec.circuitBreakers.get('animation')!;
+      const breaker = requireBreaker(rec.circuitBreakers, 'animation');
 
       // Open the breaker
       breaker.state = 'open';
@@ -1233,18 +1247,11 @@ describe('EnhancedErrorRecovery', () => {
 
     test('should transition from half-open to closed after 3 successes', () => {
       const rec = recovery as unknown as {
-        circuitBreakers: Map<string, {
-          state: 'closed' | 'open' | 'half-open';
-          failureCount: number;
-          successCount: number;
-          lastFailureTime: number;
-          timeout: number;
-          threshold: number;
-        }>;
+        circuitBreakers: Map<string, BreakerShape>;
         evaluateCircuitBreakers: () => void;
       };
 
-      const breaker = rec.circuitBreakers.get('transcription')!;
+      const breaker = requireBreaker(rec.circuitBreakers, 'transcription');
 
       // Set to half-open with 3 successes
       breaker.state = 'half-open';
@@ -1260,18 +1267,11 @@ describe('EnhancedErrorRecovery', () => {
 
     test('should transition from half-open to open on failure in half-open', () => {
       const rec = recovery as unknown as {
-        circuitBreakers: Map<string, {
-          state: 'closed' | 'open' | 'half-open';
-          failureCount: number;
-          successCount: number;
-          lastFailureTime: number;
-          timeout: number;
-          threshold: number;
-        }>;
+        circuitBreakers: Map<string, BreakerShape>;
         evaluateCircuitBreakers: () => void;
       };
 
-      const breaker = rec.circuitBreakers.get('segmentation')!;
+      const breaker = requireBreaker(rec.circuitBreakers, 'segmentation');
 
       // Set to half-open with a failure
       breaker.state = 'half-open';

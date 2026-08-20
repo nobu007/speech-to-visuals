@@ -371,9 +371,13 @@ describe('parseJsonFromLLMText: error when unparseable', () => {
     } catch (err) {
       const message = (err as Error).message;
       const previewMatch = message.match(/Preview: (.*)$/);
-      expect(previewMatch).not.toBeNull();
+      // Fail-loud capture: the throw replaces the redundant
+      // `not.toBeNull()` pair (Phase 168 / REQ-362).
+      if (previewMatch === null) {
+        throw new Error('expected error message to carry a Preview: segment');
+      }
       // Preview should be <= 300 chars (after newline replacement)
-      expect(previewMatch![1].length).toBeLessThanOrEqual(300);
+      expect(previewMatch[1].length).toBeLessThanOrEqual(300);
     }
   });
 

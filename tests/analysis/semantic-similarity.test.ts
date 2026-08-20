@@ -10,6 +10,15 @@ import {
   SemanticMetricsTracker,
 } from '@/analysis/semantic-similarity';
 
+// Fail-loud capture over the `| null` return of findMostSimilar — the
+// throw replaces the redundant `not.toBeNull()` pair (Phase 168 / REQ-362).
+function requireMatch<T>(match: { text: string; data: T; similarity: number } | null) {
+  if (match === null) {
+    throw new Error('expected findMostSimilar to return a match');
+  }
+  return match;
+}
+
 // ========================================
 // calculateSemanticSimilarity
 // ========================================
@@ -137,9 +146,8 @@ describe('findMostSimilar', () => {
   ];
 
   it('finds the best matching candidate', () => {
-    const result = findMostSimilar('quick brown fox', candidates);
-    expect(result).not.toBeNull();
-    expect(result!.data).toBe('fox');
+    const result = requireMatch(findMostSimilar('quick brown fox', candidates));
+    expect(result.data).toBe('fox');
   });
 
   it('returns null when no candidate meets threshold', () => {
@@ -153,9 +161,8 @@ describe('findMostSimilar', () => {
   });
 
   it('returns best match from multiple qualifying candidates', () => {
-    const result = findMostSimilar('the quick brown fox', candidates);
-    expect(result).not.toBeNull();
-    expect(result!.similarity).toBeGreaterThan(0);
+    const result = requireMatch(findMostSimilar('the quick brown fox', candidates));
+    expect(result.similarity).toBeGreaterThan(0);
   });
 
   it('clamps negative threshold to 0', () => {
@@ -165,10 +172,9 @@ describe('findMostSimilar', () => {
   });
 
   it('clamps threshold above 1 to 1', () => {
-    const result = findMostSimilar('hello', [{ text: 'hello', data: 1 }], 5);
+    const result = requireMatch(findMostSimilar('hello', [{ text: 'hello', data: 1 }], 5));
     // Even exact match can't exceed threshold of 1 (clamped)
-    expect(result).not.toBeNull();
-    expect(result!.similarity).toBe(1.0);
+    expect(result.similarity).toBe(1.0);
   });
 
   it('uses default threshold of 0.75', () => {

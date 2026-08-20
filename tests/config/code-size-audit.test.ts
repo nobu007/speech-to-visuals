@@ -302,8 +302,13 @@ describe('collectMetrics', () => {
 
   it('identifies the largest file', () => {
     const metrics = collectMetrics(tmpDir);
-    expect(metrics.largestFile).not.toBeNull();
-    expect(metrics.largestFile!.lines).toBe(3);
+    // Fail-loud capture: the throw replaces the redundant `not.toBeNull()`
+    // pair (Phase 168 / REQ-362).
+    const largestFile = metrics.largestFile;
+    if (largestFile === null) {
+      throw new Error('expected collectMetrics to identify a largest file');
+    }
+    expect(largestFile.lines).toBe(3);
   });
 
   it('skips node_modules and .git', () => {

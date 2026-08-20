@@ -872,8 +872,13 @@ describe('REQ-044: Edge Functions Authentication', () => {
     const next: NextFunction = jest.fn();
     authMiddleware(req, res, next);
     expect(next).toHaveBeenCalled();
-    expect(req.user).toBeDefined();
-    expect(req.user!.id).toBe('user-1');
+    // Fail-loud capture: the throw replaces the redundant `toBeDefined()`
+    // pair (Phase 168 / REQ-362).
+    const user = req.user;
+    if (user === undefined) {
+      throw new Error('expected authMiddleware to set req.user');
+    }
+    expect(user.id).toBe('user-1');
   });
 
   // TC-044-02: Expired token detection

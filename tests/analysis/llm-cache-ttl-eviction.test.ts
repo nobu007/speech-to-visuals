@@ -339,9 +339,13 @@ describe('LLMCache TTL boundary and eviction precision', () => {
       cache.clearExpired();
 
       const disk = readCacheFile();
-      expect(disk).not.toBeNull();
-      expect(disk!.entries).toHaveLength(1);
-      expect(disk!.entries[0].data).toBe('kept');
+      // Same fail-loud `requireDisk()` idiom as Phase 153/155: the throw
+      // replaces the redundant `not.toBeNull()` pair (Phase 168 / REQ-362).
+      if (disk === null) {
+        throw new Error('expected readCacheFile to return the persisted cache');
+      }
+      expect(disk.entries).toHaveLength(1);
+      expect(disk.entries[0].data).toBe('kept');
     });
   });
 });

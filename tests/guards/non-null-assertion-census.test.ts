@@ -544,6 +544,35 @@ const REPO_ROOT = fileURLToPath(new URL('../../', import.meta.url));
  * tests/guards/framework-pipeline-unmount-real-fix-witness.test.ts —
  * each turns BOTH its directory exact-0 ratchet (0 → 1) and the
  * tests-total ratchet (36 → 37) RED.
+ * and 2026-08-21 (Phase 168 / REQ-362: monotone decrease round 11 — the
+ * 義務 C FINAL gate: EVERY remaining tests node, 14 files / 36 nodes
+ * across the nine tail directories → 0 via the established fail-loud
+ * idioms (`requireCriterionResult`/`requireRecommendation`/
+ * `requireWorstBottleneck`/generic `requireBreaker`/`requireMatch`/
+ * `requireCodePoint` file-local helpers folding the redundant
+ * toBeDefined()/not.toBeNull() pairs into labeled throws, one-shot
+ * narrowing guards for optional stageTimings/children fields): pipeline
+ * 11 − 11 = 0; quality 9 − 9 = 0; analysis 6 − 6 = 0; api 2 − 2 = 0;
+ * lib 2 − 2 = 0; remotion 2 − 2 = 0; (root) 2 − 2 = 0; acceptance 1 − 1
+ * = 0; config 1 − 1 = 0 — ALL fourteen pinned directories now hold
+ * exact-0 pins and the tests-total pin converges to 0: the whole
+ * repository (src AND tests) is exact-0. The per-directory pins stay in
+ * place (files-based hollow-pin check) so any future `!` lands on BOTH
+ * its directory pin and the total. The vacuity check flipped with it:
+ * with both trees at 0 a `count > 0` liveness probe is impossible, so it
+ * now parses a fixture snippet through the SAME counting code and
+ * asserts the scanner still sees both shapes (`x!` and `x!:`).
+ * Mutation-verified (Phase 168, MW-036): re-injecting ONE `!` per
+ * rewritten pool — `expect(bnRec.priority)` back to
+ * `expect(bnRec!.priority)` in
+ * tests/pipeline/pipeline-health-score.test.ts, `expect(continuity
+ * .passed)` back to `expect(continuity!.passed)` in
+ * tests/quality/quality-gate.test.ts, `expect(result.data)` back to
+ * `expect(result!.data)` in tests/analysis/semantic-similarity.test.ts,
+ * and `expect(children[0].path)` back to
+ * `expect(children![0].path)` in tests/spine-manifest.test.ts — each
+ * turns BOTH its directory exact-0 ratchet (0 → 1) and the tests-total
+ * ratchet (0 → 1) RED.
  */
 const PINNED = {
   'src/visualization (production)': 0,
@@ -553,30 +582,33 @@ const PINNED = {
   'src/monitoring (production)': 0,
   'src/analysis (production)': 0,
   'src (production, excl. __tests__/__mocks__)': 0,
-  'tests (excl. __mocks__)': 36,
+  'tests (excl. __mocks__)': 0,
 } as const;
 
 /**
- * Per-top-level-directory ratchets for the tests tree (Phase 147 / REQ-337).
+ * Per-top-level-directory ratchets for the tests tree (Phase 147 / REQ-337;
+ * ALL converged to exact-0 in Phase 168 / REQ-362 — 義務 C final gate).
  * `(root)` = test files sitting directly in tests/. A directory that is not
  * pinned here fails the guard — extending the test tree means extending the
- * ratchet consciously, never silently.
+ * ratchet consciously, never silently. Every pin is an exact-0 pin now:
+ * the files-based hollow-pin check below keeps all fourteen entries valid
+ * as long as their directories hold test files.
  */
 const TESTS_DIR_PINS: Record<string, number> = {
   unit: 0,
   integration: 0,
   visualization: 0,
   guards: 0,
-  pipeline: 11,
-  analysis: 6,
-  quality: 9,
+  pipeline: 0,
+  analysis: 0,
+  quality: 0,
   transcription: 0,
-  api: 2,
-  lib: 2,
-  remotion: 2,
-  '(root)': 2,
-  acceptance: 1,
-  config: 1,
+  api: 0,
+  lib: 0,
+  remotion: 0,
+  '(root)': 0,
+  acceptance: 0,
+  config: 0,
 };
 
 function walk(dir: string, files: string[] = []): string[] {
@@ -597,32 +629,40 @@ function walk(dir: string, files: string[] = []): string[] {
  * AST-based assertion census: every `NonNullExpression` (`x!`) plus every
  * definite-assignment `!:` on a property / variable / parameter declaration.
  * Comments, string content and JSX text are invisible to the parser, so the
- * historical regex false positives are gone by construction.
+ * historical regex false positives are gone by construction. `countInText`
+ * is split out so the liveness test can drive the SAME scanner over a
+ * fixture snippet (both trees are exact-0 since Phase 168, so a
+ * real-tree `count > 0` probe no longer exists).
  */
+function countInText(text: string, file: string): string[] {
+  const hits: string[] = [];
+  const scriptKind = file.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS;
+  const sourceFile = ts.createSourceFile(file, text, ts.ScriptTarget.ES2022, /*setParentNodes*/ false, scriptKind);
+  const record = (node: ts.Node, kind: string): void => {
+    const { line } = sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile));
+    const textOfLine = text.split('\n')[line]?.trim() ?? '';
+    hits.push(`${file.replace(REPO_ROOT, '')}:${line + 1} [${kind}]: ${textOfLine.slice(0, 80)}`);
+  };
+  const visit = (node: ts.Node): void => {
+    if (ts.isNonNullExpression(node)) {
+      record(node, 'x!');
+    } else if (
+      (ts.isPropertyDeclaration(node) || ts.isVariableDeclaration(node) || ts.isParameter(node)) &&
+      node.exclamationToken !== undefined
+    ) {
+      record(node, 'x!:');
+    }
+    node.forEachChild(visit);
+  };
+  visit(sourceFile);
+  return hits;
+}
+
 function countAssertions(rootRel: string): { count: number; hits: string[]; files: string[] } {
   const files = walk(join(REPO_ROOT, rootRel));
   const hits: string[] = [];
   for (const file of files) {
-    const text = readFileSync(file, 'utf-8');
-    const scriptKind = file.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS;
-    const sourceFile = ts.createSourceFile(file, text, ts.ScriptTarget.ES2022, /*setParentNodes*/ false, scriptKind);
-    const record = (node: ts.Node, kind: string): void => {
-      const { line } = sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile));
-      const textOfLine = text.split('\n')[line]?.trim() ?? '';
-      hits.push(`${file.replace(REPO_ROOT, '')}:${line + 1} [${kind}]: ${textOfLine.slice(0, 80)}`);
-    };
-    const visit = (node: ts.Node): void => {
-      if (ts.isNonNullExpression(node)) {
-        record(node, 'x!');
-      } else if (
-        (ts.isPropertyDeclaration(node) || ts.isVariableDeclaration(node) || ts.isParameter(node)) &&
-        node.exclamationToken !== undefined
-      ) {
-        record(node, 'x!:');
-      }
-      node.forEachChild(visit);
-    };
-    visit(sourceFile);
+    hits.push(...countInText(readFileSync(file, 'utf-8'), file));
   }
   return { count: hits.length, hits, files };
 }
@@ -722,14 +762,48 @@ describe('non-null assertion census ratchet (REQ-328 / REQ-336 / REQ-337)', () =
     }
   });
 
-  it('census is not vacuous: the tests remainder is real (src moved to exact-0 in Phase 147)', () => {
-    // 170 (pre-Phase-141 src total) − 67 − 29 − 17 − 10 − 7 − 6 (Phases
-    // 141–146) − 22 (Phase 147, incl. the AST-only export node) = 0; the
-    // liveness check below only guards against a scanner regression that
-    // would silently count nothing. The tests tree is still real: 191
-    // node hits over 14 pinned directories (1096 before Phase
-    // 148/149/150/151/152/153/154/155/165's −94 / −103 / −105 / −66 /
-    // −190 / −110 / −90 / −86 / −61 decreases).
-    expect(testsTotal.count).toBeGreaterThan(0);
+  it('census is not vacuous: the scanner still sees both assertion shapes (fixture, Phase 168)', () => {
+    // Both trees reached exact-0 (src in Phase 147, tests in Phase 168),
+    // so a real-tree `count > 0` liveness probe no longer exists. Instead
+    // drive the SAME counting code over a fixture that carries one node
+    // of each counted shape — `x!` and a definite-assignment `x!:` — plus
+    // two decoys the checker must NOT count (string content, and a `!`
+    // inside a comment). A scanner regression that silently counts
+    // nothing fails here.
+    const fixture = [
+      'const first = queue.shift()!;',
+      'let holder!: string;',
+      "const s = 'not an assertion! (string content)';",
+      '// nor this! (comment)',
+    ].join('\n');
+    const hits = countInText(fixture, join(REPO_ROOT, 'fixture.ts'));
+    expect(hits).toHaveLength(2);
+    expect(hits[0]).toContain('[x!]: const first = queue.shift()!;');
+    expect(hits[1]).toContain('[x!:]: let holder!: string;');
+  });
+});
+
+describe('ratchet exit condition (TASK-0243 / REQ-346; gates passed Phase 165/167, activated Phase 168)', () => {
+  // TASK-0243 spec'd these three as `it.skip(...)` cases to be manually
+  // unskipped ONLY after both 義務 C gates held (tests/unit exact-0 AND
+  // tests total ≤ 100) — the skip form existed so the suite never ran
+  // RED-as-normal-state while the ratchet still had room. Gate 1 passed in
+  // Phase 165 (unit → 0), gate 2 in Phase 167 (total 191 → 36 ≤ 100), and
+  // Phase 168 is the manual-unskip commit: they enter the suite ACTIVE,
+  // and GREEN, because the pins they police are now 0.
+  it('tests total pin has not regressed past the gate (≤ 100)', () => {
+    expect(PINNED['tests (excl. __mocks__)']).toBeLessThanOrEqual(100);
+  });
+
+  it('tests/unit directory pin has hit exact-0', () => {
+    expect(TESTS_DIR_PINS['unit']).toBe(0);
+  });
+
+  it('once both gates hold, the next round must NOT decrement a tests pin (caller-side rejection)', () => {
+    // guard: if we reach here, the ratchet mechanism is exhausted;
+    // subsequent rounds that propose ANOTHER round of test `!` rewrite
+    // for non-real-path reasons should be flagged.
+    const stillRoom = PINNED['tests (excl. __mocks__)'] > 100 || TESTS_DIR_PINS['unit'] > 0;
+    expect(stillRoom).toBe(false); // both gates must hold for this assertion to be meaningful
   });
 });

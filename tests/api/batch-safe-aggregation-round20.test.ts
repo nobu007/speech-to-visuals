@@ -126,11 +126,15 @@ describe('job summary with a poisoned qualityScore', () => {
     await api.waitForJob(jobId, { timeoutMs: 5000, intervalMs: 25 });
 
     const result = api.getJobResult(jobId);
-    expect(result).not.toBeNull();
+    // Fail-loud capture: the throw replaces the redundant `not.toBeNull()`
+    // pair (Phase 168 / REQ-362).
+    if (result === null) {
+      throw new Error(`expected a job result for ${jobId}`);
+    }
     // Legacy: total = NaN + 60 = NaN and average = NaN (serialized as null in
     // the REST response). New: the poisoned sample leaves the population.
-    expect(result!.summary.totalQualityScore).toBe(60);
-    expect(result!.summary.averageQualityScore).toBe(60);
+    expect(result.summary.totalQualityScore).toBe(60);
+    expect(result.summary.averageQualityScore).toBe(60);
   });
 });
 
