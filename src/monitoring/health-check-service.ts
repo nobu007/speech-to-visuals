@@ -24,6 +24,32 @@ import { logger } from '@stv/core/utils/logger';
  */
 export const HEALTH_CHECK_INTERVAL_MS = 10_000;
 
+/**
+ * Type guard predicate for backend-supplied numeric metrics.
+ *
+ * Every `checkXxxHealth` method gates its downstream threshold comparisons
+ * (`x > 0.95`, `usagePercent < 70`, etc.) on a finite numeric input. Without
+ * this guard, `undefined > 0.95` and `NaN < 70` both evaluate to FALSE, which
+ * silently routes missing/non-finite fields into the `else` branch — the
+ * fabricated "unhealthy: NaN% success rate" / "critical: NaN% memory usage"
+ * verdicts that REQ-347/348/349/350 routed to a `degraded` "monitoring
+ * unavailable" return instead.
+ *
+ * Returning `value is number` narrows the call-site so the same expression
+ * can be used in compound conditions (`!isFiniteMetric(a) || !isFiniteMetric(b)`)
+ * without re-checking the type before the arithmetic.
+ *
+ * NOTE: `checkMemoryHealth` intentionally uses `typeof !== 'number'` alone
+ * (no `Number.isFinite`) because its backend contract is "either BOTH heapUsed
+ * and heapTotal are present numbers, or treat as unavailable" — the browser
+ * path omits BOTH fields wholesale (memory-usage.test.ts:73), so the NaN case
+ * is unreachable through that channel. Adding the finite check here would
+ * widen the contract beyond what the existing tests pin.
+ */
+function isFiniteMetric(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value);
+}
+
 /** Names of components checked during a health check. */
 type ComponentName = 'memory' | 'cache' | 'pipeline' | 'llm' | 'errorRecovery' | 'performance';
 
@@ -251,12 +277,7 @@ class HealthCheckService {
     // ineffective - review caching strategy" for an UNKNOWN observation window.
     // Mirror `checkMemoryHealth`'s fail-loud contract (MW-022) so the real reason
     // (non-finite or omitted metrics) is visible instead of a fabricated critical.
-    if (
-      typeof stats.hitRate !== 'number' ||
-      typeof stats.totalEntries !== 'number' ||
-      !Number.isFinite(stats.hitRate) ||
-      !Number.isFinite(stats.totalEntries)
-    ) {
+    if (!isFiniteMetric(stats.hitRate) || !isFiniteMetric(stats.totalEntries)) {
       logger?.warn?.(
         `[HealthCheck] Cache health check unavailable: backend returned non-finite or omitted metrics ` +
           `(hitRate=${typeof stats.hitRate === 'number' ? stats.hitRate : 'undefined'}, ` +
@@ -338,12 +359,7 @@ class HealthCheckService {
     // UNKNOWN observation window. Mirror `checkMemoryHealth`'s (REQ-347) and
     // `checkCacheHealth`'s (REQ-348) fail-loud contract so the upstream
     // dashboard sees the real reason instead of a fabricated unhealthy.
-    if (
-      typeof successRate !== 'number' ||
-      typeof avgProcessingTime !== 'number' ||
-      !Number.isFinite(successRate) ||
-      !Number.isFinite(avgProcessingTime)
-    ) {
+    if (!isFiniteMetric(successRate) || !isFiniteMetric(avgProcessingTime)) {
       const successRateType =
         successRate === undefined ? 'undefined' : typeof successRate;
       const avgProcessingTimeType =
@@ -424,7 +440,7 @@ class HealthCheckService {
     const cacheHitRate = snapshot.llm.cacheHitRate;
     const totalRequests = snapshot.llm.totalRequests;
 
-    if (typeof cacheHitRate !== 'number' || !Number.isFinite(cacheHitRate)) {
+    if (!isFiniteMetric(cacheHitRate)) {
       logger?.warn?.(
         `[HealthCheck] LLM health check unavailable: backend omitted/non-finite metrics ` +
           `(cacheHitRate=${typeof cacheHitRate === 'number' ? cacheHitRate : 'undefined'})`
