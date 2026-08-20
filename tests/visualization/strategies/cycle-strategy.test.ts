@@ -1,6 +1,36 @@
 import { CycleLayoutStrategy } from '@/visualization/strategies/cycle-strategy';
-import { NodeDatum, EdgeDatum } from '@stv/core/types/diagram';
+import { NodeDatum, EdgeDatum, PositionedNode, LayoutEdge } from '@stv/core/types/diagram';
 import { LayoutStrategy } from '@/visualization/types';
+
+/**
+ * Fail-loud accessors replacing the old `!` postfixes: a missing layout
+ * node keeps the RED verdict with its id, and `centerXOf`/`centerYOf`
+ * keep the old undefined→NaN propagation for an unset dimension instead
+ * of asserting it away (same idiom as flow-/tree-strategy, Phase 152).
+ */
+function findNode(result: { nodes: PositionedNode[] }, id: string): PositionedNode {
+  const found = result.nodes.find((n) => n.id === id);
+  if (found === undefined) {
+    throw new Error(`node '${id}' not found in layout result`);
+  }
+  return found;
+}
+
+function findEdge(result: { edges: LayoutEdge[] }, from: string, to: string): LayoutEdge {
+  const found = result.edges.find((e) => e.from === from && e.to === to);
+  if (found === undefined) {
+    throw new Error(`edge '${from}'->'${to}' not found in layout result`);
+  }
+  return found;
+}
+
+function centerXOf(node: PositionedNode): number {
+  return node.x + (node.width ?? Number.NaN) / 2;
+}
+
+function centerYOf(node: PositionedNode): number {
+  return node.y + (node.height ?? Number.NaN) / 2;
+}
 
 function makeNodes(count: number, overrides?: Partial<NodeDatum>[]): NodeDatum[] {
   return Array.from({ length: count }, (_, i) => ({
@@ -49,8 +79,8 @@ describe('CycleLayoutStrategy', () => {
 
     const angles: number[] = [];
     for (const node of result.nodes) {
-      const dx = (node.x + node.width! / 2) - centerX;
-      const dy = (node.y + node.height! / 2) - centerY;
+      const dx = centerXOf(node) - centerX;
+      const dy = centerYOf(node) - centerY;
       let angle = Math.atan2(dy, dx);
       if (angle < 0) angle += 2 * Math.PI;
       angles.push(angle);
@@ -66,8 +96,8 @@ describe('CycleLayoutStrategy', () => {
 
     // Verify nodes are approximately on circle
     for (const node of result.nodes) {
-      const dx = (node.x + node.width! / 2) - centerX;
-      const dy = (node.y + node.height! / 2) - centerY;
+      const dx = centerXOf(node) - centerX;
+      const dy = centerYOf(node) - centerY;
       const dist = Math.sqrt(dx * dx + dy * dy);
       expect(dist).toBeCloseTo(radius, -1);
     }
@@ -85,8 +115,8 @@ describe('CycleLayoutStrategy', () => {
       const expectedAngleStep = (2 * Math.PI) / count;
 
       const angles: number[] = result.nodes.map((node) => {
-        const dx = (node.x + node.width! / 2) - centerX;
-        const dy = (node.y + node.height! / 2) - centerY;
+        const dx = centerXOf(node) - centerX;
+        const dy = centerYOf(node) - centerY;
         let angle = Math.atan2(dy, dx);
         if (angle < 0) angle += 2 * Math.PI;
         return angle;
@@ -121,13 +151,13 @@ describe('CycleLayoutStrategy', () => {
     }
 
     // Verify first edge connects n0 center to n1 center
-    const n0 = result.nodes.find((n) => n.id === 'n0')!;
-    const n1 = result.nodes.find((n) => n.id === 'n1')!;
-    const firstEdge = result.edges.find((e) => e.from === 'n0' && e.to === 'n1')!;
-    expect(firstEdge.points[0].x).toBeCloseTo(n0.x + n0.width! / 2, 1);
-    expect(firstEdge.points[0].y).toBeCloseTo(n0.y + n0.height! / 2, 1);
-    expect(firstEdge.points[1].x).toBeCloseTo(n1.x + n1.width! / 2, 1);
-    expect(firstEdge.points[1].y).toBeCloseTo(n1.y + n1.height! / 2, 1);
+    const n0 = findNode(result, 'n0');
+    const n1 = findNode(result, 'n1');
+    const firstEdge = findEdge(result, 'n0', 'n1');
+    expect(firstEdge.points[0].x).toBeCloseTo(centerXOf(n0), 1);
+    expect(firstEdge.points[0].y).toBeCloseTo(centerYOf(n0), 1);
+    expect(firstEdge.points[1].x).toBeCloseTo(centerXOf(n1), 1);
+    expect(firstEdge.points[1].y).toBeCloseTo(centerYOf(n1), 1);
   });
 
   it('should apply force-directed fallback for overlapping large nodes', () => {

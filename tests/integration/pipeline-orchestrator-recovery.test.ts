@@ -15,6 +15,38 @@
 import { jest } from '@jest/globals';
 import type { RunRecoveryReport } from '@/quality/pipeline-run-recovery-tracker';
 import type { PipelineProgress } from '@/pipeline/pipeline-orchestrator';
+import type { PipelineResult } from '@/pipeline/types';
+
+/**
+ * Fail-loud accessors replacing the old `!` postfixes: an absent metrics
+ * object / recovery report keeps the RED verdict with a diagnosable
+ * message instead of surfacing `new undefined()` mid-test. The recovery
+ * field is typed `RunRecoveryReport` on ExtendedPipelineMetrics, so the
+ * narrowing also drops the old `as RunRecoveryReport` casts (same idiom
+ * as Phase 151's pipeline-run-recovery-integration helpers).
+ */
+function requireMetrics(result: PipelineResult): NonNullable<PipelineResult['metrics']> {
+  const { metrics } = result;
+  if (metrics === undefined) {
+    throw new Error('expected pipeline result to carry metrics');
+  }
+  return metrics;
+}
+
+function requireRecoveryReport(result: PipelineResult): RunRecoveryReport {
+  const report = requireMetrics(result).recoveryReport;
+  if (report === undefined) {
+    throw new Error('expected pipeline metrics to carry a recoveryReport');
+  }
+  return report;
+}
+
+function requireDefined<T>(value: T | undefined | null, label: string): T {
+  if (value === undefined || value === null) {
+    throw new Error(`${label} expected present, got ${String(value)}`);
+  }
+  return value;
+}
 
 // ---------- Mocks ----------
 // Mock external dependencies to isolate recovery behavior.
@@ -227,8 +259,7 @@ describe('PipelineOrchestrator Full E2E Recovery', () => {
       const failedEvent = progressEvents.find(
         (e) => e.stageName === 'transcription' && e.status === 'failed',
       );
-      expect(failedEvent).toBeDefined();
-      expect(failedEvent!.message).toContain('Whisper mock failure');
+      expect(requireDefined(failedEvent, 'failed progress event').message).toContain('Whisper mock failure');
 
       const fallbackEvent = progressEvents.find(
         (e) => e.stageName === 'transcription' && e.status === 'fallback',
@@ -389,7 +420,7 @@ describe('PipelineOrchestrator Full E2E Recovery', () => {
       expect(result.success).toBe(true);
       expect(result.metrics).toBeDefined();
 
-      const report = result.metrics!.recoveryReport as RunRecoveryReport;
+      const report = requireRecoveryReport(result);
       expect(report).toBeDefined();
       expect(report.runId).toMatch(/^run-/);
       expect(report.success).toBe(true);
@@ -498,7 +529,7 @@ describe('PipelineOrchestrator Full E2E Recovery', () => {
 
       // Verify recovery report exists (quality gate fallbacks are tracked at
       // the pipeline level, not the recovery orchestrator level)
-      const report = result.metrics!.recoveryReport as RunRecoveryReport;
+      const report = requireRecoveryReport(result);
       expect(report).toBeDefined();
       expect(report.success).toBe(true);
 
@@ -585,9 +616,9 @@ describe('PipelineOrchestrator Full E2E Recovery', () => {
       const result = await orchestrator.execute(createValidInput());
 
       expect(result.metrics).toBeDefined();
-      expect(typeof result.metrics!.totalRetryAttempts).toBe('number');
+      expect(typeof requireMetrics(result).totalRetryAttempts).toBe('number');
       // Happy path: no retries
-      expect(result.metrics!.totalRetryAttempts).toBe(0);
+      expect(requireMetrics(result).totalRetryAttempts).toBe(0);
 
       orchestrator.recoveryOrchestrator.destroy();
     });
@@ -597,7 +628,7 @@ describe('PipelineOrchestrator Full E2E Recovery', () => {
 
       const result = await orchestrator.execute(createValidInput());
 
-      const report = result.metrics!.recoveryReport as RunRecoveryReport;
+      const report = requireRecoveryReport(result);
       expect(report.stages).toBeDefined();
       expect(Array.isArray(report.stages)).toBe(true);
       expect(report.stages.length).toBeGreaterThan(0);
@@ -616,7 +647,7 @@ describe('PipelineOrchestrator Full E2E Recovery', () => {
 
       const result = await orchestrator.execute(createValidInput());
 
-      const report = result.metrics!.recoveryReport as RunRecoveryReport;
+      const report = requireRecoveryReport(result);
       expect(report.totalDurationMs).toBeDefined();
       expect(typeof report.totalDurationMs).toBe('number');
       expect(report.totalDurationMs).toBeGreaterThanOrEqual(0);
@@ -676,7 +707,7 @@ describe('PipelineOrchestrator Full E2E Recovery', () => {
       const result = await orchestrator.execute(createValidInput());
 
       expect(result.metrics?.stageTimings).toBeDefined();
-      const timings = result.metrics!.stageTimings!;
+      const timings = requireDefined(requireMetrics(result).stageTimings, 'metrics.stageTimings');
       expect(Array.isArray(timings)).toBe(true);
       expect(timings.length).toBeGreaterThan(0);
 
@@ -694,14 +725,14 @@ describe('PipelineOrchestrator Full E2E Recovery', () => {
       const result = await orchestrator.execute(createValidInput());
 
       expect(result.metrics?.timingReport).toBeDefined();
-      const report = result.metrics!.timingReport!;
+      const report = requireDefined(requireMetrics(result).timingReport, 'metrics.timingReport');
       expect(typeof report.totalDurationMs).toBe('number');
       expect(report.totalDurationMs).toBeGreaterThanOrEqual(0);
       expect(typeof report.totalItemsProcessed).toBe('number');
       expect(typeof report.overallThroughputPerMs).toBe('number');
       // The aggregate duration must equal the sum of the raw per-stage records,
       // proving timingReport carries consistent derived data, not a stale copy.
-      const sumDuration = (result.metrics!.stageTimings ?? []).reduce(
+      const sumDuration = (requireMetrics(result).stageTimings ?? []).reduce(
         (s, r) => s + (r.durationMs ?? 0),
         0,
       );
@@ -731,7 +762,7 @@ describe('PipelineOrchestrator Full E2E Recovery', () => {
       const result = await orchestrator.execute(createValidInput());
 
       expect(result.success).toBe(true);
-      const report = result.metrics!.recoveryReport as RunRecoveryReport;
+      const report = requireRecoveryReport(result);
       // After a fallback recovery, degradation should not be 'nominal'
       expect(report.degradationLevel).toBeDefined();
       expect(typeof report.degradationLevel).toBe('string');

@@ -21,6 +21,19 @@
 
 import { BudgetAlertSystem, BudgetAlert, BudgetConfig } from '@/analysis/budget-alert';
 
+/**
+ * Fail-loud helper replacing the old `sessionAlert!` / `dailyAlert!`
+ * postfixes: an unfired alert keeps the RED verdict with its type instead
+ * of surfacing `new undefined()` mid-test.
+ */
+function requireAlert(alerts: BudgetAlert[], type: BudgetAlert['type']): BudgetAlert {
+  const alert = alerts.find(a => a.type === type);
+  if (alert === undefined) {
+    throw new Error(`${type} alert not fired`);
+  }
+  return alert;
+}
+
 // ---------------------------------------------------------------------------
 // 1. Exact threshold boundary
 // ---------------------------------------------------------------------------
@@ -210,8 +223,8 @@ describe('BudgetAlertSystem: session and daily alerts', () => {
     const dailyAlert = alerts.find(a => a.type === 'daily');
     expect(sessionAlert).toBeDefined();
     expect(dailyAlert).toBeDefined();
-    expect(sessionAlert!.percentage).toBeCloseTo(0.85, 4);
-    expect(dailyAlert!.percentage).toBeCloseTo(0.85, 4);
+    expect(requireAlert(alerts, 'session').percentage).toBeCloseTo(0.85, 4);
+    expect(requireAlert(alerts, 'daily').percentage).toBeCloseTo(0.85, 4);
   });
 
   it('fires only daily alert when session budget is large but daily is small', () => {
@@ -385,7 +398,7 @@ describe('BudgetAlertSystem: daily budget independence', () => {
 
     expect(dailyAlert).toBeDefined();
     expect(sessionAlert).toBeUndefined();
-    expect(dailyAlert!.percentage).toBeCloseTo(0.9, 4);
+    expect(requireAlert(alerts, 'daily').percentage).toBeCloseTo(0.9, 4);
   });
 });
 
@@ -455,7 +468,7 @@ describe('BudgetAlertSystem: floating-point precision', () => {
     const sessionAlert = finalAlerts.find(a => a.type === 'session');
     expect(sessionAlert).toBeDefined();
     // 7 * 0.01 + 0.02 ≈ 0.09 → 90% of 0.10
-    expect(sessionAlert!.percentage).toBeGreaterThanOrEqual(0.8);
+    expect(requireAlert(finalAlerts, 'session').percentage).toBeGreaterThanOrEqual(0.8);
   });
 });
 
@@ -470,10 +483,9 @@ describe('BudgetAlertSystem: alert message content', () => {
     });
 
     const alerts = budget.addCost(0.85);
-    const sessionAlert = alerts.find(a => a.type === 'session');
-    expect(sessionAlert!.message).toContain('0.8500');
-    expect(sessionAlert!.message).toContain('85.0%');
-    expect(sessionAlert!.message).toContain('$1.00');
+    expect(requireAlert(alerts, 'session').message).toContain('0.8500');
+    expect(requireAlert(alerts, 'session').message).toContain('85.0%');
+    expect(requireAlert(alerts, 'session').message).toContain('$1.00');
   });
 
   it('includes correct cost and percentage in daily alert message', () => {
@@ -483,10 +495,9 @@ describe('BudgetAlertSystem: alert message content', () => {
     });
 
     const alerts = budget.addCost(8.50);
-    const dailyAlert = alerts.find(a => a.type === 'daily');
-    expect(dailyAlert!.message).toContain('8.5000');
-    expect(dailyAlert!.message).toContain('85.0%');
-    expect(dailyAlert!.message).toContain('$10.00');
+    expect(requireAlert(alerts, 'daily').message).toContain('8.5000');
+    expect(requireAlert(alerts, 'daily').message).toContain('85.0%');
+    expect(requireAlert(alerts, 'daily').message).toContain('$10.00');
   });
 });
 
@@ -513,9 +524,7 @@ describe('BudgetAlertSystem: default configuration', () => {
 
     // $8.00 = 80% of $10.00 daily
     const alerts = budget.addCost(8.00);
-    const dailyAlert = alerts.find(a => a.type === 'daily');
-    expect(dailyAlert).toBeDefined();
-    expect(dailyAlert!.percentage).toBeCloseTo(0.8, 4);
+    expect(requireAlert(alerts, 'daily').percentage).toBeCloseTo(0.8, 4);
   });
 });
 

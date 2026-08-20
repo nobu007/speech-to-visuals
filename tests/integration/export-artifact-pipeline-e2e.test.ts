@@ -7,6 +7,18 @@
  */
 
 import { jest } from '@jest/globals';
+
+/**
+ * Fail-loud helper replacing the old `!` postfixes: an absent artifactId /
+ * stored artifact / download URL keeps the RED verdict with a diagnosable
+ * label instead of surfacing `new undefined()` mid-test. Guards `null` too.
+ */
+function requireDefined<T>(value: T | undefined | null, label: string): T {
+  if (value === undefined || value === null) {
+    throw new Error(`${label} expected present, got ${String(value)}`);
+  }
+  return value;
+}
 import {
   EnhancedExportEngine,
   type ExportConfiguration,
@@ -121,12 +133,12 @@ describe('REQ-231: EnhancedExportEngine artifact save integration', () => {
     // artifactId should be present in ExportResult
     expect(result.artifactId).toBeDefined();
     expect(typeof result.artifactId).toBe('string');
-    expect(result.artifactId!.length).toBeGreaterThan(0);
+    expect(requireDefined(result.artifactId, 'result.artifactId').length).toBeGreaterThan(0);
 
     // The artifact should be retrievable from the store
-    const stored = store.get(result.artifactId!);
+    const stored = store.get(requireDefined(result.artifactId, 'result.artifactId'));
     expect(stored).toBeDefined();
-    expect(stored!.format).toBe('mp4');
+    expect(requireDefined(stored, 'stored artifact').format).toBe('mp4');
 
     engine.dispose();
   });
@@ -396,20 +408,24 @@ describe('REQ-237: Full artifact lifecycle — Engine → Store → Download →
     expect(store.size).toBe(1);
 
     // Step 3: Generate download URL
-    const artifactId = result.artifactId!;
+    const artifactId = requireDefined(result.artifactId, 'result.artifactId');
     const dlUrl = store.generateDownloadUrl(artifactId);
     expect(dlUrl).toBeDefined();
-    expect(dlUrl!.url).toContain(`artifact://${artifactId}`);
-    expect(dlUrl!.url).toContain('token=');
+    expect(requireDefined(dlUrl, 'download URL').url).toContain(`artifact://${artifactId}`);
+    expect(requireDefined(dlUrl, 'download URL').url).toContain('token=');
 
     // Step 4: Resolve download URL and retrieve artifact
-    const token = new URL(dlUrl!.url.replace('artifact://', 'http://dummy/')).searchParams.get('token')!;
+    const url = requireDefined(dlUrl, 'download URL').url;
+    const token = requireDefined(
+      new URL(url.replace('artifact://', 'http://dummy/')).searchParams.get('token'),
+      'token query param',
+    );
     const resolved = store.resolveDownloadUrl(artifactId, token);
 
     expect(resolved).toBeDefined();
-    expect(resolved!.artifactId).toBe(artifactId);
-    expect(resolved!.format).toBe('svg-animated');
-    expect(resolved!.data).toBeInstanceOf(Uint8Array);
+    expect(requireDefined(resolved, 'resolved artifact').artifactId).toBe(artifactId);
+    expect(requireDefined(resolved, 'resolved artifact').format).toBe('svg-animated');
+    expect(requireDefined(resolved, 'resolved artifact').data).toBeInstanceOf(Uint8Array);
 
     // Verify all metrics recorded
     expect(sink.artifactStoredCount).toBe(1);
@@ -443,7 +459,7 @@ describe('REQ-237: Full artifact lifecycle — Engine → Store → Download →
     // Dequeue it (simulates starting the job)
     const dequeued = queue.dequeue();
     expect(dequeued).toBeDefined();
-    expect(dequeued!.jobId).toBe(job.jobId);
+    expect(requireDefined(dequeued, 'dequeued job').jobId).toBe(job.jobId);
 
     // Complete the job with artifact data
     const artifactData = new Uint8Array(256);

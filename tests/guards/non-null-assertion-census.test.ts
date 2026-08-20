@@ -209,6 +209,35 @@
  *     tests/visualization/complex-layout-engine.test.ts (18 nodes over the
  *     optional `w`/`h` diagram-layout fields). All nine suites stayed green
  *     through the rewrite (12 suites / 207 tests in the verification run).
+ *     Phase 153 (REQ-343 / TASK-0240) continued the decrease with the next
+ *     guard-first survey batch — every remaining file with ≥10 nodes, eight
+ *     files / 110 nodes → 0: `requireDisk()` in
+ *     tests/analysis/llm-cache-debounce.test.ts (20 nodes over the
+ *     `readCacheFile(): … | null` results; the redundant preceding
+ *     `expect(disk).not.toBeNull()` pairs were folded into the helper's
+ *     throw), `centerXOf`/`centerYOf` plus `?? Number.NaN` overlap bounds
+ *     in tests/visualization/cycle-strategy.test.ts (16 nodes), and
+ *     `findNode`/`findEdge`/`centerXOf`/`centerYOf` in
+ *     tests/visualization/strategies/cycle-strategy.test.ts (13 nodes) —
+ *     both keeping the undefined→NaN propagation for unset dims,
+ *     `requireOpportunity(report, area)` in
+ *     tests/pipeline/improvement-detector.test.ts (15 nodes over the
+ *     `opportunities.find(o => o.area === …)` captures),
+ *     `requireMetrics(result)` / `requireRecoveryReport(result)` /
+ *     `requireDefined(value, label)` in
+ *     tests/integration/pipeline-orchestrator-recovery.test.ts (13 nodes;
+ *     the recovery field is typed `RunRecoveryReport` on
+ *     ExtendedPipelineMetrics, so the narrowing dropped the
+ *     `as RunRecoveryReport` casts too), `requireDefined(value, label)` in
+ *     tests/integration/export-artifact-pipeline-e2e.test.ts (12 nodes over
+ *     the optional `artifactId` and the `| undefined` store returns — the
+ *     helper guards `null` as well), `requireAlert(alerts, type)` in
+ *     tests/analysis/budget-alert-boundary.test.ts (11 nodes over the
+ *     `alerts.find(a => a.type === …)` captures), and
+ *     `requireWorstBottleneck(report)` / `requireStage(report, name)` in
+ *     tests/pipeline/bottleneck-detector.test.ts (10 nodes over
+ *     `worstBottleneck: BottleneckInfo | null` and the `stages.find(…)`
+ *     captures). All eight suites stayed green through the rewrite.
  *
  * Matching rule (AST since Phase 147 — SUPERSEDES the line-regex rule
  * documented in specs/speech-to-visuals/tasks/TASK-0226.md, which this
@@ -290,6 +319,12 @@
  * tests/visualization/strategies/flow-strategy.test.ts — turns BOTH the
  * tests/visualization directory ratchet (107 → 108) and the tests-total
  * ratchet (538 → 539) RED.
+ * Mutation-verified (Phase 153, MW-019): re-injecting ONE `!` into the
+ * Phase-153 rewrite — `expect(requireOpportunity(report,
+ * 'Processing Speed').priority)` back to `expect(opp!.priority)` in
+ * tests/pipeline/improvement-detector.test.ts — turns BOTH the
+ * tests/pipeline directory ratchet (20 → 21) and the tests-total ratchet
+ * (428 → 429) RED.
  */
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { createRequire } from 'node:module';
@@ -343,6 +378,15 @@ const REPO_ROOT = fileURLToPath(new URL('../../', import.meta.url));
  * tests/visualization 184 − 21 (importance-scaler) − 20 (flow-strategy) −
  * 18 (complex-layout-engine) − 18 (tree-strategy) = 107;
  * tests total 728 − 190 = 538).
+ * and 2026-08-20 (Phase 153 / REQ-343: monotone decrease round 6 — every
+ * remaining file with ≥10 nodes, across four directories:
+ * tests/analysis 44 − 20 (llm-cache-debounce) − 11
+ * (budget-alert-boundary) = 13; tests/visualization 107 − 16
+ * (cycle-strategy) − 13 (strategies/cycle-strategy) = 78;
+ * tests/pipeline 45 − 15 (improvement-detector) − 10
+ * (bottleneck-detector) = 20; tests/integration 132 − 13
+ * (pipeline-orchestrator-recovery) − 12 (export-artifact-pipeline-e2e) =
+ * 107; tests total 538 − 110 = 428).
  */
 const PINNED = {
   'src/visualization (production)': 0,
@@ -352,7 +396,7 @@ const PINNED = {
   'src/monitoring (production)': 0,
   'src/analysis (production)': 0,
   'src (production, excl. __tests__/__mocks__)': 0,
-  'tests (excl. __mocks__)': 538,
+  'tests (excl. __mocks__)': 428,
 } as const;
 
 /**
@@ -363,11 +407,11 @@ const PINNED = {
  */
 const TESTS_DIR_PINS: Record<string, number> = {
   unit: 103,
-  integration: 132,
-  visualization: 107,
+  integration: 107,
+  visualization: 78,
   guards: 72,
-  pipeline: 45,
-  analysis: 44,
+  pipeline: 20,
+  analysis: 13,
   quality: 17,
   transcription: 8,
   api: 2,
@@ -505,9 +549,10 @@ describe('non-null assertion census ratchet (REQ-328 / REQ-336 / REQ-337)', () =
     // 170 (pre-Phase-141 src total) − 67 − 29 − 17 − 10 − 7 − 6 (Phases
     // 141–146) − 22 (Phase 147, incl. the AST-only export node) = 0; the
     // liveness check below only guards against a scanner regression that
-    // would silently count nothing. The tests tree is still real: 538
+    // would silently count nothing. The tests tree is still real: 428
     // node hits over 14 pinned directories (1096 before Phase
-    // 148/149/150/151/152's −94 / −103 / −105 / −66 / −190 decreases).
+    // 148/149/150/151/152/153's −94 / −103 / −105 / −66 / −190 / −110
+    // decreases).
     expect(testsTotal.count).toBeGreaterThan(0);
   });
 });

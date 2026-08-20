@@ -3,7 +3,29 @@
  */
 
 import { classifyBottleneck, detectBottlenecks } from '@/pipeline/bottleneck-detector';
+import type { BottleneckInfo, BottleneckReport } from '@/pipeline/bottleneck-detector';
 import type { StageTimingRecord } from '@/pipeline/stage-timing-metrics';
+
+/**
+ * Fail-loud accessors replacing the old `!` postfixes: a missing worst
+ * bottleneck / stage keeps the RED verdict with a diagnosable message
+ * instead of surfacing `new undefined()` mid-test.
+ */
+function requireWorstBottleneck(report: BottleneckReport): BottleneckInfo {
+  const worst = report.worstBottleneck;
+  if (worst === null) {
+    throw new Error('expected report to carry a worstBottleneck');
+  }
+  return worst;
+}
+
+function requireStage(report: BottleneckReport, stageName: string): BottleneckInfo {
+  const found = report.stages.find(s => s.stageName === stageName);
+  if (found === undefined) {
+    throw new Error(`stage '${stageName}' not found in report`);
+  }
+  return found;
+}
 
 describe('classifyBottleneck', () => {
   test('returns "none" for percentages below 40%', () => {
@@ -53,8 +75,8 @@ describe('detectBottlenecks', () => {
       stage('c', 30),
     ]);
     expect(report.hasBottleneck).toBe(true);
-    expect(report.worstBottleneck!.stageName).toBe('b');
-    expect(report.worstBottleneck!.severity).toBe('warning');
+    expect(requireWorstBottleneck(report).stageName).toBe('b');
+    expect(requireWorstBottleneck(report).severity).toBe('warning');
   });
 
   test('all stages < 40% produce no bottleneck', () => {
@@ -77,9 +99,9 @@ describe('detectBottlenecks', () => {
     ]);
     expect(report.hasBottleneck).toBe(true);
     expect(report.worstBottleneck).not.toBeNull();
-    expect(report.worstBottleneck!.stageName).toBe('slow');
-    expect(report.worstBottleneck!.severity).toBe('critical');
-    expect(report.worstBottleneck!.percentOfTotal).toBeCloseTo(0.7);
+    expect(requireWorstBottleneck(report).stageName).toBe('slow');
+    expect(requireWorstBottleneck(report).severity).toBe('critical');
+    expect(requireWorstBottleneck(report).percentOfTotal).toBeCloseTo(0.7);
   });
 
   test('stage at 45% triggers warning', () => {
@@ -88,8 +110,7 @@ describe('detectBottlenecks', () => {
       stage('other', 550),
     ]);
     expect(report.hasBottleneck).toBe(true);
-    const moderateStage = report.stages.find(s => s.stageName === 'moderate');
-    expect(moderateStage!.severity).toBe('warning');
+    expect(requireStage(report, 'moderate').severity).toBe('warning');
   });
 
   test('multiple bottlenecks: worstBottleneck is the highest percentage', () => {
@@ -98,9 +119,9 @@ describe('detectBottlenecks', () => {
       stage('warning', 300),
       stage('ok', 200),
     ]);
-    expect(report.worstBottleneck!.stageName).toBe('critical');
+    expect(requireWorstBottleneck(report).stageName).toBe('critical');
     // 500/1000 = 50% → severity 'warning' (not 60%+ which is 'critical')
-    expect(report.worstBottleneck!.severity).toBe('warning');
+    expect(requireWorstBottleneck(report).severity).toBe('warning');
   });
 
   test('stage messages differ between bottleneck and non-bottleneck', () => {
@@ -108,8 +129,8 @@ describe('detectBottlenecks', () => {
       stage('slow', 700),
       stage('fast', 300),
     ]);
-    const slowMsg = report.stages.find(s => s.stageName === 'slow')!.message;
-    const fastMsg = report.stages.find(s => s.stageName === 'fast')!.message;
+    const slowMsg = requireStage(report, 'slow').message;
+    const fastMsg = requireStage(report, 'fast').message;
     expect(slowMsg).toContain('BOTTLENECK');
     expect(fastMsg).not.toContain('BOTTLENECK');
   });

@@ -78,6 +78,19 @@ describe('LLMCache debounce-interval behavior', () => {
     return JSON.parse(fs.readFileSync(cachePath, 'utf8'));
   }
 
+  /**
+   * Fail-loud helper replacing the old `disk!` postfixes: a missing cache
+   * file keeps the RED verdict with the path instead of surfacing
+   * `new undefined()` mid-test.
+   */
+  function requireDisk(): { entries: Array<{ key: string; data: string }> } {
+    const disk = readCacheFile();
+    if (disk === null) {
+      throw new Error(`expected persisted cache file at ${cachePath}`);
+    }
+    return disk;
+  }
+
   // ─── scheduleSave coalescing ────────────────────────────────────────
 
   describe('scheduleSave coalescing', () => {
@@ -96,9 +109,7 @@ describe('LLMCache debounce-interval behavior', () => {
       jest.advanceTimersByTime(50);
 
       // Exactly one write should have occurred with all 10 entries
-      const disk = readCacheFile();
-      expect(disk).not.toBeNull();
-      expect(disk!.entries).toHaveLength(10);
+      expect(requireDisk().entries).toHaveLength(10);
     });
 
     test('set() calls spread beyond debounce interval trigger separate writes', () => {
@@ -107,13 +118,12 @@ describe('LLMCache debounce-interval behavior', () => {
       cache.set('first', '1');
       jest.advanceTimersByTime(30);
 
-      expect(readCacheFile()!.entries).toHaveLength(1);
+      expect(requireDisk().entries).toHaveLength(1);
 
       cache.set('second', '2');
       jest.advanceTimersByTime(30);
 
-      const disk = readCacheFile();
-      expect(disk!.entries).toHaveLength(2);
+      expect(requireDisk().entries).toHaveLength(2);
     });
 
     test('intermediate set() resets the debounce timer (full coalescing)', () => {
@@ -130,9 +140,7 @@ describe('LLMCache debounce-interval behavior', () => {
       expect(readCacheFile()).toBeNull();
 
       jest.advanceTimersByTime(70); // 100ms after second set()
-      const disk = readCacheFile();
-      expect(disk).not.toBeNull();
-      expect(disk!.entries).toHaveLength(2);
+      expect(requireDisk().entries).toHaveLength(2);
     });
   });
 
@@ -175,11 +183,9 @@ describe('LLMCache debounce-interval behavior', () => {
       cache.set('second', '2');
       jest.advanceTimersByTime(50);
 
-      const disk = readCacheFile();
-      expect(disk).not.toBeNull();
-      expect(disk!.entries).toHaveLength(2);
-      expect(disk!.entries.map(e => e.data)).toContain('1');
-      expect(disk!.entries.map(e => e.data)).toContain('2');
+      expect(requireDisk().entries).toHaveLength(2);
+      expect(requireDisk().entries.map(e => e.data)).toContain('1');
+      expect(requireDisk().entries.map(e => e.data)).toContain('2');
     });
   });
 
@@ -195,10 +201,8 @@ describe('LLMCache debounce-interval behavior', () => {
       cache.persist();
 
       // File written synchronously — no need to advance timers
-      const disk = readCacheFile();
-      expect(disk).not.toBeNull();
-      expect(disk!.entries).toHaveLength(1);
-      expect(disk!.entries[0].data).toBe('value');
+      expect(requireDisk().entries).toHaveLength(1);
+      expect(requireDisk().entries[0].data).toBe('value');
     });
 
     test('persist() cancels a pending timer so advanceTimers does not double-write', () => {
@@ -243,9 +247,7 @@ describe('LLMCache debounce-interval behavior', () => {
       cache.set('on-time', 'value');
       jest.advanceTimersByTime(200);
 
-      const disk = readCacheFile();
-      expect(disk).not.toBeNull();
-      expect(disk!.entries[0].data).toBe('value');
+      expect(requireDisk().entries[0].data).toBe('value');
     });
   });
 
@@ -266,10 +268,8 @@ describe('LLMCache debounce-interval behavior', () => {
 
       jest.advanceTimersByTime(100);
 
-      const disk = readCacheFile();
-      expect(disk).not.toBeNull();
       // The expired entry was removed before the debounced write
-      expect(disk!.entries).toHaveLength(0);
+      expect(requireDisk().entries).toHaveLength(0);
     });
 
     test('clearExpired() coalesces with a pending debounce from set()', () => {
@@ -285,9 +285,7 @@ describe('LLMCache debounce-interval behavior', () => {
 
       jest.advanceTimersByTime(100);
 
-      const disk = readCacheFile();
-      expect(disk).not.toBeNull();
-      expect(disk!.entries).toHaveLength(1);
+      expect(requireDisk().entries).toHaveLength(1);
     });
   });
 
@@ -300,9 +298,7 @@ describe('LLMCache debounce-interval behavior', () => {
       cache.set('sync', 'value');
 
       // File written immediately — no fake timer advance needed
-      const disk = readCacheFile();
-      expect(disk).not.toBeNull();
-      expect(disk!.entries).toHaveLength(1);
+      expect(requireDisk().entries).toHaveLength(1);
     });
 
     test('destroy() is safe with synchronous mode', () => {
@@ -337,13 +333,11 @@ describe('LLMCache debounce-interval behavior', () => {
       // Advance past debounce
       jest.advanceTimersByTime(80);
 
-      const disk = readCacheFile();
-      expect(disk).not.toBeNull();
       // Both the pre-loaded and newly-set entries should be persisted
-      const datas = disk!.entries.map(e => e.data);
+      const datas = requireDisk().entries.map(e => e.data);
       expect(datas).toContain('preloaded-value');
       expect(datas).toContain('new-value');
-      expect(disk!.entries).toHaveLength(2);
+      expect(requireDisk().entries).toHaveLength(2);
     });
 
     test('debounce timer starts fresh after cache loads from disk', () => {
@@ -362,13 +356,11 @@ describe('LLMCache debounce-interval behavior', () => {
       // 50ms — debounce has NOT elapsed yet
       jest.advanceTimersByTime(50);
       // The file should still be the original seed (no new write)
-      const disk = readCacheFile();
-      expect(disk!.entries).toHaveLength(1);
+      expect(requireDisk().entries).toHaveLength(1);
 
       // Advance remaining 50ms — debounce fires
       jest.advanceTimersByTime(50);
-      const updated = readCacheFile();
-      expect(updated!.entries).toHaveLength(2);
+      expect(requireDisk().entries).toHaveLength(2);
     });
   });
 
@@ -381,7 +373,7 @@ describe('LLMCache debounce-interval behavior', () => {
       // First set() + successful persist
       cache.set('ok', 'value1');
       jest.advanceTimersByTime(50);
-      expect(readCacheFile()!.entries).toHaveLength(1);
+      expect(requireDisk().entries).toHaveLength(1);
 
       // Make the parent directory read-only so the next atomic write (temp file + rename) fails
       const cacheDir = path.dirname(cachePath);
@@ -391,7 +383,7 @@ describe('LLMCache debounce-interval behavior', () => {
       cache.set('will-fail', 'value2');
       jest.advanceTimersByTime(50);
       // File unchanged — still 1 entry
-      expect(readCacheFile()!.entries).toHaveLength(1);
+      expect(requireDisk().entries).toHaveLength(1);
 
       // Restore write permission
       fs.chmodSync(cacheDir, 0o755);
@@ -400,10 +392,9 @@ describe('LLMCache debounce-interval behavior', () => {
       cache.set('recovery', 'value3');
       jest.advanceTimersByTime(50);
 
-      const disk = readCacheFile();
       // The in-memory cache accumulated all 3 entries, so the successful
       // write should persist all of them
-      expect(disk!.entries).toHaveLength(3);
+      expect(requireDisk().entries).toHaveLength(3);
     });
 
     test('destroy() does not throw when saveToDisk previously failed', () => {

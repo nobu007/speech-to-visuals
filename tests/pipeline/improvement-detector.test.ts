@@ -1,11 +1,25 @@
 import {
   ImprovementDetector,
+  type ImprovementOpportunity,
   type ImprovementReport,
 } from '@/pipeline/improvement-detector';
 import type {
   QualityMetrics,
   QualityReport,
 } from '@/pipeline/quality-monitor';
+
+/**
+ * Fail-loud helper replacing the old `opp!` postfixes: a missing
+ * opportunity keeps the RED verdict with its area name instead of
+ * surfacing `new undefined()` mid-test.
+ */
+function requireOpportunity(report: ImprovementReport, area: string): ImprovementOpportunity {
+  const opp = report.opportunities.find(o => o.area === area);
+  if (opp === undefined) {
+    throw new Error(`opportunity '${area}' not found in report`);
+  }
+  return opp;
+}
 
 // ---------------------------------------------------------------------------
 // Mock QualityMonitor
@@ -87,9 +101,9 @@ describe('ImprovementDetector', () => {
 
       const opp = report.opportunities.find(o => o.area === 'Processing Speed');
       expect(opp).toBeDefined();
-      expect(opp!.priority).toBe('medium');
-      expect(opp!.confidence).toBeGreaterThan(0);
-      expect(opp!.suggestedActions.length).toBeGreaterThan(0);
+      expect(requireOpportunity(report, 'Processing Speed').priority).toBe('medium');
+      expect(requireOpportunity(report, 'Processing Speed').confidence).toBeGreaterThan(0);
+      expect(requireOpportunity(report, 'Processing Speed').suggestedActions.length).toBeGreaterThan(0);
     });
 
     it('detects high priority for >60s processing time', () => {
@@ -98,7 +112,7 @@ describe('ImprovementDetector', () => {
       const report = detector.generateReport();
 
       const opp = report.opportunities.find(o => o.area === 'Processing Speed');
-      expect(opp!.priority).toBe('high');
+      expect(requireOpportunity(report, 'Processing Speed').priority).toBe('high');
     });
   });
 
@@ -110,7 +124,7 @@ describe('ImprovementDetector', () => {
 
       const opp = report.opportunities.find(o => o.area === 'Memory Optimization');
       expect(opp).toBeDefined();
-      expect(opp!.priority).toBe('medium');
+      expect(requireOpportunity(report, 'Memory Optimization').priority).toBe('medium');
     });
 
     it('detects high priority memory issue above 1024 MB', () => {
@@ -119,7 +133,7 @@ describe('ImprovementDetector', () => {
       const report = detector.generateReport();
 
       const opp = report.opportunities.find(o => o.area === 'Memory Optimization');
-      expect(opp!.priority).toBe('high');
+      expect(requireOpportunity(report, 'Memory Optimization').priority).toBe('high');
     });
   });
 
@@ -131,8 +145,8 @@ describe('ImprovementDetector', () => {
 
       const opp = report.opportunities.find(o => o.area === 'Layout Quality');
       expect(opp).toBeDefined();
-      expect(opp!.priority).toBe('critical');
-      expect(opp!.targetValue).toBe(0);
+      expect(requireOpportunity(report, 'Layout Quality').priority).toBe('critical');
+      expect(requireOpportunity(report, 'Layout Quality').targetValue).toBe(0);
     });
   });
 
@@ -144,7 +158,7 @@ describe('ImprovementDetector', () => {
 
       const opp = report.opportunities.find(o => o.area === 'Error Handling');
       expect(opp).toBeDefined();
-      expect(opp!.priority).toBe('high');
+      expect(requireOpportunity(report, 'Error Handling').priority).toBe('high');
     });
 
     it('detects critical priority for 3+ errors', () => {
@@ -153,7 +167,7 @@ describe('ImprovementDetector', () => {
       const report = detector.generateReport();
 
       const opp = report.opportunities.find(o => o.area === 'Error Handling');
-      expect(opp!.priority).toBe('critical');
+      expect(requireOpportunity(report, 'Error Handling').priority).toBe('critical');
     });
   });
 
@@ -165,7 +179,7 @@ describe('ImprovementDetector', () => {
 
       const opp = report.opportunities.find(o => o.area === 'Relationship Extraction');
       expect(opp).toBeDefined();
-      expect(opp!.priority).toBe('critical');
+      expect(requireOpportunity(report, 'Relationship Extraction').priority).toBe('critical');
     });
 
     it('detects high edge completeness between 50-70%', () => {
@@ -175,7 +189,7 @@ describe('ImprovementDetector', () => {
 
       const opp = report.opportunities.find(o => o.area === 'Relationship Extraction');
       expect(opp).toBeDefined();
-      expect(opp!.priority).toBe('high');
+      expect(requireOpportunity(report, 'Relationship Extraction').priority).toBe('high');
     });
   });
 
@@ -187,7 +201,7 @@ describe('ImprovementDetector', () => {
 
       const opp = report.opportunities.find(o => o.area === 'Relationship Accuracy');
       expect(opp).toBeDefined();
-      expect(opp!.priority).toBe('medium');
+      expect(requireOpportunity(report, 'Relationship Accuracy').priority).toBe('medium');
     });
   });
 
@@ -199,7 +213,7 @@ describe('ImprovementDetector', () => {
 
       const opp = report.opportunities.find(o => o.area === 'Caching Efficiency');
       expect(opp).toBeDefined();
-      expect(opp!.priority).toBe('low');
+      expect(requireOpportunity(report, 'Caching Efficiency').priority).toBe('low');
     });
   });
 
@@ -211,7 +225,7 @@ describe('ImprovementDetector', () => {
 
       const opp = report.opportunities.find(o => o.area === 'System Reliability');
       expect(opp).toBeDefined();
-      expect(opp!.priority).toBe('medium');
+      expect(requireOpportunity(report, 'System Reliability').priority).toBe('medium');
     });
   });
 
