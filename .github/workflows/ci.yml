@@ -20,6 +20,13 @@ on:
 # (developer machines rewrite https→ssh via insteadOf). CI has no SSH keys,
 # so rewrite ssh→https for anonymous clones of the public repo instead.
 env:
+  # REQ-347 follow-up: `tests/scripts/collect-evidence.test.ts` is timezone-
+  # pinned (its `formatEvidenceLine` shape assertion hard-codes +09:00 because
+  # the project's evidence log format is defined in JST). Without this the CI
+  # runner's UTC clock produces a +00:00 offset and the format-mirror test
+  # fails on every PR — pinning TZ here so the runner matches the developer
+  # locale that the evidence-format spec targets.
+  TZ: Asia/Tokyo
   GIT_CONFIG_COUNT: 1
   GIT_CONFIG_KEY_0: url.https://github.com/.insteadOf
   GIT_CONFIG_VALUE_0: ssh://git@github.com/
