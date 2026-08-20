@@ -66,6 +66,18 @@ import {
   type ExtentNode,
 } from '@/visualization/layout-utils';
 
+/**
+ * Fail-loud unwrap for the fold results: every `!` site below feeds a
+ * NON-empty node list, where the fold's contract says it returns extents,
+ * never null (only the empty list returns null). An unexpected null used to
+ * surface as `extents.maxX` TypeError; the throw keeps the same RED verdict
+ * with a diagnosable message.
+ */
+function requireExtents(result: NodeExtents | null): NodeExtents {
+  if (result === null) throw new Error('foldNodeExtents returned null for a non-empty node list');
+  return result;
+}
+
 // ---------------------------------------------------------------------------
 // Layer 1 material: the VERBATIM pre-round-41 inline scans, frozen from the
 // eleven sites at 9c66c351 (round 40 HEAD). Do not "improve" these copies:
@@ -328,7 +340,7 @@ describe('node-extent scan: canonical fold ≡ pre-round-41 inline scans', () =>
       }));
       const configWidth = Math.floor(rng() * 1200);
       const configHeight = Math.floor(rng() * 900);
-      const extents = foldNodeExtents(nodes, (n) => nodeExtentEdges(n, 0, 0))!;
+      const extents = requireExtents(foldNodeExtents(nodes, (n) => nodeExtentEdges(n, 0, 0)));
       const retired = oldWorkerBounds(nodes, configWidth, configHeight);
       expect(Math.max(extents.maxX, configWidth)).toBe(retired.width);
       expect(Math.max(extents.maxY, configHeight)).toBe(retired.height);
@@ -348,7 +360,7 @@ describe('node-extent scan: canonical fold ≡ pre-round-41 inline scans', () =>
 
 describe('node-extent scan: semantic pins', () => {
   it('single node: extents are exactly that node\'s four edges', () => {
-    const extents = foldNodeExtents([node('solo', 10, 20, 100, 50)], (n) => nodeExtentEdges(n, 0, 0))!;
+    const extents = requireExtents(foldNodeExtents([node('solo', 10, 20, 100, 50)], (n) => nodeExtentEdges(n, 0, 0)));
     expect(extents).toEqual({ minX: 10, minY: 20, maxX: 110, maxY: 70 });
   });
 
@@ -359,8 +371,8 @@ describe('node-extent scan: semantic pins', () => {
     // Fallback-0 policy (BaseLayoutEngine bounds, canvas fitting, worker):
     expect(nodeExtentEdges(dimless, 0, 0)).toEqual({ left: 200, top: 100, right: 200, bottom: 100 });
     // And the fold inherits the read's policy, not its own:
-    expect(foldNodeExtents([dimless], (n) => nodeExtentEdges(n, 0, 0))!.maxX).toBe(200);
-    expect(foldNodeExtents([dimless], nodeExtentEdges)!.maxX).toBe(320);
+    expect(requireExtents(foldNodeExtents([dimless], (n) => nodeExtentEdges(n, 0, 0))).maxX).toBe(200);
+    expect(requireExtents(foldNodeExtents([dimless], nodeExtentEdges)).maxX).toBe(320);
   });
 
   it('WIDTH-ALIAS AXIS witness: getNodeWidth chain is width → w → fallback, exactly once in the read', () => {
@@ -373,16 +385,16 @@ describe('node-extent scan: semantic pins', () => {
   it('NaN POLICY witness: a raw read propagates NaN into the box (fail-loud, the spread sites\' historic policy); a sanitized read cannot', () => {
     const poisoned = [{ ...node('p', 50, 60, 100, 40), x: Number.NaN }];
     expect(() => {
-      const extents = foldNodeExtents(poisoned as PositionedNode[], (n) => nodeExtentEdges(n, 0, 0))!;
+      const extents = requireExtents(foldNodeExtents(poisoned as PositionedNode[], (n) => nodeExtentEdges(n, 0, 0)));
       expect(Number.isNaN(extents.minX)).toBe(true);
     }).not.toThrow();
-    const sanitized = foldNodeExtents(poisoned as PositionedNode[], sanitizedExtentEdges)!;
+    const sanitized = requireExtents(foldNodeExtents(poisoned as PositionedNode[], sanitizedExtentEdges));
     expect(sanitized).toEqual({ minX: 0, minY: 60, maxX: 100, maxY: 100 });
   });
 
   it('|| 0 READ witness: a missing coordinate contributes 0, never NaN (cluster NodeDatum contract)', () => {
     const raw = { id: 'c', label: 'c' } as unknown as PositionedNode;
-    const extents = foldNodeExtents([raw], orZeroExtentEdges)!;
+    const extents = requireExtents(foldNodeExtents([raw], orZeroExtentEdges));
     expect(extents).toEqual({
       minX: 0,
       minY: 0,
@@ -410,10 +422,10 @@ describe('node-extent scan: semantic pins', () => {
 
   it('CANVAS-SEED witness: worker bounds floor at the requested canvas, exceeding it wins', () => {
     const tiny = [node('t', 0, 0, 100, 50)]; // max edge 100 / 50
-    const foldTiny = foldNodeExtents(tiny, (n) => nodeExtentEdges(n, 0, 0))!;
+    const foldTiny = requireExtents(foldNodeExtents(tiny, (n) => nodeExtentEdges(n, 0, 0)));
     expect(Math.max(foldTiny.maxX, 800)).toBe(800);
     const big = [node('b', 0, 0, 900, 500)]; // max edge 900 / 500
-    const foldBig = foldNodeExtents(big, (n) => nodeExtentEdges(n, 0, 0))!;
+    const foldBig = requireExtents(foldNodeExtents(big, (n) => nodeExtentEdges(n, 0, 0)));
     expect(Math.max(foldBig.maxX, 800)).toBe(900);
   });
 });

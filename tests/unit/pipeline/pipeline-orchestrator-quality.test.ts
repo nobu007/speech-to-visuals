@@ -14,6 +14,18 @@ import { QualityMonitor } from '@/pipeline/quality-monitor';
 
 // ---------- Helpers ----------
 
+/** One recordMetrics invocation's arguments, as the find() callbacks type it. */
+type QualityCall = Parameters<QualityMonitor['recordMetrics']>;
+
+// Fail-loud unwrap for the per-stage find() results: the preceding asserts
+// only proved a matching recording existed, the reads then re-asserted it via
+// `call![0]`. The throw keeps the old TypeError's RED verdict with the stage
+// name, and the `expect(call).toBeDefined()` pairs fold in.
+function requireQualityCall(call: QualityCall | undefined, stage: string): QualityCall {
+  if (call === undefined) throw new Error(`expected a ${stage} quality-metrics recording`);
+  return call;
+}
+
 function makeValidPipelineInput(): PipelineInput {
   return {
     audioFile: 'test-audio.wav',
@@ -71,13 +83,12 @@ describe('PipelineOrchestrator QualityMonitor Integration (REQ-088)', () => {
     await orchestrator.execute(makeValidPipelineInput());
 
     // Find the transcription quality recording
-    const transcriptionCall = recordMetricsSpy.mock.calls.find(
-      (call: Parameters<QualityMonitor['recordMetrics']>) => call[0].transcriptionAccuracy !== undefined,
-    );
+    const transcriptionCall = requireQualityCall(recordMetricsSpy.mock.calls.find(
+      (call: QualityCall) => call[0].transcriptionAccuracy !== undefined,
+    ), 'transcription');
 
-    expect(transcriptionCall).toBeDefined();
-    expect(transcriptionCall![0].transcriptionAccuracy).toBeGreaterThanOrEqual(0);
-    expect(transcriptionCall![0].transcriptionAccuracy).toBeLessThanOrEqual(1);
+    expect(transcriptionCall[0].transcriptionAccuracy).toBeGreaterThanOrEqual(0);
+    expect(transcriptionCall[0].transcriptionAccuracy).toBeLessThanOrEqual(1);
   });
 
   it('records analysis quality from diagram confidence', async () => {
@@ -85,13 +96,12 @@ describe('PipelineOrchestrator QualityMonitor Integration (REQ-088)', () => {
     await orchestrator.execute(makeValidPipelineInput());
 
     // Find the analysis quality recording
-    const analysisCall = recordMetricsSpy.mock.calls.find(
-      (call: Parameters<QualityMonitor['recordMetrics']>) => call[0].entityExtractionF1 !== undefined,
-    );
+    const analysisCall = requireQualityCall(recordMetricsSpy.mock.calls.find(
+      (call: QualityCall) => call[0].entityExtractionF1 !== undefined,
+    ), 'analysis');
 
-    expect(analysisCall).toBeDefined();
-    expect(analysisCall![0].entityExtractionF1).toBeGreaterThanOrEqual(0);
-    expect(analysisCall![0].entityExtractionF1).toBeLessThanOrEqual(1);
+    expect(analysisCall[0].entityExtractionF1).toBeGreaterThanOrEqual(0);
+    expect(analysisCall[0].entityExtractionF1).toBeLessThanOrEqual(1);
   });
 
   it('records layout quality score after optimization', async () => {
@@ -100,13 +110,13 @@ describe('PipelineOrchestrator QualityMonitor Integration (REQ-088)', () => {
 
     // Find the layout quality recording
     const layoutCall = recordMetricsSpy.mock.calls.find(
-      (call: Parameters<QualityMonitor['recordMetrics']>) => call[0].edgeCompleteness !== undefined,
+      (call: QualityCall) => call[0].edgeCompleteness !== undefined,
     );
 
     // Layout quality should be recorded if layoutQualityScore was computed
     if (result.metrics?.layoutQualityScore !== undefined) {
       expect(layoutCall).toBeDefined();
-      expect(layoutCall![0].edgeCompleteness).toBeGreaterThanOrEqual(0);
+      expect(requireQualityCall(layoutCall, 'layout')[0].edgeCompleteness).toBeGreaterThanOrEqual(0);
     }
   });
 
@@ -115,12 +125,11 @@ describe('PipelineOrchestrator QualityMonitor Integration (REQ-088)', () => {
     const result = await orchestrator.execute(makeValidPipelineInput());
 
     // Find the rendering quality recording
-    const renderingCall = recordMetricsSpy.mock.calls.find(
-      (call: Parameters<QualityMonitor['recordMetrics']>) => call[0].processingTime !== undefined && call[0].processingTime > 0,
-    );
+    const renderingCall = requireQualityCall(recordMetricsSpy.mock.calls.find(
+      (call: QualityCall) => call[0].processingTime !== undefined && call[0].processingTime > 0,
+    ), 'rendering');
 
-    expect(renderingCall).toBeDefined();
-    expect(renderingCall![0].processingTime).toBeGreaterThan(0);
+    expect(renderingCall[0].processingTime).toBeGreaterThan(0);
 
     // Rendering score should be set
     expect(result.metrics?.qualityScores?.rendering).toBeDefined();
@@ -147,10 +156,10 @@ describe('PipelineOrchestrator QualityMonitor Integration (REQ-088)', () => {
     const result = await orchestrator.execute(makeValidPipelineInput());
 
     const scores = result.metrics?.qualityScores;
-    expect(scores).toBeDefined();
+    if (scores === undefined) throw new Error('expected qualityScores on the pipeline metrics');
 
     // All score values should be numbers in [0, 1] range
-    for (const value of Object.values(scores!)) {
+    for (const value of Object.values(scores)) {
       if (value !== undefined) {
         expect(typeof value).toBe('number');
         expect(value).toBeGreaterThanOrEqual(0);

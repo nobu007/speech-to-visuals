@@ -18,6 +18,16 @@ import request from 'supertest';
 import { jest } from '@jest/globals';
 import { createExportRouter } from '../../src/api/routes/export';
 import { ExportArtifactStore } from '../../src/export/export-artifact-store';
+import type { ArtifactDownloadUrl } from '../../src/export/export-artifact-store';
+
+// Fail-loud unwrap (the export-security-e2e idiom): every site below
+// generates the URL for an artifact it stored one statement earlier, so
+// undefined means the store dropped it. The old `dl!.url` TypeError red; the
+// throw keeps the same RED verdict.
+function requireDownloadUrl(dl: ArtifactDownloadUrl | undefined): ArtifactDownloadUrl {
+  if (dl === undefined) throw new Error('generateDownloadUrl returned undefined for a just-stored artifact');
+  return dl;
+}
 import { validateExportPayload } from '../../src/export/export-content-validator';
 
 beforeEach(() => {
@@ -58,8 +68,8 @@ describe('Edge: Concurrent downloads with same token', () => {
       sizeBytes: 5,
     });
 
-    const dl = store.generateDownloadUrl(stored.artifactId);
-    const token = dl!.url.split('token=')[1];
+    const dl = requireDownloadUrl(store.generateDownloadUrl(stored.artifactId));
+    const token = dl.url.split('token=')[1];
 
     // Issue 5 concurrent downloads
     const downloads = await Promise.all([
@@ -86,8 +96,8 @@ describe('Edge: Concurrent downloads with same token', () => {
         data: new Uint8Array([i]),
         sizeBytes: 1,
       });
-      const dl = store.generateDownloadUrl(stored.artifactId);
-      artifacts.push({ artifactId: stored.artifactId, token: dl!.url.split('token=')[1] });
+      const dl = requireDownloadUrl(store.generateDownloadUrl(stored.artifactId));
+      artifacts.push({ artifactId: stored.artifactId, token: dl.url.split('token=')[1] });
     }
 
     const downloads = await Promise.all(
@@ -134,8 +144,8 @@ describe('Edge: All format MIME types in download pipeline', () => {
         data: new Uint8Array([1, 2, 3]),
         sizeBytes: 3,
       });
-      const dl = store.generateDownloadUrl(stored.artifactId);
-      const token = dl!.url.split('token=')[1];
+      const dl = requireDownloadUrl(store.generateDownloadUrl(stored.artifactId));
+      const token = dl.url.split('token=')[1];
 
       const res = await request(app)
         .get(`/api/v1/export/artifacts/${stored.artifactId}/download?token=${token}`)
@@ -159,8 +169,8 @@ describe('Edge: All format MIME types in download pipeline', () => {
       data: new Uint8Array([1]),
       sizeBytes: 1,
     });
-    const dl = store.generateDownloadUrl(stored.artifactId);
-    const token = dl!.url.split('token=')[1];
+    const dl = requireDownloadUrl(store.generateDownloadUrl(stored.artifactId));
+    const token = dl.url.split('token=')[1];
 
     const res = await request(app).get(
       `/api/v1/export/artifacts/${stored.artifactId}/download?token=${token}`,
@@ -187,8 +197,8 @@ describe('Edge: Token invalidation lifecycle', () => {
       data: new Uint8Array([1]),
       sizeBytes: 1,
     });
-    const dl1 = store.generateDownloadUrl(stored1.artifactId);
-    const oldToken = dl1!.url.split('token=')[1];
+    const dl1 = requireDownloadUrl(store.generateDownloadUrl(stored1.artifactId));
+    const oldToken = dl1.url.split('token=')[1];
 
     // Delete first artifact
     await request(app).delete(`/api/v1/export/artifacts/${stored1.artifactId}`);
@@ -219,8 +229,8 @@ describe('Edge: Token invalidation lifecycle', () => {
     const a1 = store.store({ format: 'svg', data: new Uint8Array([1]), sizeBytes: 1 });
     const a2 = store.store({ format: 'svg', data: new Uint8Array([2]), sizeBytes: 1 });
 
-    const dl1 = store.generateDownloadUrl(a1.artifactId);
-    const token1 = dl1!.url.split('token=')[1];
+    const dl1 = requireDownloadUrl(store.generateDownloadUrl(a1.artifactId));
+    const token1 = dl1.url.split('token=')[1];
 
     const res = await request(app).get(
       `/api/v1/export/artifacts/${a2.artifactId}/download?token=${token1}`,
@@ -383,8 +393,8 @@ describe('Edge: Content validation + download composition', () => {
     const stored = store.store({ format: 'svg', data, sizeBytes: data.length });
 
     // Stage 3: Generate URL
-    const dl = store.generateDownloadUrl(stored.artifactId);
-    const token = dl!.url.split('token=')[1];
+    const dl = requireDownloadUrl(store.generateDownloadUrl(stored.artifactId));
+    const token = dl.url.split('token=')[1];
 
     // Stage 4: Download
     const res = await request(app).get(

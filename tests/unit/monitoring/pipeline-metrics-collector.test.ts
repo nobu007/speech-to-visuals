@@ -16,6 +16,7 @@ import {
   pipelineMetricsCollector,
   type PipelineMetricsSnapshot,
   type PipelineMetricsConfig,
+  type StageDurationAggregate,
 } from '@/monitoring/pipeline-metrics-collector';
 import { exportPrometheusMetrics } from '@/monitoring/prometheus-exporter';
 
@@ -25,6 +26,17 @@ import { exportPrometheusMetrics } from '@/monitoring/prometheus-exporter';
 
 function freshCollector(config?: Partial<PipelineMetricsConfig>): PipelineMetricsCollector {
   return new PipelineMetricsCollector(config);
+}
+
+// Fail-loud stage lookup: every site below recorded durations for the stage
+// it then reads back, so an absent aggregate means the collector dropped the
+// recordings. The old `stage.count` on a `find(…)!` miss surfaced as
+// `undefined.count` TypeError red; the throw keeps the RED verdict with the
+// missing stage name.
+function requireStage(snap: PipelineMetricsSnapshot, stage: string): StageDurationAggregate {
+  const found = snap.stages.find((s) => s.stage === stage);
+  if (found === undefined) throw new Error(`expected a "${stage}" stage aggregate in the snapshot`);
+  return found;
 }
 
 // ---------------------------------------------------------------------------
@@ -62,7 +74,7 @@ describe('PipelineMetricsCollector', () => {
     c.recordStageDuration('analysis', 300);
 
     const snap = c.getSnapshot();
-    const stage = snap.stages.find((s) => s.stage === 'analysis')!;
+    const stage = requireStage(snap, 'analysis');
     expect(stage.count).toBe(3);
     expect(stage.sumMs).toBe(600);
     expect(stage.avgMs).toBe(200);
@@ -78,7 +90,7 @@ describe('PipelineMetricsCollector', () => {
     }
 
     const snap = c.getSnapshot();
-    const stage = snap.stages.find((s) => s.stage === 'layout')!;
+    const stage = requireStage(snap, 'layout');
     expect(stage.percentiles.p50).toBeGreaterThan(0);
     expect(stage.percentiles.p95).toBeGreaterThanOrEqual(stage.percentiles.p50);
     expect(stage.percentiles.p99).toBeGreaterThanOrEqual(stage.percentiles.p95);
@@ -141,7 +153,7 @@ describe('PipelineMetricsCollector', () => {
     }
 
     const snap = c.getSnapshot();
-    const stage = snap.stages.find((s) => s.stage === 'rendering')!;
+    const stage = requireStage(snap, 'rendering');
     // Should only keep last 5 samples (96-100)
     expect(stage.count).toBe(100); // total count tracks all
     expect(stage.maxMs).toBe(100);
@@ -163,7 +175,7 @@ describe('PipelineMetricsCollector', () => {
     c.recordStageDuration('transcribe', 100);
     c.recordStageDuration('transcribe', NaN);
 
-    const stage = c.getSnapshot().stages.find((s) => s.stage === 'transcribe')!;
+    const stage = requireStage(c.getSnapshot(), 'transcribe');
     expect(stage.count).toBe(4);
     expect(stage.sumMs).toBe(300); // NaN coerced to 0, not contaminating sum
     expect(stage.avgMs).toBe(75);  // 300/4 rounded
@@ -180,7 +192,7 @@ describe('PipelineMetricsCollector', () => {
     c.recordStageDuration('layout', 50);
     c.recordStageDuration('layout', Number.POSITIVE_INFINITY);
 
-    const stage = c.getSnapshot().stages.find((s) => s.stage === 'layout')!;
+    const stage = requireStage(c.getSnapshot(), 'layout');
     expect(Number.isFinite(stage.sumMs)).toBe(true);
     expect(stage.sumMs).toBe(50);
     expect(stage.avgMs).toBe(25);
@@ -191,7 +203,7 @@ describe('PipelineMetricsCollector', () => {
     c.recordStageDuration('render', 80);
     c.recordStageDuration('render', Number.NEGATIVE_INFINITY);
 
-    const stage = c.getSnapshot().stages.find((s) => s.stage === 'render')!;
+    const stage = requireStage(c.getSnapshot(), 'render');
     expect(Number.isFinite(stage.sumMs)).toBe(true);
     expect(stage.sumMs).toBe(80);
   });
@@ -201,7 +213,7 @@ describe('PipelineMetricsCollector', () => {
     for (let i = 1; i <= 10; i++) c.recordStageDuration('analysis', i * 10);
     c.recordStageDuration('analysis', NaN);
 
-    const stage = c.getSnapshot().stages.find((s) => s.stage === 'analysis')!;
+    const stage = requireStage(c.getSnapshot(), 'analysis');
     expect(Number.isFinite(stage.percentiles.p50)).toBe(true);
     expect(Number.isFinite(stage.percentiles.p95)).toBe(true);
     expect(Number.isFinite(stage.percentiles.p99)).toBe(true);

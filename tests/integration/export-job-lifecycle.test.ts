@@ -17,8 +17,26 @@ import express from 'express';
 import request from 'supertest';
 import { jest } from '@jest/globals';
 import { ExportArtifactStore } from '../../src/export/export-artifact-store';
+import type { StoredArtifact } from '../../src/export/export-artifact-store';
 import { ExportJobQueue } from '../../src/export/export-job-queue';
+import type { QueuedExportJob } from '../../src/export/export-job-queue';
 import { createExportJobRouter } from '../../src/api/routes/export-jobs';
+
+// Fail-loud unwraps for the two nullable reads this suite asserts presence on
+// (the Phase-154 requireDequeued idiom). The old `dequeued!.jobId` /
+// `artifact!.format` TypeErrors red; the throws keep the same RED verdict with
+// the missing id, and the preceding `expect(…).toBeDefined()` pairs fold in.
+function requireDequeued(queue: ExportJobQueue): QueuedExportJob {
+  const job = queue.dequeue();
+  if (job === undefined) throw new Error('expected a queued job but dequeue() returned undefined');
+  return job;
+}
+
+function requireArtifact(store: ExportArtifactStore, artifactId: string): StoredArtifact {
+  const artifact = store.get(artifactId);
+  if (artifact === undefined) throw new Error(`expected artifact ${artifactId} in the store`);
+  return artifact;
+}
 
 // ---------------------------------------------------------------------------
 // Test harness: replicate server.ts wiring without security middleware
@@ -89,9 +107,8 @@ describe('Export Job Full Lifecycle Integration', () => {
     expect(queuedRes.body.data.completedAt).toBeNull();
 
     // Step 3: Simulate worker picking up and completing the job
-    const dequeued = jobQueue.dequeue();
-    expect(dequeued).toBeDefined();
-    expect(dequeued!.jobId).toBe(jobId);
+    const dequeued = requireDequeued(jobQueue);
+    expect(dequeued.jobId).toBe(jobId);
 
     // Verify status is now "running"
     const runningRes = await request(app).get(`/api/v1/export/jobs/${jobId}`);
@@ -162,11 +179,11 @@ describe('Export Job Priority Ordering via HTTP', () => {
     expect(highRes.body.data.queuePosition).toBe(0); // High priority jumps to front
 
     // Dequeue should return the high-priority job first
-    const firstDequeued = jobQueue.dequeue();
-    expect(firstDequeued!.jobId).toBe(highRes.body.data.jobId);
+    const firstDequeued = requireDequeued(jobQueue);
+    expect(firstDequeued.jobId).toBe(highRes.body.data.jobId);
 
-    const secondDequeued = jobQueue.dequeue();
-    expect(secondDequeued!.jobId).toBe(normalRes.body.data.jobId);
+    const secondDequeued = requireDequeued(jobQueue);
+    expect(secondDequeued.jobId).toBe(normalRes.body.data.jobId);
   });
 
   test('multiple jobs with same priority maintain FIFO order', async () => {
@@ -182,8 +199,8 @@ describe('Export Job Priority Ordering via HTTP', () => {
 
     // Dequeue in FIFO order
     for (let i = 0; i < 3; i++) {
-      const dequeued = jobQueue.dequeue();
-      expect(dequeued!.jobId).toBe(jobs[i]);
+      const dequeued = requireDequeued(jobQueue);
+      expect(dequeued.jobId).toBe(jobs[i]);
     }
   });
 });
@@ -244,11 +261,10 @@ describe('Export Job Artifact Store Integration via HTTP', () => {
     const artifactId = statusRes.body.data.artifactId;
 
     // Verify the artifact exists in the store
-    const artifact = artifactStore.get(artifactId);
-    expect(artifact).toBeDefined();
-    expect(artifact!.format).toBe('mp4');
-    expect(artifact!.sizeBytes).toBe(128);
-    expect(artifact!.metadata?.jobId).toBe(jobId);
+    const artifact = requireArtifact(artifactStore, artifactId);
+    expect(artifact.format).toBe('mp4');
+    expect(artifact.sizeBytes).toBe(128);
+    expect(artifact.metadata?.jobId).toBe(jobId);
   });
 
   test('multiple completed jobs each get distinct artifactIds', async () => {

@@ -10,8 +10,18 @@
  * - parsePngChunks utility round-trip
  */
 
-import { encodeAPNG, parsePngChunks, type ApngFrameInput } from '@/export/apng-encoder';
+import { encodeAPNG, parsePngChunks, type ApngFrameInput, type PngChunkInfo } from '@/export/apng-encoder';
 import { FormatValidationError } from '@/pipeline/pipeline-errors';
+
+// Fail-loud chunk lookup: the encoder's contract says every asserted chunk
+// type is present in the stream. The old `chunks.find(…)!.data` TypeError
+// red; the throw keeps the same RED verdict naming the missing chunk type
+// (and the one preceding `expect(ihdr).toBeDefined()` pair folds in).
+function requireChunk(chunks: PngChunkInfo[], type: string): PngChunkInfo {
+  const chunk = chunks.find((c) => c.type === type);
+  if (chunk === undefined) throw new Error(`expected a ${type} chunk in the encoded APNG`);
+  return chunk;
+}
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -92,8 +102,7 @@ describe('encodeAPNG', () => {
     const buf = encodeAPNG([frame], { fps: 30 });
     const chunks = parsePngChunks(buf);
 
-    const ihdr = chunks.find(c => c.type === 'IHDR')!;
-    expect(ihdr).toBeDefined();
+    const ihdr = requireChunk(chunks, 'IHDR');
 
     // IHDR data: width(4) + height(4) + bitdepth(1) + colortype(1) + compression(1) + filter(1) + interlace(1)
     const dv = ihdr.data;
@@ -110,7 +119,7 @@ describe('encodeAPNG', () => {
     const buf = encodeAPNG(frames, { fps: 10 });
     const chunks = parsePngChunks(buf);
 
-    const actl = chunks.find(c => c.type === 'acTL')!;
+    const actl = requireChunk(chunks, 'acTL');
     const numFrames = (actl.data[0] << 24) | (actl.data[1] << 16) | (actl.data[2] << 8) | actl.data[3];
     expect(numFrames).toBe(2);
   });
@@ -120,7 +129,7 @@ describe('encodeAPNG', () => {
     const buf = encodeAPNG([frame], { fps: 30 });
     const chunks = parsePngChunks(buf);
 
-    const actl = chunks.find(c => c.type === 'acTL')!;
+    const actl = requireChunk(chunks, 'acTL');
     const numPlays = (actl.data[4] << 24) | (actl.data[5] << 16) | (actl.data[6] << 8) | actl.data[7];
     expect(numPlays).toBe(0);
   });
@@ -130,7 +139,7 @@ describe('encodeAPNG', () => {
     const buf = encodeAPNG([frame], { fps: 30, numPlays: 5 });
     const chunks = parsePngChunks(buf);
 
-    const actl = chunks.find(c => c.type === 'acTL')!;
+    const actl = requireChunk(chunks, 'acTL');
     const numPlays = (actl.data[4] << 24) | (actl.data[5] << 16) | (actl.data[6] << 8) | actl.data[7];
     expect(numPlays).toBe(5);
   });
@@ -160,12 +169,12 @@ describe('encodeAPNG', () => {
     const chunks = parsePngChunks(buf);
 
     // First fcTL seq = 0
-    const fctl0 = chunks.find(c => c.type === 'fcTL')!;
+    const fctl0 = requireChunk(chunks, 'fcTL');
     const seq0 = (fctl0.data[0] << 24) | (fctl0.data[1] << 16) | (fctl0.data[2] << 8) | fctl0.data[3];
     expect(seq0).toBe(0);
 
     // fdAT seq should be 2 (fcTL#1 seq=1, fdAT seq=2)
-    const fdat = chunks.find(c => c.type === 'fdAT')!;
+    const fdat = requireChunk(chunks, 'fdAT');
     const fdatSeq = (fdat.data[0] << 24) | (fdat.data[1] << 16) | (fdat.data[2] << 8) | fdat.data[3];
     expect(fdatSeq).toBe(2);
   });
@@ -177,7 +186,7 @@ describe('encodeAPNG', () => {
     const buf = encodeAPNG([frame], { fps: 30 });
     const chunks = parsePngChunks(buf);
 
-    const fctl = chunks.find(c => c.type === 'fcTL')!;
+    const fctl = requireChunk(chunks, 'fcTL');
     // delay_num at offset 20, delay_den at offset 22 (big-endian u16).
     // Per the APNG spec the frame delay is delay_num/delay_den in SECONDS, so a
     // 30fps frame (1/30 s ≈ 33.33ms) is encoded as the exact rational 1/30:

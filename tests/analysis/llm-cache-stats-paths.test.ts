@@ -224,6 +224,18 @@ describe('LLMCache untested paths', () => {
       return JSON.parse(fs.readFileSync(cachePath, 'utf8'));
     }
 
+    // Fail-loud disk read (the llm-cache-debounce.test.ts idiom): every call
+    // site below follows an explicit persist(), so a null return means the
+    // write never landed — the old `disk!.entries` TypeError red, kept as a
+    // diagnosable throw.
+    function requireDisk(): { entries: Array<{ key: string; data: string }> } {
+      const disk = readCacheFile();
+      if (disk === null) {
+        throw new Error(`expected persisted cache file at ${cachePath}`);
+      }
+      return disk;
+    }
+
     test('clear() does not trigger persist to disk', () => {
       const cache = new LLMCache<string>({
         persistPath: cachePath,
@@ -233,14 +245,14 @@ describe('LLMCache untested paths', () => {
 
       cache.set('a', '1');
       cache.persist(); // ensure data is on disk
-      expect(readCacheFile()!.entries).toHaveLength(1);
+      expect(requireDisk().entries).toHaveLength(1);
 
       // clear() only clears in-memory map, no scheduleSave() call
       cache.clear();
 
       // On-disk data is stale until next set/persist
-      const disk = readCacheFile();
-      expect(disk!.entries).toHaveLength(1); // still has old entry
+      const disk = requireDisk();
+      expect(disk.entries).toHaveLength(1); // still has old entry
       expect(cache.getStats().size).toBe(0); // in-memory is empty
     });
 
@@ -257,14 +269,14 @@ describe('LLMCache untested paths', () => {
       cache.set('valid', 'kept');
       cache.persist(); // flush to disk
 
-      expect(readCacheFile()!.entries).toHaveLength(2);
+      expect(requireDisk().entries).toHaveLength(2);
 
       cache.clearExpired();
 
       // Disk now reflects only valid entries
-      const disk = readCacheFile();
-      expect(disk!.entries).toHaveLength(1);
-      expect(disk!.entries[0].data).toBe('kept');
+      const disk = requireDisk();
+      expect(disk.entries).toHaveLength(1);
+      expect(disk.entries[0].data).toBe('kept');
     });
 
     test('clear() then persist() writes empty cache to disk', () => {
@@ -276,13 +288,13 @@ describe('LLMCache untested paths', () => {
 
       cache.set('a', '1');
       cache.persist();
-      expect(readCacheFile()!.entries).toHaveLength(1);
+      expect(requireDisk().entries).toHaveLength(1);
 
       cache.clear();
       cache.persist();
 
-      const disk = readCacheFile();
-      expect(disk!.entries).toHaveLength(0);
+      const disk = requireDisk();
+      expect(disk.entries).toHaveLength(0);
     });
   });
 

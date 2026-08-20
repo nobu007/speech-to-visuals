@@ -14,6 +14,16 @@ import express from 'express';
 import request from 'supertest';
 import { createExportRouter } from '../../src/api/routes/export';
 import { ExportArtifactStore } from '../../src/export/export-artifact-store';
+import type { ArtifactDownloadUrl } from '../../src/export/export-artifact-store';
+
+// Fail-loud unwrap: every site below generates the URL for an artifact it
+// stored one statement earlier, so undefined means the store dropped it. The
+// old `dl!.url` TypeError red; the throw keeps the RED verdict, and the
+// preceding `expect(dl).toBeDefined()` pairs fold in.
+function requireDownloadUrl(dl: ArtifactDownloadUrl | undefined): ArtifactDownloadUrl {
+  if (dl === undefined) throw new Error('generateDownloadUrl returned undefined for a just-stored artifact');
+  return dl;
+}
 
 // ---------------------------------------------------------------------------
 // Test app factory
@@ -214,9 +224,8 @@ describe('E2E: Content-Disposition header is sanitized on download', () => {
       data: new Uint8Array([1, 2, 3]),
       sizeBytes: 3,
     });
-    const dl = store.generateDownloadUrl(stored.artifactId);
-    expect(dl).toBeDefined();
-    const token = dl!.url.split('token=')[1];
+    const dl = requireDownloadUrl(store.generateDownloadUrl(stored.artifactId));
+    const token = dl.url.split('token=')[1];
 
     const res = await request(app).get(
       `/api/v1/export/artifacts/${stored.artifactId}/download?token=${token}`,
@@ -242,8 +251,8 @@ describe('E2E: Content-Disposition header is sanitized on download', () => {
         data: new Uint8Array([1]),
         sizeBytes: 1,
       });
-      const dl = store.generateDownloadUrl(stored.artifactId);
-      const token = dl!.url.split('token=')[1];
+      const dl = requireDownloadUrl(store.generateDownloadUrl(stored.artifactId));
+      const token = dl.url.split('token=')[1];
 
       // Use .buffer(true) and .parse to handle binary responses
       const res = await request(app)
@@ -265,8 +274,8 @@ describe('E2E: Content-Disposition header is sanitized on download', () => {
       data: new Uint8Array([1]),
       sizeBytes: 1,
     });
-    const dl = store.generateDownloadUrl(stored.artifactId);
-    const token = dl!.url.split('token=')[1];
+    const dl = requireDownloadUrl(store.generateDownloadUrl(stored.artifactId));
+    const token = dl.url.split('token=')[1];
 
     const res = await request(app).get(
       `/api/v1/export/artifacts/${stored.artifactId}/download?token=${token}`,
@@ -287,8 +296,8 @@ describe('E2E: Content-Disposition header is sanitized on download', () => {
       data: new Uint8Array([1]),
       sizeBytes: 1,
     });
-    const dl = store.generateDownloadUrl(stored.artifactId);
-    const token = dl!.url.split('token=')[1];
+    const dl = requireDownloadUrl(store.generateDownloadUrl(stored.artifactId));
+    const token = dl.url.split('token=')[1];
 
     const res = await request(app).get(
       `/api/v1/export/artifacts/${stored.artifactId}/download?token=${token}`,
@@ -344,8 +353,8 @@ describe('E2E: Invalid or expired tokens return 404', () => {
     });
 
     // Generate token for stored1, try to use for stored2
-    const dl = store.generateDownloadUrl(stored1.artifactId);
-    const token = dl!.url.split('token=')[1];
+    const dl = requireDownloadUrl(store.generateDownloadUrl(stored1.artifactId));
+    const token = dl.url.split('token=')[1];
 
     const res = await request(app).get(
       `/api/v1/export/artifacts/${stored2.artifactId}/download?token=${token}`,
@@ -389,10 +398,9 @@ describe('E2E: Full artifact download lifecycle', () => {
     expect(metaRes.body.data.metadata).toEqual({ jobId: 'test-job' });
 
     // Generate URL
-    const dl = store.generateDownloadUrl(stored.artifactId);
-    expect(dl).toBeDefined();
-    expect(dl!.expiresAt).toBeGreaterThan(Date.now());
-    const token = dl!.url.split('token=')[1];
+    const dl = requireDownloadUrl(store.generateDownloadUrl(stored.artifactId));
+    expect(dl.expiresAt).toBeGreaterThan(Date.now());
+    const token = dl.url.split('token=')[1];
 
     // Download
     const dlRes = await request(app).get(

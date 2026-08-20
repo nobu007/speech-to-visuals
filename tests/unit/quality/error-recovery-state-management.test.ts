@@ -26,6 +26,19 @@ function makeContext(overrides: Partial<{ stage: ProcessingStage; retryCount: nu
   };
 }
 
+/**
+ * Fail-loud breaker lookup: every site below reads the breaker for a stage
+ * the EnhancedErrorRecovery constructor pre-registers, so an absent entry
+ * means the wiring changed. The old `.get(…)!` read surfaced as
+ * `breaker.recordFailure` TypeError red; the throw keeps the RED verdict
+ * with the stage name.
+ */
+function requireBreaker<T>(breakers: Map<string, T>, stage: string): T {
+  const breaker = breakers.get(stage);
+  if (breaker === undefined) throw new Error(`expected a circuit breaker for stage "${stage}"`);
+  return breaker;
+}
+
 // ============================================================
 // getErrorSnapshot()
 // ============================================================
@@ -78,7 +91,7 @@ describe('EnhancedErrorRecovery - getErrorSnapshot', () => {
 
   it('should reflect circuit breaker state', async () => {
     // Force the transcription circuit breaker open by exceeding threshold
-    const breaker = recovery['circuitBreakers'].get('transcription')!;
+    const breaker = requireBreaker(recovery['circuitBreakers'], 'transcription');
     for (let i = 0; i < 5; i++) {
       breaker.recordFailure();
     }
@@ -171,7 +184,7 @@ describe('EnhancedErrorRecovery - clearErrorHistory', () => {
   });
 
   it('should not affect circuit breakers', async () => {
-    const breaker = recovery['circuitBreakers'].get('analysis')!;
+    const breaker = requireBreaker(recovery['circuitBreakers'], 'analysis');
     breaker.recordFailure();
     breaker.recordFailure();
     breaker.recordFailure();
@@ -367,8 +380,8 @@ describe('EnhancedErrorRecovery - resetCircuitBreakers', () => {
 
   it('should reset all circuit breakers to closed', () => {
     // Force some breakers open
-    const transBreaker = recovery['circuitBreakers'].get('transcription')!;
-    const renderBreaker = recovery['circuitBreakers'].get('rendering')!;
+    const transBreaker = requireBreaker(recovery['circuitBreakers'], 'transcription');
+    const renderBreaker = requireBreaker(recovery['circuitBreakers'], 'rendering');
     for (let i = 0; i < 5; i++) {
       transBreaker.recordFailure();
       renderBreaker.recordFailure();
@@ -389,7 +402,7 @@ describe('EnhancedErrorRecovery - resetCircuitBreakers', () => {
 
   it('should allow requests after reset', async () => {
     // Force breaker open
-    const breaker = recovery['circuitBreakers'].get('analysis')!;
+    const breaker = requireBreaker(recovery['circuitBreakers'], 'analysis');
     for (let i = 0; i < 5; i++) breaker.recordFailure();
     expect(breaker.isOpen()).toBe(true);
 
@@ -582,7 +595,7 @@ describe('EnhancedErrorRecovery - exportErrorReport', () => {
   });
 
   it('should recommend action when circuit breakers are open', () => {
-    const breaker = recovery['circuitBreakers'].get('transcription')!;
+    const breaker = requireBreaker(recovery['circuitBreakers'], 'transcription');
     for (let i = 0; i < 5; i++) breaker.recordFailure();
 
     const report = recovery.exportErrorReport();
@@ -694,7 +707,7 @@ describe('EnhancedErrorRecovery - State management integration', () => {
     await recovery.recoverFromError(makeContext({ stage: 'analysis' }));
 
     // Force breaker open
-    const breaker = recovery['circuitBreakers'].get('analysis')!;
+    const breaker = requireBreaker(recovery['circuitBreakers'], 'analysis');
     for (let i = 0; i < 5; i++) breaker.recordFailure();
 
     // Full reset

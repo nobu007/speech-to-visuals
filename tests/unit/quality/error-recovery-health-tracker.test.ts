@@ -33,6 +33,22 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+// Fail-loud lookups for the two nullable reads this suite asserts presence
+// on. The old `score!.lastErrorCount` / `breaker!.recordFailure()` TypeErrors
+// red; the throws keep the same RED verdict with the stage name (and the
+// preceding `expect(…).toBeDefined()` pairs fold in).
+function requireStageScore(assessment: HealthAssessment, stage: string): StageHealthScore {
+  const score = assessment.stageScores.find((s) => s.stage === stage);
+  if (score === undefined) throw new Error(`expected a health score for stage "${stage}"`);
+  return score;
+}
+
+function requireBreaker<T>(breakers: Map<string, T>, stage: string): T {
+  const breaker = breakers.get(stage);
+  if (breaker === undefined) throw new Error(`expected a circuit breaker for stage "${stage}"`);
+  return breaker;
+}
+
 /**
  * Force the EnhancedErrorRecovery to record errors for a given stage
  * by directly injecting error records into the internal errorHistory map.
@@ -128,13 +144,10 @@ describe('ErrorRecoveryHealthTracker', () => {
       const assessment = tracker.sample();
 
       // After injecting errors, transcription should appear as a stage
-      const transcriptionScore = assessment.stageScores.find(
-        (s) => s.stage === 'transcription',
-      );
-      expect(transcriptionScore).toBeDefined();
-      expect(transcriptionScore!.lastErrorCount).toBeGreaterThanOrEqual(3);
+      const transcriptionScore = requireStageScore(assessment, 'transcription');
+      expect(transcriptionScore.lastErrorCount).toBeGreaterThanOrEqual(3);
       // With 3 errors, the score should be notably below 1.0
-      expect(transcriptionScore!.score).toBeLessThan(0.9);
+      expect(transcriptionScore.score).toBeLessThan(0.9);
     });
 
     it('identifies degraded stages below threshold', () => {
@@ -283,12 +296,8 @@ describe('ErrorRecoveryHealthTracker', () => {
       expect(stages).toContain('rendering');
 
       // Rendering had more errors, so it should have a lower score
-      const tScore = assessment.stageScores.find(
-        (s) => s.stage === 'transcription',
-      )!;
-      const rScore = assessment.stageScores.find(
-        (s) => s.stage === 'rendering',
-      )!;
+      const tScore = requireStageScore(assessment, 'transcription');
+      const rScore = requireStageScore(assessment, 'rendering');
       expect(tScore.score).toBeGreaterThan(rScore.score);
     });
   });
@@ -402,7 +411,7 @@ describe('EnhancedErrorRecovery concurrent load-balancing', () => {
         circuitBreakers: Map<string, { recordFailure: () => void; state: string; failureCount: number }>;
       }).circuitBreakers;
 
-      const breaker = breakerMap.get('rendering')!;
+      const breaker = requireBreaker(breakerMap, 'rendering');
       // Record failures to exceed the threshold (3)
       for (let i = 0; i < 4; i++) {
         breaker.recordFailure();
@@ -421,7 +430,7 @@ describe('EnhancedErrorRecovery concurrent load-balancing', () => {
         circuitBreakers: Map<string, { recordFailure: () => void; state: string }>;
       }).circuitBreakers;
 
-      const breaker = breakerMap.get('transcription')!;
+      const breaker = requireBreaker(breakerMap, 'transcription');
       for (let i = 0; i < 4; i++) {
         breaker.recordFailure();
       }
@@ -461,7 +470,7 @@ describe('EnhancedErrorRecovery concurrent load-balancing', () => {
         }>;
       }).circuitBreakers;
 
-      const breaker = breakerMap.get('analysis')!;
+      const breaker = requireBreaker(breakerMap, 'analysis');
       breaker.state = 'half-open';
       breaker.failureCount = 2;
       breaker.successCount = 0;

@@ -1,7 +1,17 @@
 import { DagreLayoutStrategy } from '@/visualization/strategies/DagreLayoutStrategy';
 import { FallbackLayoutStrategy } from '@/visualization/strategies/FallbackLayoutStrategy';
 import { LayoutConfig } from '@/visualization/types';
-import { NodeDatum, EdgeDatum, DiagramType } from '@stv/core/types/diagram';
+import { NodeDatum, EdgeDatum, DiagramType, DiagramLayout, PositionedNode } from '@stv/core/types/diagram';
+
+// Fail-loud node lookup (the flow/tree/cycle strategy-test idiom): the layout
+// just placed every input node, so a missing id means the strategy dropped
+// it. The old `find(…)!` read surfaced as `node.w` on undefined TypeError
+// red; the throw keeps the RED verdict naming the node.
+function findNode(layout: DiagramLayout, id: string): PositionedNode {
+  const node = layout.nodes.find((n) => n.id === id);
+  if (node === undefined) throw new Error(`node ${id} missing from the emitted layout`);
+  return node;
+}
 
 const defaultConfig: LayoutConfig = {
   width: 1920,
@@ -92,10 +102,12 @@ describe('DagreLayoutStrategy', () => {
       ];
       const result = await strategy.applyLayout(nodes, [], 'flow');
 
-      const shortNode = result.nodes.find(n => n.id === 'short')!;
-      const longNode = result.nodes.find(n => n.id === 'long')!;
+      const shortNode = findNode(result, 'short');
+      const longNode = findNode(result, 'long');
 
-      expect(longNode.w!).toBeGreaterThanOrEqual(shortNode.w!);
+      // `w` is optional on PositionedNode — `?? Number.NaN` preserves the old
+      // `w!` read's undefined→failed-matcher verdict (NaN compares false).
+      expect(longNode.w ?? Number.NaN).toBeGreaterThanOrEqual(shortNode.w ?? Number.NaN);
     });
 
     it('should use minimum nodeWidth for empty labels', async () => {
@@ -118,8 +130,10 @@ describe('DagreLayoutStrategy', () => {
       expect(result.edges).toHaveLength(2);
       for (const edge of result.edges) {
         expect(edge.points).toBeDefined();
-        expect(edge.points!.length).toBeGreaterThanOrEqual(2);
-        for (const pt of edge.points!) {
+        // `points` is non-optional on LayoutEdge — the old `points!` was a
+        // pure checker suppression, removing it is behavior-preserving.
+        expect(edge.points.length).toBeGreaterThanOrEqual(2);
+        for (const pt of edge.points) {
           expect(typeof pt.x).toBe('number');
           expect(typeof pt.y).toBe('number');
         }
@@ -244,7 +258,7 @@ describe('DagreLayoutStrategy', () => {
       expect(result.edges).toHaveLength(3);
 
       // Root should be positioned before (higher up / smaller y) than children
-      const root = result.nodes.find(n => n.id === 'root')!;
+      const root = findNode(result, 'root');
       const childNodes = result.nodes.filter(n => n.id !== 'root');
       for (const child of childNodes) {
         expect(root.y).toBeLessThan(child.y);

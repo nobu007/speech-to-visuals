@@ -279,6 +279,47 @@
  *     exact-0, which is why the hollow-pin check keys on directories that
  *     still hold test files rather than directories that still hold hits.
  *     All ten suites stayed green through the rewrite.
+ *     Phase 155 (REQ-345 / TASK-0242) continued it with the next
+ *     descending batch — every remaining file with ≥7 nodes, twelve files
+ *     across five directories / 86 nodes → 0: `requireExtents(result)` in
+ *     tests/guards/node-extent-scan-single-source.test.ts (9 nodes over the
+ *     `foldNodeExtents(…): NodeExtents | null` results — every site feeds a
+ *     NON-empty list where the fold contract says never-null, and the
+ *     adjacent empty-input pins keep asserting the null branch), the same
+ *     `requireDisk()` idiom Phase 153 introduced in
+ *     tests/analysis/llm-cache-stats-paths.test.ts (7 nodes over the
+ *     `readCacheFile()` results after explicit persist() calls),
+ *     `requireDequeued(queue)` + `requireArtifact(store, id)` in
+ *     tests/integration/export-job-lifecycle.test.ts (7 nodes over the
+ *     `| undefined` returns of dequeue/get on the HTTP-wired queue),
+ *     `requireDownloadUrl(dl)` in tests/integration/export-security-e2e
+ *     .test.ts and tests/integration/secure-download-edge-cases.test.ts
+ *     (7 + 7 nodes over `generateDownloadUrl(): ArtifactDownloadUrl |
+ *     undefined` for artifacts stored one statement earlier),
+ *     `requireChunk(chunks, type)` in tests/unit/export/apng-encoder
+ *     .test.ts (7 nodes over the `parsePngChunks` find sites, naming the
+ *     missing chunk type in the throw), `requireStage(snap, name)` in
+ *     tests/unit/monitoring/pipeline-metrics-collector.test.ts (7 nodes
+ *     over the `stages.find(…)` aggregates), `requireQualityCall(call,
+ *     stage)` plus a narrowing throw for `qualityScores` in
+ *     tests/unit/pipeline/pipeline-orchestrator-quality.test.ts (7 nodes
+ *     over the recordMetricsSpy find captures), `requireItemError(item,
+ *     index)` in tests/unit/quality/batch-operation-recovery.test.ts (7
+ *     nodes over the optional `ItemResult.error` on items the test just
+ *     forced to fail), `requireStageScore(assessment, stage)` /
+ *     `requireBreaker(breakers, stage)` in
+ *     tests/unit/quality/error-recovery-health-tracker.test.ts (7 nodes —
+ *     the breaker helper is generic because the three breaker-map sites
+ *     each cast a different member shape), the same generic
+ *     `requireBreaker` in tests/unit/quality/error-recovery-state-
+ *     management.test.ts (7 nodes over `recovery['circuitBreakers']`), and
+ *     `findNode(layout, id)` + `?? Number.NaN` for the optional `w` reads
+ *     in tests/visualization/strategies/dagre-layout-strategy.test.ts (7
+ *     nodes; `edge.points` is non-optional on LayoutEdge, so those two
+ *     bangs were pure checker suppressions — removing them is
+ *     behavior-preserving the way the Phase-154 flowchart member bangs
+ *     were). All twelve suites stayed green through the rewrite (17
+ *     suites / 415 tests in the two checkpoint runs).
  *
  * Matching rule (AST since Phase 147 — SUPERSEDES the line-regex rule
  * documented in specs/speech-to-visuals/tasks/TASK-0226.md, which this
@@ -373,6 +414,12 @@
  * tests/transcription exact-0 directory ratchet (0 → 1) and the
  * tests-total ratchet (338 → 339) RED: the first exact-0 directory pin is
  * enforced, not aspirational.
+ * Mutation-verified (Phase 155, MW-021): re-injecting ONE `!` into the
+ * Phase-155 rewrite — `expect(longNode.w ?? Number.NaN)` back to
+ * `expect(longNode.w!)` in
+ * tests/visualization/strategies/dagre-layout-strategy.test.ts — turns
+ * BOTH the tests/visualization directory ratchet (54 → 55) and the
+ * tests-total ratchet (252 → 253) RED.
  */
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { createRequire } from 'node:module';
@@ -449,6 +496,17 @@ const REPO_ROOT = fileURLToPath(new URL('../../', import.meta.url));
  * which is why the hollow-pin check below now keys on directories that
  * still hold test FILES rather than directories that still hold hits;
  * tests total 428 − 90 = 338).
+ * and 2026-08-20 (Phase 155 / REQ-345: monotone decrease round 8 — every
+ * remaining file with ≥7 nodes, twelve files across five directories:
+ * tests/unit 103 − 7 (apng-encoder) − 7 (pipeline-metrics-collector) − 7
+ * (pipeline-orchestrator-quality) − 7 (batch-operation-recovery) − 7
+ * (error-recovery-health-tracker) − 7 (error-recovery-state-management) =
+ * 61; tests/integration 71 − 7 (export-job-lifecycle) − 7
+ * (export-security-e2e) − 7 (secure-download-edge-cases) = 50;
+ * tests/visualization 61 − 7 (strategies/dagre-layout-strategy) = 54;
+ * tests/guards 60 − 9 (node-extent-scan-single-source) = 51;
+ * tests/analysis 13 − 7 (llm-cache-stats-paths) = 6;
+ * tests total 338 − 86 = 252).
  */
 const PINNED = {
   'src/visualization (production)': 0,
@@ -458,7 +516,7 @@ const PINNED = {
   'src/monitoring (production)': 0,
   'src/analysis (production)': 0,
   'src (production, excl. __tests__/__mocks__)': 0,
-  'tests (excl. __mocks__)': 338,
+  'tests (excl. __mocks__)': 252,
 } as const;
 
 /**
@@ -468,12 +526,12 @@ const PINNED = {
  * ratchet consciously, never silently.
  */
 const TESTS_DIR_PINS: Record<string, number> = {
-  unit: 103,
-  integration: 71,
-  visualization: 61,
-  guards: 60,
+  unit: 61,
+  integration: 50,
+  visualization: 54,
+  guards: 51,
   pipeline: 11,
-  analysis: 13,
+  analysis: 6,
   quality: 9,
   transcription: 0,
   api: 2,
@@ -631,10 +689,10 @@ describe('non-null assertion census ratchet (REQ-328 / REQ-336 / REQ-337)', () =
     // 170 (pre-Phase-141 src total) − 67 − 29 − 17 − 10 − 7 − 6 (Phases
     // 141–146) − 22 (Phase 147, incl. the AST-only export node) = 0; the
     // liveness check below only guards against a scanner regression that
-    // would silently count nothing. The tests tree is still real: 338
+    // would silently count nothing. The tests tree is still real: 252
     // node hits over 14 pinned directories (1096 before Phase
-    // 148/149/150/151/152/153/154's −94 / −103 / −105 / −66 / −190 / −110
-    // / −90 decreases).
+    // 148/149/150/151/152/153/154/155's −94 / −103 / −105 / −66 / −190 /
+    // −110 / −90 / −86 decreases).
     expect(testsTotal.count).toBeGreaterThan(0);
   });
 });

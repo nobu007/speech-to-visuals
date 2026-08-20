@@ -4,6 +4,19 @@
 
 import { BatchOperationRecovery } from '@/quality/batch-operation-recovery';
 import type { BatchResult, ItemResult, FallbackProvider } from '@/quality/batch-operation-recovery';
+import type { ClassifiedError } from '@/quality/error-classifier';
+
+/**
+ * Fail-loud unwrap for the optional `ItemResult.error`: every site below
+ * asserts the item FAILED, so a missing error means the boundary swallowed
+ * it. The old `error!.type` TypeError red; the throw keeps the RED verdict
+ * with the item index, and the preceding `expect(error).toBeDefined()`
+ * pairs fold in.
+ */
+function requireItemError(item: ItemResult<unknown>, index: number): ClassifiedError {
+  if (item.error === undefined) throw new Error(`expected item ${index} to carry a classified error`);
+  return item.error;
+}
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -127,8 +140,7 @@ describe('BatchOperationRecovery', () => {
       expect(result.failed).toBe(2);
       expect(result.successRate).toBeCloseTo(0.6);
       expect(result.items[1].success).toBe(false);
-      expect(result.items[1].error).toBeDefined();
-      expect(result.items[1].error!.type).toBeDefined();
+      expect(requireItemError(result.items[1], 1).type).toBeDefined();
       expect(result.items[1].attempts).toBe(1);
       expect(result.items[3].success).toBe(false);
     });
@@ -142,8 +154,7 @@ describe('BatchOperationRecovery', () => {
         maxRetries: 0,
       });
 
-      expect(result.items[0].error).toBeDefined();
-      expect(result.items[0].error!.stage).toBe('analysis');
+      expect(requireItemError(result.items[0], 0).stage).toBe('analysis');
     });
   });
 
@@ -333,9 +344,8 @@ describe('BatchOperationRecovery', () => {
         maxRetries: 0,
       });
 
-      expect(result.items[0].error).toBeDefined();
-      expect(result.items[0].error!.type).toBe('RENDERING_OOM');
-      expect(result.items[0].error!.severity).toBe('critical');
+      expect(requireItemError(result.items[0], 0).type).toBe('RENDERING_OOM');
+      expect(requireItemError(result.items[0], 0).severity).toBe('critical');
     });
 
     it('classifies LLM rate limit errors', async () => {
@@ -346,7 +356,7 @@ describe('BatchOperationRecovery', () => {
         maxRetries: 0,
       });
 
-      expect(result.items[0].error!.type).toBe('LLM_RATE_LIMITED');
+      expect(requireItemError(result.items[0], 0).type).toBe('LLM_RATE_LIMITED');
     });
 
     it('classifies network errors', async () => {
@@ -357,7 +367,7 @@ describe('BatchOperationRecovery', () => {
         maxRetries: 0,
       });
 
-      expect(result.items[0].error!.type).toBe('NETWORK_ERROR');
+      expect(requireItemError(result.items[0], 0).type).toBe('NETWORK_ERROR');
     });
 
     it('classifies unknown errors as UNKNOWN', async () => {
@@ -368,7 +378,7 @@ describe('BatchOperationRecovery', () => {
         maxRetries: 0,
       });
 
-      expect(result.items[0].error!.type).toBe('UNKNOWN');
+      expect(requireItemError(result.items[0], 0).type).toBe('UNKNOWN');
     });
   });
 
