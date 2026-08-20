@@ -185,6 +185,16 @@ judge が再実行なしに主張を検証できるようにする（AI Hub stee
 
 ---
 
+## MW-020 — tests ratchet の単調減少強制ラウンド 7・初の exact-0 ディレクトリ pin（REQ-344・Phase 154・Phase 154 rewrite への `!` 再注入）
+
+- **claim**: tests/guards/non-null-assertion-census.test.ts ヘッダ「re-injecting ONE `!` into the Phase-154 rewrite — `fireHandler(mockRecognitionInstance.onerror, …)` back to `mockRecognitionInstance.onerror!({ error: 'network', … })` in tests/transcription/browser-transcriber.test.ts — turns BOTH the tests/transcription exact-0 directory ratchet (0 → 1) and the tests-total ratchet (338 → 339) RED: the first exact-0 directory pin is enforced, not aspirational」
+- **target**: `tests/transcription/browser-transcriber.test.ts`（Phase 154 置換後の `fireHandler(mockRecognitionInstance.onerror, { error: 'network', message: 'Network error' });` 行）
+- **mutation**: `fireHandler(mockRecognitionInstance.onerror, { error: 'network', message: 'Network error' });` → `mockRecognitionInstance.onerror!({ error: 'network', message: 'Network error' });`（Phase 154 が fail-loud helper `fireHandler` で除去した checker 抑制の 1 node 再注入）
+- **command**: `npx jest --config jest.config.cjs tests/guards/non-null-assertion-census.test.ts`
+- **observed** (2026-08-20): RED は tests 合計 ratchet（`Expected: <= 338 / Received: 339`）と tests/transcription ディレクトリ ratchet（`Expected: <= 0 / Received: 1`）の 2 件 — transcription は Phase 154 で初めて **exact-0** に pin されたディレクトリで、新規 1 node も許容しないことが実証された。revert 後 census guard `11 passed`。同一 run で hollow-pin check の新失敗形も別途 RED 検証済み（`'nonexistent-dir': 0` の架空 pin → `Expected: true / Received: false`）。
+
+---
+
 ## 恒久 mutation test（ledger 対象外・常時 CI で走るもの）
 
 以下は「一時 mutant → RED 確認 → revert」ではなく mutant を恒久テスト化したもので、

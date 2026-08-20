@@ -107,8 +107,8 @@
 
 ## タスク番号管理
 
-**使用済みタスク番号**: TASK-0001 ~ TASK-0239（Phase 131: TASK-0217、Phase 132: TASK-0218〜0222、Phase 140: TASK-0223〜0225、Phase 141: TASK-0226〜0228、Phase 142: TASK-0229、Phase 143: TASK-0230、Phase 144: TASK-0231、Phase 145: TASK-0232、Phase 146: TASK-0233、Phase 147: TASK-0234、Phase 148: TASK-0235、Phase 149: TASK-0236、Phase 150: TASK-0237、Phase 151: TASK-0238、Phase 152: TASK-0239）
-**次回開始番号**: TASK-0240
+**使用済みタスク番号**: TASK-0001 ~ TASK-0240（Phase 131: TASK-0217、Phase 132: TASK-0218〜0222、Phase 140: TASK-0223〜0225、Phase 141: TASK-0226〜0228、Phase 142: TASK-0229、Phase 143: TASK-0230、Phase 144: TASK-0231、Phase 145: TASK-0232、Phase 146: TASK-0233、Phase 147: TASK-0234、Phase 148: TASK-0235、Phase 149: TASK-0236、Phase 150: TASK-0237、Phase 151: TASK-0238、Phase 152: TASK-0239、Phase 153: TASK-0240）
+**次回開始番号**: TASK-0241
 
 > **REQ 番号帯（Phase 140 決定）**: REQ-313〜322 は acceptance-criteria の TC 帯（TC-313〜321 実在・TC-322 は未 merge PR #9 提案中）との番号衝突回避のため予約（未使用）。機能要件は REQ-323 から、TC は TC-323 から採番する（REQ-326/TC-323 が適用例）。
 
@@ -2128,6 +2128,34 @@ MW 台帳（TASK-0228）に MW-019 追加・監査 pin ≥18 → ≥19
 ### 次フェーズ開始番号
 
 **次回開始番号**: TASK-0241
+
+## Phase 154: tests ツリー non-null assertion ratchet 単調減少ラウンド 7・transcription 初の dir exact-0 と空洞化チェック簡素化（guards 72 → 60・integration 107 → 71・visualization 78 → 61・pipeline 20 → 11・quality 17 → 9・transcription 8 → 0）
+
+**ステータス**: ✅完了（2026-08-20・TASK-0241 完了）
+
+**背景**: steering が ratchet 単調減少の継続を指令。「node ≥ 10 全数」機械閾値が枯渇したため選定を **guard-first survey 降順上位 10 ファイル**（6 ディレクトリ横断・90 node: edge-anchor-geometry-single-source 12・api 9・export-error-recovery-integration 9・export-retry-dlq-metrics-integration 9・pipeline-recovery-e2e 9・retry-observability-surface 9・layout-quality-composite 9・regression-detector 8・browser-transcriber 8・flowchart-strategy 8）に戻した。fail-loud helper 群（`requireNode`/`requirePoints`（map lookup・id/key 付き throw）・`requireJobStatus`（`BatchJobStatus | null`）・`requireDequeued`/`requireReplayed`（`dequeue(): … | undefined` と `replayDeadLetterJob` — DLQ エラーメッセージ検証は dequeued 再代入ループの undefined verdict を loop 内 null guard で保存）・`resolveRender` definite-assignment holder・`requireMetrics`/`requireRecoveryReport`/`requireStageTimings`（cast 除去）・`requireLoadedBaseline`（`NonNullable` 戻りで null 狭窄化 — 素の `Awaited<ReturnType<…>>` は TS18047）・`fireHandler`（`| null` handler 委譲）・`requireStage3Gate`/`requireCriterionResult`・typed `findNode` + superfluous `!` 除去 5 site（具象 class member は non-optional のため `!` 不要））で挙動保存置換し 90 node → 0・**tests/guards pin 72 → 60・tests/integration pin 107 → 71・tests/visualization pin 78 → 61・tests/pipeline pin 20 → 11・tests/quality pin 17 → 9・tests/transcription pin 8 → 0（tests 内初のディレクトリ exact-0）・tests 合計 pin 428 → 338**。transcription exact-0 の発火に合わせ空洞化チェック（TC-333-02 c）を hits 有無から **files 有無ベース（`testsDirsByFiles`）** に簡素化（bogus pin で RED 検証・未 pin dir throw は残存）。MW-020（rewrite への `!` 1 node 再注入で合計 ratchet 339 > 338 と transcription exact-0 1 > 0 の 2 RED）で減少の機械強制を継続実証。
+
+### タスク一覧
+
+- [x] [TASK-0241: tests ツリー non-null assertion ratchet 単調減少ラウンド 7・transcription 初の dir exact-0 と空洞化チェック簡素化（guards 72 → 60・integration 107 → 71・visualization 78 → 61・pipeline 20 → 11・quality 17 → 9・transcription 8 → 0）](TASK-0241.md) - 3h (DIRECT) 🔵 ✅2026-08-20（90 node→0・pin 60/71/61/11/9/0/338・MW-020）
+
+### 依存関係
+
+```
+TASK-0241 は REQ-337 の TESTS_DIR_PINS（TASK-0234）を Phase 148〜153 に続き縮小側に更新（guards/quality は初回縮小）
+requireJobStatus/requireMetrics/requireRecoveryReport/requireDequeued/findNode は REQ-340〜343 と同型・requireNode/requirePoints/requireReplayed/requireStageTimings/requireLoadedBaseline/requireByMetric/fireHandler/requireStage3Gate/requireCriterionResult は新規
+MW 台帳（TASK-0228）に MW-020 追加・監査 pin ≥19 → ≥20
+次候補: tests 残 338 の継続縮小（unit 残 103 が最大・次点 visualization 61・integration 71 — 全体 0 で 14 dir pin → tests exact-0 集約指令あり）
+```
+
+### 信頼性レベルサマリー（Phase 154 追加分）
+
+- 全 1 タスク 🔵（A153 残課題（「tests 残 428 の継続縮小」）+ steering の単調減少継続指令 + 実測（census + ledger guard GREEN・対象パターン 17 suites 777 tests GREEN・tsc 0 新規 error（HEAD stash A/B）・full suite 0 failed・MW-020 mutant RED 2 failed）に出典）
+- 推定工数: 3 時間
+
+### 次フェーズ開始番号
+
+**次回開始番号**: TASK-0242
 
 ## Spine: external references
 

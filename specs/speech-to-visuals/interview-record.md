@@ -4609,6 +4609,29 @@ Phase 1-13 全13フェーズ完了（93/93タスク）。ソースファイル�
 
 ---
 
+### A154: Phase 154 — tests ツリー non-null assertion ratchet 単調減少ラウンド 7・transcription 初の dir exact-0 と空洞化チェック簡素化（guards 72 → 60・integration 107 → 71・visualization 78 → 61・pipeline 20 → 11・quality 17 → 9・transcription 8 → 0）（2026-08-20 第235回検証）
+
+- **判断**（機械閾値枯渇後の降順上位選定への復帰 → 初の exact-0 dir 発火と guard 簡素化 → 型付けの落とし穴と verdict 構造の保存）:
+
+1. **「node ≥ 10 全数」閾の枯渇と降順上位 10 ファイルへの復帰**: task registry TASK-0241 と一致。A153 時点で残存ファイルの最大が 9 node（A153 記載の「閾は成立しなくなったため降順上位選定に戻る」予見どおり）のため、guard-first survey の per-file 降順で上位 10 ファイル（12・9×6・8×3 = 90 node・6 ディレクトリ横断）を対象化。選定根拠は census 実測の出力順で機械的。
+2. **transcription 8 → 0 で tests 内初のディレクトリ exact-0 pin が発火し guard を簡素化**: steering が予見した「pin が減り空洞化チェックと未 pin dir throw という失敗形そのものが不要になり guard が単純化される」の第一歩。旧空洞化チェック（pin > 0 の dir に hits があること）は exact-0 dir で常に失敗するため運用不能 — **hits 有無から files 有無ベース（`testsDirsByFiles` = census が走査した実ファイルの第一階層 dir 集合に pin key が含まれること）** に置換。`countAssertions` を `{count, hits, files}` 戻りに拡張（files は絶対パスのため `replace(REPO_ROOT, '')` してから階層分割 — 初回実装の忘れで全 dir false の RED を経て修正）。未 pin dir throw は残存（新ディレクトリ新設時の pin 忘れ検出）。bogus pin `'nonexistent-dir': 0` で新失敗形の RED を実測後、除去。
+3. **型付けの落とし穴 2 件（本ラウンドの教訓）**: (a) `requireLoadedBaseline` の戻り型 — 素の `Awaited<ReturnType<…['loadBaseline']>>` は `BaselineData | null` のままなので呼び出し側で TS18047（`loaded` is possibly 'null'）が 4 site 発生。**`NonNullable<…>` 戻り型**で解消（null 検査は helper 内で完結）。(b) census guard の既知 3 tsc error（`ts` namespace 2 件 + `exclamationToken` 1 件）は `git stash` A/B で **HEAD から行シフトのみ（452→514）で同内容**と確認 — 自編集由来と誤認しないための比較手順を踏んだ。
+4. **verdict 構造の保存（helper 化すると検証が消える site の識別）**: (a) DLQ エラーメッセージ検証（export-retry-dlq-metrics）— `dequeued` は失敗ごとに queue へ戻る再代入ループで**最終的に undefined になること自体が検証対象**。`requireDequeued` で潰すと最終 `expect(dequeued).toBeUndefined()` が検証不能になるため **loop 内 null guard**（undefined なら「failure が記録される前に job が消えた」throw）+ 末尾 verdict 保存。(b) `resolveRender!()` — Promise executor は同期的に走るため `resolveRender` の `undefined` は到達不能だが、definite-assignment holder（`let resolveRender | undefined` + executor 直後 `finishRender === undefined` throw）で旧 TypeError と同一 RED verdict を保存。(c) flowchart-strategy の `strategy.validateInputs!(…)` ×4 / `getStrategyDefaults!()` — 変数の静的型は具象 class（member non-optional・optional は interface 側のみ）のため **`!` が最初から不要**な抑制であり除去が挙動保存。
+5. **MW-020（初の exact-0 dir pin の強制実証）**: browser-transcriber の `fireHandler(mockRecognitionInstance.onerror, { error: 'network', message: 'Network error' });` → `mockRecognitionInstance.onerror!({ error: 'network', message: 'Network error' });` 再注入で **tests 合計 ratchet（339 > 338）と tests/transcription exact-0 dir ratchet（1 > 0）の 2 tests RED** を実測 → revert で census 11 tests GREEN。exact-0 pin が新規 1 node も許容しないことの機械実証。
+
+- **根拠**: TASK-0241・census + ledger guard 実行出力（5 suites / 131 tests GREEN・監査 pin ≥20）・MW-020 再実行プロトコル（台帳本文）・guard-first per-file census 実測（guards 72→60 / integration 107→71 / visualization 78→61 / pipeline 20→11 / quality 17→9 / transcription 8→0 / 総 428→338）・tsc tsconfig.test.json 0 新規 error（既知 3 error は git stash A/B で HEAD 同一・行シフトのみ）・TC-340 再検証コマンド 17 suites / 777 tests GREEN。
+
+- **最終フルスイート**（Phase 154 全テスト変更後・並走なし・exit=0・tree は test コミット 3f0e1dec と同一（run 時点で未コミット・specs prose 編集前に実施））:
+  `[EVIDENCE] exit=0 (jest Time: 98.067s) cmd=NODE_OPTIONS='--experimental-vm-modules --max-old-space-size=4096' npx jest --config jest.config.cjs commit=3f0e1dec(相当tree)+phase154-worktree branch=ai/instruction-speech-to-visuals-20260820-051502-412785` → **742 suites / 742 passed・23,163 passed / 0 failed / 17 skipped**（A153 記録 23,161 に対し +2 = MW-020 台帳エントリによる ledger 監査 it.each 増（19 → 20 エントリ × 2 block）のみ・10 ファイルの置換は件数不変）
+
+- **信頼性への影響**:
+
+- REQ-344 追加（🔵・実装+guard pin+MW-020 に出典）。🔵 327 → 328 件。
+- tests ツリーの `!` が 7 ラウンド連続で減少（1096 → 1002 → 899 → 794 → 728 → 538 → 428 → **338**・guards 72 → **60**・integration 107 → **71**・visualization 78 → **61**・pipeline 20 → **11**・quality 17 → **9**・transcription 8 → **0**・unit 103 不変）。90 node の checker 抑制が verdict 保存置換で除去され・cast 解消（pipeline-recovery-e2e の `as RunRecoveryReport`）と superfluous `!` 除去 5 site も解消。
+- 残課題（引継ぎ）: tests 残 338 の継続縮小（unit 残 103 が最大・次点 visualization 61 / integration 71 — tests 全体 0 到達時に 14 ディレクトリ個別 pin を tests 全体 exact-0 pin へ集約する steering 指令を未実施）・Phase 132 TASK-0218〜0222 未着手・requirements.md の PR #12 由来 dead citation 残存（A137 引継ぎ）。
+
+---
+
 ## 関連文書
 
 - **要件定義書**: [requirements.md](requirements.md)
