@@ -2157,6 +2157,34 @@ MW 台帳（TASK-0228）に MW-020 追加・監査 pin ≥19 → ≥20
 
 **次回開始番号**: TASK-0242
 
+## Phase 155: tests ツリー non-null assertion ratchet 単調減少ラウンド 8・node≥7 全数で tests/unit 残存最大層に初本格着手（guards 60 → 51・analysis 13 → 6・integration 71 → 50・unit 103 → 61・visualization 61 → 54）
+
+**ステータス**: ✅完了（2026-08-20・TASK-0242 完了）
+
+**背景**: steering が ratchet 単調減少の継続を指令。機械閾値を **「node ≥ 7 全数」** に引き下げて選定（該当 12 ファイル 86 node・5 ディレクトリ横断が降順上位と一致: node-extent-scan-single-source 9・llm-cache-stats-paths 7・export-job-lifecycle 7・export-security-e2e 7・secure-download-edge-cases 7・apng-encoder 7・pipeline-metrics-collector 7・pipeline-orchestrator-quality 7・batch-operation-recovery 7・error-recovery-health-tracker 7・error-recovery-state-management 7・dagre-layout-strategy 7）。**tests/unit（残存最大 103）に初めて本格着手**し 6 ファイル 42 node → 0・103 → 61。fail-loud helper 群（`requireExtents`（`foldNodeExtents` は空入力のみ null — 空入力 pin は保存）・`requireDisk`（`readCacheFile(): … | null`・Phase 153 同型）・`requireDequeued`/`requireArtifact`/`requireDownloadUrl`（`dequeue()`/`generateDownloadUrl()` の `| undefined` 戻りを wrap・直前の redundant `toBeDefined()` を throw に折りたたみ）・`requireChunk`/`requireStage`（chunk type 名・stage 名付き throw）・`QualityCall = Parameters<QualityMonitor['recordMetrics']>` + `requireQualityCall`（spy call 型を導出で解消）・`requireItemError`（`ItemResult<unknown>` — 素の ItemResult は TS2314・`ClassifiedError` は `@/quality/error-classifier` から直接 import）・`requireStageScore` + generic `requireBreaker<T>`（breaker Map value の member shape が site 毎に異なるため generic 必須）・typed `findNode` + `?? Number.NaN`（`PositionedNode.w` optional の undefined→failed-matcher verdict 保存）+ superfluous `!` 除去（`LayoutEdge.points` non-optional・R7 flowchart と同型））で挙動保存置換し 86 node → 0・**tests/guards pin 60 → 51・tests/analysis pin 13 → 6・tests/integration pin 71 → 50・tests/unit pin 103 → 61・tests/visualization pin 61 → 54・tests 合計 pin 338 → 252**。MW-021（rewrite への `!` 1 node 再注入で合計 ratchet 253 > 252 と visualization 55 > 54 の 2 RED）で減少の機械強制を継続実証。
+
+### タスク一覧
+
+- [x] [TASK-0242: tests ツリー non-null assertion ratchet 単調減少ラウンド 8・node≥7 全数 12 ファイルで tests/unit 残存最大層に初本格着手（guards 60 → 51・analysis 13 → 6・integration 71 → 50・unit 103 → 61・visualization 61 → 54）](TASK-0242.md) - 3h (DIRECT) 🔵 ✅2026-08-20（86 node→0・pin 51/6/50/61/54/252・MW-021）
+
+### 依存関係
+
+```
+TASK-0242 は REQ-337 の TESTS_DIR_PINS（TASK-0234）を Phase 148〜154 に続き縮小側に更新（analysis は初回縮小）
+requireDisk/requireDequeued/findNode は REQ-340〜344 と同型・requireExtents/requireArtifact/requireDownloadUrl/requireChunk/requireStage/QualityCall/requireItemError/requireStageScore/requireBreaker は新規（generic）
+MW 台帳（TASK-0228）に MW-021 追加・監査 pin ≥20 → ≥21
+次候補: tests 残 252 の継続縮小（unit 残 61 が最大・次点 visualization 54・integration 50 — unit 0 で 14 dir pin → tests exact-0 集約指令あり）
+```
+
+### 信頼性レベルサマリー（Phase 155 追加分）
+
+- 全 1 タスク 🔵（A154 残課題（「tests 残 338 の継続縮小」）+ steering の単調減少継続指令 + 実測（census + ledger guard 2 suites 55 tests GREEN・対象パターン 14 suites 364 tests GREEN・tsc 0 新規 error・full suite 0 failed・MW-021 mutant RED 2 failed）に出典）
+- 推定工数: 3 時間
+
+### 次フェーズ開始番号
+
+**次回開始番号**: TASK-0243
+
 ## Spine: external references
 
 - [speech-to-visuals API エンドポイント仕様](/home/jinno/speech-to-visuals/specs/speech-to-visuals/api-endpoints.md)

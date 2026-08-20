@@ -193,6 +193,14 @@ judge が再実行なしに主張を検証できるようにする（AI Hub stee
 - **command**: `npx jest --config jest.config.cjs tests/guards/non-null-assertion-census.test.ts`
 - **observed** (2026-08-20): RED は tests 合計 ratchet（`Expected: <= 338 / Received: 339`）と tests/transcription ディレクトリ ratchet（`Expected: <= 0 / Received: 1`）の 2 件 — transcription は Phase 154 で初めて **exact-0** に pin されたディレクトリで、新規 1 node も許容しないことが実証された。revert 後 census guard `11 passed`。同一 run で hollow-pin check の新失敗形も別途 RED 検証済み（`'nonexistent-dir': 0` の架空 pin → `Expected: true / Received: false`）。
 
+## MW-021 — tests ratchet の単調減少強制ラウンド 8・node≥7 全数 12 ファイル置換（REQ-345・Phase 155・Phase 155 rewrite への `!` 再注入）
+
+- **claim**: tests/guards/non-null-assertion-census.test.ts ヘッダ「re-injecting ONE `!` into the Phase-155 rewrite — `expect(longNode.w ?? Number.NaN)` back to `expect(longNode.w!)` in tests/visualization/strategies/dagre-layout-strategy.test.ts — turns BOTH the tests/visualization directory ratchet (54 → 55) and the tests-total ratchet (252 → 253) RED」
+- **target**: `tests/visualization/strategies/dagre-layout-strategy.test.ts`（Phase 155 置換後の `expect(longNode.w ?? Number.NaN).toBeGreaterThanOrEqual(shortNode.w ?? Number.NaN);` 行）
+- **mutation**: `expect(longNode.w ?? Number.NaN).toBeGreaterThanOrEqual(shortNode.w ?? Number.NaN);` → `expect(longNode.w!).toBeGreaterThanOrEqual(shortNode.w ?? Number.NaN);`（Phase 155 が optional `w` 読み取りに正規化した 1 node の checker 抑制再注入）
+- **command**: `npx jest --config jest.config.cjs tests/guards/non-null-assertion-census.test.ts`
+- **observed** (2026-08-20): RED は tests 合計 ratchet（`Expected: <= 252 / Received: 253`）と tests/visualization ディレクトリ ratchet（`Expected: <= 54 / Received: 55`）の 2 件。revert 後 census guard `11 passed`。ラウンド 8 は残存ファイル降順上位の機械閾値 **node≥7 全数**（12 ファイル / 86 node → 0・5 ディレクトリ横断）で選定し、pin は unit 103→61・integration 71→50・visualization 61→54・guards 60→51・analysis 13→6・総 338→252 に縮小。
+
 ---
 
 ## 恒久 mutation test（ledger 対象外・常時 CI で走るもの）

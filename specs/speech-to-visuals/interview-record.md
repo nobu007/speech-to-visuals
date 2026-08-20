@@ -4632,6 +4632,29 @@ Phase 1-13 全13フェーズ完了（93/93タスク）。ソースファイル�
 
 ---
 
+### A155: Phase 155 — tests ツリー non-null assertion ratchet 単調減少ラウンド 8・node≥7 全数で tests/unit 残存最大層に初本格着手（guards 60 → 51・analysis 13 → 6・integration 71 → 50・unit 103 → 61・visualization 61 → 54）（2026-08-20 第236回検証）
+
+- **判断**（機械閾値の引き下げと unit 初本格着手 → generic helper の必要性識別 → perl 一括置換の事故とその検出 → optional field の 2 系統保存）:
+
+1. **「node ≥ 7 全数」への閾値引き下げ**: task registry TASK-0242 と一致。A154 時点の残存最大が 9 node（node-extent-scan-single-source）で「node ≥ 10」「降順上位 10」いずれの機械閾値も 9/7 node 層の大量残存を拾い切らないため、閾値を 7 に引き下げて全数対象化（該当 12 ファイル 86 node・5 ディレクトリ横断 = 降順上位と一致・選定根拠は census 実測の出力順で機械的）。**tests/unit（残存最大 103）に初めて本格着手**（6 ファイル 42 node → 0・103 → 61）— ここまで steering 指令の integration/visualization 優先で手つかずだった最大層。
+2. **generic helper の必要性識別（`requireBreaker<T>`）**: error-recovery-health-tracker / error-recovery-state-management の `recovery['circuitBreakers'].get('...')!` は同一 Map だが **value の member shape が site 毎に異なる**（breaker の state/transitions 等の部分型アクセス）ため、単一の concrete 戻り型 helper では呼び出し側で property access error が残る。generic `<T>` で Map value 型を推論させることで 10 site を 1 helper で解消。同様の導出型アプローチとして pipeline-orchestrator-quality は `type QualityCall = Parameters<QualityMonitor['recordMetrics']>` で spy call 配列要素の型を手書きせず導出（find callback の引数注釈も短縮）。
+3. **perl 一括置換の事故 2 件と検出（本ラウンドの教訓）**: (a) export-security-e2e の `stored1.artifactId` 用 rule が `const dl = …` 宣言を `const dl1 = requireDownloadUrl(…)` に改名し次行の `dl.url` が **ReferenceError: dl is not defined** — suite 実行で検出し宣言名を復元。(b) helper のドキュメントコメント内の `dl!.url` まで `dl.url` に変換（旧挙動の説明文が崩れる）— Edit で復元。加えて secure-download-edge-cases line 190 は `\b` anchor が `dl1` に match せず変換漏れ — 個別 Edit で対処。**一括置換後は必ず suite 実行で検証**（R7 の教訓再確認）。
+4. **optional field の 2 系統保存（dagre-layout-strategy）**: (a) `PositionedNode.w` は optional のため `longNode.w!` の算術/比較 site は `?? Number.NaN` で保存 — undefined → failed-matcher verdict（NaN 比較は false）が旧 `w!` の undefined 伝播と同一 RED。(b) `LayoutEdge.points` は non-optional のため `edge.points!` ×2 は **除去のみが挙動保存**（R7 flowchart-strategy の superfluous `!` と同型 — checker 抑制が最初から不要）。同一ファイル内で「保存置換」と「純粋除去」が混在する初のケース。
+5. **`ClassifiedError` の import 経路（re-export されない型）**: batch-operation-recovery の `ItemResult.error` は `ClassifiedError` 型だが本 module からは re-export されないため `@/quality/error-classifier` から直接 import。helper 引数の素の `ItemResult` は generic（TS2314）のため `ItemResult<unknown>` が必要。line 445 の standalone `expect(result.items[0].error).toBeDefined()` は bang 無しの正当な verdict ため未触（折りたたみ対象外の識別）。
+
+- **根拠**: TASK-0242・census + ledger guard 実行出力（2 suites / 55 tests GREEN・監査 pin ≥21）・MW-021 再実行プロトコル（台帳本文）・guard-first per-file census 実測（guards 60→51 / analysis 13→6 / integration 71→50 / unit 103→61 / visualization 61→54 / 総 338→252）・tsc tsconfig.test.json 0 新規 error（既知 3 error のみ）・TC-341 再検証コマンド 14 suites / 364 tests GREEN。
+
+- **最終フルスイート**（Phase 155 全テスト変更後・並走なし・exit=0・tree は test コミット相当（run 時点で未コミット・specs prose 編集前に実施））:
+  `[EVIDENCE] exit=0 (jest Time: 137.507s) cmd=NODE_OPTIONS='--experimental-vm-modules --max-old-space-size=4096' npx jest --config jest.config.cjs commit=phase155-worktree branch=ai/instruction-speech-to-visuals-20260820-054841-167440` → **742 suites / 742 passed・23,165 passed / 0 failed / 17 skipped**（A154 記録 23,163 に対し +2 = MW-021 台帳エントリによる ledger 監査 it.each 増（20 → 21 エントリ × 2 block）のみ・12 ファイルの置換は件数不変 — R7 の MW-020 と同一パターン）
+
+- **信頼性への影響**:
+
+- REQ-345 追加（🔵・実装+guard pin+MW-021 に出典）。🔵 328 → 329 件。
+- tests ツリーの `!` が 8 ラウンド連続で減少（1096 → 1002 → 899 → 794 → 728 → 538 → 428 → 338 → **252**・guards 60 → **51**・analysis 13 → **6**・integration 71 → **50**・unit 103 → **61**（初の本格着手）・visualization 61 → **54**）。86 node の checker 抑制が verdict 保存置換で除去され・generic helper 2 種（`requireBreaker<T>`）と superfluous `!` 除去 2 site も解消。
+- 残課題（引継ぎ）: tests 残 252 の継続縮小（unit 残 61 が最大・次点 visualization 54 / integration 50 — tests 全体 0 到達時に 14 ディレクトリ個別 pin を tests 全体 exact-0 pin へ集約する steering 指令を未実施）・Phase 132 TASK-0218〜0222 未着手・requirements.md の PR #12 由来 dead citation 残存（A137 引継ぎ）。
+
+---
+
 ## 関連文書
 
 - **要件定義書**: [requirements.md](requirements.md)

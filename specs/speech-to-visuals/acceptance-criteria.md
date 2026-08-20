@@ -5889,6 +5889,13 @@
   - **再検証コマンド**: `NODE_OPTIONS='--experimental-vm-modules --max-old-space-size=4096' npx jest --config jest.config.cjs --testPathPatterns 'tests/guards/non-null-assertion-census|tests/guards/mutation-witness-ledger|tests/guards/edge-anchor-geometry-single-source|tests/integration/api.test|tests/integration/export-error-recovery-integration|tests/integration/export-retry-dlq-metrics-integration|tests/integration/pipeline-recovery-e2e|tests/pipeline/retry-observability-surface|tests/quality/regression-detector|tests/transcription/browser-transcriber|tests/visualization/layout-quality-composite|tests/visualization/strategies/flowchart-strategy'`（17 suites / 777 tests）
 
 
+#### REQ-345: tests ツリー non-null assertion ratchet 単調減少ラウンド 8・node≥7 全数で tests/unit 残存最大層に初本格着手（Phase 155）
+
+- [x] **TC-341-01**: REQ-337 の ratchet が Phase 154 に引き続き **node≥7 全数・12 ファイル・5 ディレクトリ横断**で単調減少していること — Phase 155 実施後、tests/guards ディレクトリ pin が **60 → 51**（node-extent-scan-single-source.test.ts 9 node → 0）に・tests/analysis ディレクトリ pin が **13 → 6**（llm-cache-stats-paths.test.ts 7 node → 0）に・tests/integration ディレクトリ pin が **71 → 50**（export-job-lifecycle.test.ts 7・export-security-e2e.test.ts 7・secure-download-edge-cases.test.ts 7 = 計 21 node → 0）に・tests/unit ディレクトリ pin が **103 → 61**（export/apng-encoder.test.ts 7・monitoring/pipeline-metrics-collector.test.ts 7・pipeline/pipeline-orchestrator-quality.test.ts 7・quality/batch-operation-recovery.test.ts 7・quality/error-recovery-health-tracker.test.ts 7・quality/error-recovery-state-management.test.ts 7 = 計 42 node → 0・**初の本格着手**）に・tests/visualization ディレクトリ pin が **61 → 54**（strategies/dagre-layout-strategy.test.ts 7 node → 0）に・tests 合計 pin が **338 → 252** に縮小され、guard が縮小後の pin で GREEN であること・対象が guard-first survey の **node≥7 全数**（降順上位 12 ファイルと一致・選定根拠は survey 出力）で選定されていること・置換対象 12 suite を含むパターン一致 **14 suites / 364 tests** が GREEN であること 🔵
+- [x] **TC-341-02**: 減少の強制が継続実証されていること — Phase 155 rewrite への `!` 1 node 再注入（`expect(longNode.w ?? Number.NaN).toBeGreaterThanOrEqual(shortNode.w ?? Number.NaN);` → `expect(longNode.w!).toBeGreaterThanOrEqual(shortNode.w ?? Number.NaN);`・dagre-layout-strategy.test.ts）が tests 合計 ratchet（253 > 252 超過）と tests/visualization ディレクトリ ratchet（55 > 54 超過）の **2 tests RED** を生むこと（MW-021・revert 後 GREEN）。置換は verdict 保存であること — (a) の `foldNodeExtents` は空入力のみ `null` を返すため `requireExtents` は非空 fold site のみを wrap し空入力 pin の `toBeNull()` verdict を保存すること・(c) の `generateDownloadUrl()` は `| undefined` を返すため `requireDownloadUrl` は undefined を guard し直前の redundant `expect(…).toBeDefined()` を throw に折りたたむこと（旧: `undefined.url` TypeError = RED・新: throw Error = 同一 RED verdict）・(e) の `QualityCall` は `Parameters<QualityMonitor['recordMetrics']>` から導出し find callback の引数注釈をも解消すること・(f) の `requireBreaker` は breaker Map value の member shape が site 毎に異なるため **generic `<T>`** であること・`ClassifiedError` は `@/quality/error-classifier` から直接 import すること（本 module からは re-export されない）・(g) の `PositionedNode.w` は optional のため `w!` site は `?? Number.NaN` で undefined→failed-matcher verdict を保存し・`LayoutEdge.points` は non-optional のため `points!` は **除去のみが挙動保存** であること（ラウンド 7 flowchart-strategy と同型）・ledger 監査 pin が **≥20 → ≥21** に引き上げられ MW-021 エントリで GREEN であること 🔵
+  - **再検証コマンド**: `NODE_OPTIONS='--experimental-vm-modules --max-old-space-size=4096' npx jest --config jest.config.cjs --testPathPatterns 'tests/guards/non-null-assertion-census|tests/guards/mutation-witness-ledger|tests/guards/node-extent-scan-single-source|tests/analysis/llm-cache-stats-paths|tests/integration/export-job-lifecycle|tests/integration/export-security-e2e|tests/integration/secure-download-edge-cases|tests/unit/export/apng-encoder|tests/unit/monitoring/pipeline-metrics-collector|tests/unit/pipeline/pipeline-orchestrator-quality|tests/unit/quality/batch-operation-recovery|tests/unit/quality/error-recovery-health-tracker|tests/unit/quality/error-recovery-state-management|tests/visualization/strategies/dagre-layout-strategy'`（14 suites / 364 tests）
+
+
 ### Phase 111+ 受け入れ基準サマリー
 
 | 要件 | テストケース数 | 信頼性 |
@@ -5950,7 +5957,8 @@
 | REQ-342: tests ツリー non-null assertion ratchet 単調減少ラウンド 5・tests/unit 外初回 | 2 | 🔵 |
 | REQ-343: tests ツリー non-null assertion ratchet 単調減少ラウンド 6・4 ディレクトリ横断 | 2 | 🔵 |
 | REQ-344: tests ツリー non-null assertion ratchet 単調減少ラウンド 7・transcription 初の dir exact-0 と空洞化チェック簡素化 | 2 | 🔵 |
-| **合計** | **136** | **🔵 92.4% / 🟡 7.6%** |
+| REQ-345: tests ツリー non-null assertion ratchet 単調減少ラウンド 8・node≥7 全数で tests/unit 残存最大層に初本格着手 | 2 | 🔵 |
+| **合計** | **138** | **🔵 92.4% / 🟡 7.6%** |
 
 
 <!-- spine:references:begin -->
