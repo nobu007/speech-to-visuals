@@ -261,9 +261,9 @@ describe('TASK-0201: Export format cross-consistency', () => {
         outro: '#0f3460',
       };
 
-      for (let i = 0; i < THREE_SCENES.scenes!.length; i++) {
-        const scene = THREE_SCENES.scenes![i];
-        const expectedHex = colorMap[scene.type!];
+      for (let i = 0; i < THREE_SCENES.scenes.length; i++) {
+        const scene = THREE_SCENES.scenes[i];
+        const expectedHex = colorMap[scene.type];
         const expectedRgba = sceneTypeToFillColor(scene.type);
 
         // SVG contains hex color
@@ -309,7 +309,7 @@ describe('TASK-0201: Export format cross-consistency', () => {
 
       // SVG: total animation time = sum of durations (2+4+2=8s)
       // The SVG animation time appears in style="animation: sN Xs"
-      const totalDuration = THREE_SCENES.scenes!.reduce(
+      const totalDuration = THREE_SCENES.scenes.reduce(
         (acc, s) => acc + (s.duration ?? 2), 0,
       );
       // Each group uses: animation: sN <totalDuration>s linear infinite
@@ -344,7 +344,7 @@ describe('TASK-0201: Export format cross-consistency', () => {
       const lottie = generateLottieAnimation(FIVE_SCENES, HD);
       const layers = lottie.layers as Record<string, unknown>[];
 
-      const totalDuration = FIVE_SCENES.scenes!.reduce(
+      const totalDuration = FIVE_SCENES.scenes.reduce(
         (acc, s) => acc + (s.duration ?? 2), 0,
       ); // 1+3+3+3+2 = 12s
 
@@ -357,7 +357,7 @@ describe('TASK-0201: Export format cross-consistency', () => {
       // Verify sequential frame offsets
       let expectedIp = 0;
       for (let i = 0; i < 5; i++) {
-        const duration = FIVE_SCENES.scenes![i].duration ?? 2;
+        const duration = FIVE_SCENES.scenes[i].duration ?? 2;
         const frameCount = duration * 30;
         expect(layers[i].ip).toBe(expectedIp);
         expect(layers[i].op).toBe(expectedIp + frameCount);

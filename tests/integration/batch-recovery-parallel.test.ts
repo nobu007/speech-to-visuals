@@ -242,9 +242,12 @@ describe('TASK-0190: Batch recovery parallel execution', () => {
       );
 
       expect(result.items[0].success).toBe(false);
-      expect(result.items[0].error).toBeDefined();
-      expect(result.items[0].error!.type).toBe('NETWORK_ERROR');
-      expect(result.items[0].error!.recoverable).toBe(true);
+      const itemError = result.items[0].error;
+      if (itemError === undefined) {
+        throw new Error('failed batch item carries no error object');
+      }
+      expect(itemError.type).toBe('NETWORK_ERROR');
+      expect(itemError.recoverable).toBe(true);
     });
   });
 

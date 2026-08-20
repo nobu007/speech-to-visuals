@@ -41,6 +41,17 @@ function makeEdges(pairs: [string, string][]): EdgeDatum[] {
   return pairs.map(([from, to]) => ({ from, to }));
 }
 
+/** Fail-loud topology lookup — a missing fixture entry is a test bug, not a
+ *  layout regression, so it must abort with a labeled error instead of
+ *  feeding `undefined` into generateLayout. */
+function requireTopology(diagramType: DiagramType) {
+  const topology = TOPOLOGIES.find((t) => t.diagramType === diagramType);
+  if (topology === undefined) {
+    throw new Error(`topology fixture for "${diagramType}" not found in TOPOLOGIES`);
+  }
+  return topology;
+}
+
 /** Independent overlap oracle: count overlapping node pairs, engine-agnostic. */
 function countOverlappingPairs(nodes: PositionedNode[]): number {
   let overlaps = 0;
@@ -183,7 +194,7 @@ describe('force-directed layout outcome oracle (post-0531aa4f)', () => {
 
     test('force-directed refinement leaves zero overlapping pairs (independent oracle)', async () => {
       const strategy = new NetworkLayoutStrategy();
-      const topology = TOPOLOGIES.find((t) => t.diagramType === 'network')!;
+      const topology = requireTopology('network');
 
       const output = await strategy.generateLayout(topology.nodes, topology.edges, config);
 
@@ -194,7 +205,7 @@ describe('force-directed layout outcome oracle (post-0531aa4f)', () => {
 
     test('is deterministic across runs', async () => {
       const strategy = new NetworkLayoutStrategy();
-      const topology = TOPOLOGIES.find((t) => t.diagramType === 'network')!;
+      const topology = requireTopology('network');
       const run = async () =>
         (await strategy.generateLayout(topology.nodes, topology.edges, config))
           .nodes

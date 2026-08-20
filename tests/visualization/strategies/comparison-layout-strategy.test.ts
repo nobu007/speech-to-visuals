@@ -40,8 +40,8 @@ describe('ComparisonStrategy (LayoutStrategy)', () => {
     const result = strategy.apply(nodes, []);
 
     const centerX = 1920 / 2;
-    const leftColumn = result.nodes.filter((n) => n.x + n.width! / 2 < centerX);
-    const rightColumn = result.nodes.filter((n) => n.x + n.width! / 2 >= centerX);
+    const leftColumn = result.nodes.filter((n) => n.x + (n.width ?? Number.NaN) / 2 < centerX);
+    const rightColumn = result.nodes.filter((n) => n.x + (n.width ?? Number.NaN) / 2 >= centerX);
 
     expect(leftColumn).toHaveLength(4);
     expect(rightColumn).toHaveLength(4);
@@ -52,8 +52,8 @@ describe('ComparisonStrategy (LayoutStrategy)', () => {
     const result = strategy.apply(nodes, []);
 
     const centerX = 1920 / 2;
-    const leftColumn = result.nodes.filter((n) => n.x + n.width! / 2 < centerX);
-    const rightColumn = result.nodes.filter((n) => n.x + n.width! / 2 >= centerX);
+    const leftColumn = result.nodes.filter((n) => n.x + (n.width ?? Number.NaN) / 2 < centerX);
+    const rightColumn = result.nodes.filter((n) => n.x + (n.width ?? Number.NaN) / 2 >= centerX);
 
     expect(leftColumn).toHaveLength(3);
     expect(rightColumn).toHaveLength(2);

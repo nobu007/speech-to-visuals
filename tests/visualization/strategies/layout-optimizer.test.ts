@@ -99,8 +99,8 @@ describe('LayoutOptimizer', () => {
       const centerX = 1920 / 2;
       const centerY = 1080 / 2;
       result.nodes.forEach(n => {
-        const dx = (n.x + n.w! / 2) - centerX;
-        const dy = (n.y + n.h! / 2) - centerY;
+        const dx = (n.x + (n.w ?? Number.NaN) / 2) - centerX;
+        const dy = (n.y + (n.h ?? Number.NaN) / 2) - centerY;
         const dist = Math.sqrt(dx * dx + dy * dy);
         expect(dist).toBeGreaterThan(0);
       });

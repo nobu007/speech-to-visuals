@@ -43,8 +43,10 @@ function classifyThrownError(error: Error): ClassifiedError {
       classified = classifier.classify(err);
     }
   }
-  expect(classified).toBeDefined();
-  return classified!;
+  if (classified === undefined) {
+    throw new Error('classifier did not classify the thrown error');
+  }
+  return classified;
 }
 
 let classifier: InstanceType<typeof ErrorClassifier>;

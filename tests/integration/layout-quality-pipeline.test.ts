@@ -119,9 +119,11 @@ describe('Phase 31 Integration: Layout Quality Pipeline', () => {
     expect(labelMap.size).toBe(nodes.length);
     for (const node of nodes) {
       const result = labelMap.get(node.id);
-      expect(result).toBeDefined();
-      expect(result!.fontSize).toBeGreaterThanOrEqual(8);
-      expect(result!.lines.length).toBeGreaterThanOrEqual(1);
+      if (result === undefined) {
+        throw new Error(`label sizing result missing for node "${node.id}"`);
+      }
+      expect(result.fontSize).toBeGreaterThanOrEqual(8);
+      expect(result.lines.length).toBeGreaterThanOrEqual(1);
     }
   });
 

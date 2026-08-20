@@ -157,9 +157,11 @@ describe('TASK-0188: PipelineOrchestrator → ErrorRecoveryOrchestrator wire-up'
       expect(result.success).toBe(true);
       expect(result.metrics).toBeDefined();
 
-      // Verify the recovery orchestrator was used via recovery report
-      const report = result.metrics!.recoveryReport as RunRecoveryReport;
-      expect(report).toBeDefined();
+      // Verify the recovery orchestrator was used via recovery report (typed field — no cast needed)
+      const report = result.metrics?.recoveryReport;
+      if (report === undefined) {
+        throw new Error('run metrics carry no recoveryReport');
+      }
       expect(report.success).toBe(true);
       expect(report.runId).toMatch(/^run-\d+$/);
 
@@ -171,7 +173,10 @@ describe('TASK-0188: PipelineOrchestrator → ErrorRecoveryOrchestrator wire-up'
 
       const result = await orchestrator.execute(createValidInput());
 
-      const report = result.metrics!.recoveryReport as RunRecoveryReport;
+      const report = result.metrics?.recoveryReport;
+      if (report === undefined) {
+        throw new Error('run metrics carry no recoveryReport');
+      }
       expect(report.stages).toBeDefined();
       expect(Array.isArray(report.stages)).toBe(true);
       // At least transcription and analysis stages should be tracked
@@ -345,8 +350,10 @@ describe('TASK-0188: PipelineOrchestrator → ErrorRecoveryOrchestrator wire-up'
       const result = await orchestrator.execute(createValidInput());
 
       // After execution, recovery report should exist
-      expect(result.metrics?.recoveryReport).toBeDefined();
-      const report = result.metrics!.recoveryReport as RunRecoveryReport;
+      const report = result.metrics?.recoveryReport;
+      if (report === undefined) {
+        throw new Error('run metrics carry no recoveryReport');
+      }
       expect(typeof report.runId).toBe('string');
       expect(typeof report.totalRetries).toBe('number');
 

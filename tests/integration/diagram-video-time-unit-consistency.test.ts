@@ -49,11 +49,18 @@ function diagramVideoFindScene(
 ): number {
   const currentTime = (frame / Math.max(fps, 1)) * 1000;
   const idx = scenes.findIndex((scene) => {
-    const startMs = Number.isFinite(scene.startTime) ? scene.startTime! : 0;
-    const dur = Number.isFinite(scene.durationMs) ? scene.durationMs! : 0;
-    const endMs = Number.isFinite(scene.endTime)
-      ? scene.endTime!
-      : startMs + dur;
+    const startMs =
+      typeof scene.startTime === 'number' && Number.isFinite(scene.startTime)
+        ? scene.startTime
+        : 0;
+    const dur =
+      typeof scene.durationMs === 'number' && Number.isFinite(scene.durationMs)
+        ? scene.durationMs
+        : 0;
+    const endMs =
+      typeof scene.endTime === 'number' && Number.isFinite(scene.endTime)
+        ? scene.endTime
+        : startMs + dur;
     return currentTime >= startMs && currentTime < endMs;
   });
   return idx;

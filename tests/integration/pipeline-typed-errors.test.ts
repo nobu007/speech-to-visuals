@@ -164,8 +164,10 @@ describe('REQ-157: Round-trip typed error propagation validation', () => {
         classified = classifier.classify(err);
       }
     }
-    expect(classified).toBeDefined();
-    return classified!;
+    if (classified === undefined) {
+      throw new Error('classifier did not classify the thrown error');
+    }
+    return classified;
   }
 
   it('PipelineError base class round-trip: throw → catch → classify', () => {

@@ -700,8 +700,10 @@ describe('AdvancedLayoutEngine (TASK-0062)', () => {
       expect(result.layout.nodes).toHaveLength(3);
       // Root node should be at level 0 (y: 150 + 0 * 150 = 150)
       const rootNode = result.layout.nodes.find(n => n.id === 'root');
-      expect(rootNode).toBeDefined();
-      expect(rootNode!.y).toBe(150);
+      if (rootNode === undefined) {
+        throw new Error('root node missing from tree layout output');
+      }
+      expect(rootNode.y).toBe(150);
     });
 
     test('should handle cycle layout with circular positioning', () => {

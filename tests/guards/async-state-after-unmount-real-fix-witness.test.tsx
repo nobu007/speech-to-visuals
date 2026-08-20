@@ -107,8 +107,10 @@ describe('async-state-after-unmount guard — source anchor pinned (TC-316-01)',
     // Locate the generateThumbnails body via its useCallback signature so we
     // can assert the guard appears BEFORE setThumbnails (not after).
     const m = src().match(/const generateThumbnails\s*=\s*useCallback\(async \(\) => \{[\s\S]*?\},\s*\[result\]\)/);
-    expect(m).not.toBeNull();
-    const body = m![0];
+    if (m === null) {
+      throw new Error('generateThumbnails useCallback body not found in source');
+    }
+    const body = m[0];
     const guardIdx = body.indexOf('if (!mountedRef.current)');
     const setIdx = body.indexOf('setThumbnails(');
     expect(guardIdx).toBeGreaterThan(-1);
@@ -117,8 +119,10 @@ describe('async-state-after-unmount guard — source anchor pinned (TC-316-01)',
 
   it('generateThumbnails guards setIsGeneratingThumbnails(false) in the finally block', () => {
     const m = src().match(/const generateThumbnails\s*=\s*useCallback\(async \(\) => \{[\s\S]*?\},\s*\[result\]\)/);
-    expect(m).not.toBeNull();
-    const body = m![0];
+    if (m === null) {
+      throw new Error('generateThumbnails useCallback body not found in source');
+    }
+    const body = m[0];
     // The finally block must wrap setIsGeneratingThumbnails(false) in an
     // `if (mountedRef.current)` so an unmount mid-loop doesn't fire a state
     // update on the way out.

@@ -140,8 +140,8 @@ describe('LayoutOptimizer input immutability', () => {
 
       result.nodes.forEach((n, i) => {
         const angle = (2 * Math.PI * i) / 4;
-        const expectedX = cx + expectedRadius * Math.cos(angle) - n.w! / 2;
-        const expectedY = cy + expectedRadius * Math.sin(angle) - n.h! / 2;
+        const expectedX = cx + expectedRadius * Math.cos(angle) - (n.w ?? Number.NaN) / 2;
+        const expectedY = cy + expectedRadius * Math.sin(angle) - (n.h ?? Number.NaN) / 2;
         expect(n.x).toBeCloseTo(expectedX, 5);
         expect(n.y).toBeCloseTo(expectedY, 5);
       });

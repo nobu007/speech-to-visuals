@@ -79,8 +79,10 @@ describe('Export Service Graceful Shutdown', () => {
       expect(stats.queued).toBe(1);
 
       const remainingJob = queue.findJob(job2.jobId);
-      expect(remainingJob).toBeDefined();
-      expect(remainingJob!.status).toBe('queued');
+      if (remainingJob === undefined) {
+        throw new Error('job2 not found in queue after stop');
+      }
+      expect(remainingJob.status).toBe('queued');
     });
 
     test('can be restarted after stop', () => {
@@ -152,9 +154,11 @@ describe('Export Service Graceful Shutdown', () => {
 
       // Artifact should still be retrievable after stop
       const retrieved = store.get(artifact.artifactId);
-      expect(retrieved).toBeDefined();
-      expect(retrieved!.format).toBe('png');
-      expect(retrieved!.sizeBytes).toBe(128);
+      if (retrieved === undefined) {
+        throw new Error('artifact not retrievable from store after stop');
+      }
+      expect(retrieved.format).toBe('png');
+      expect(retrieved.sizeBytes).toBe(128);
     });
 
     test('can be restarted after stop', () => {
@@ -225,9 +229,11 @@ describe('Export Service Graceful Shutdown', () => {
 
       // The job should still show as completed with an artifactId
       const completed = jobQueue.findJob(job.jobId);
-      expect(completed).toBeDefined();
-      expect(completed!.status).toBe('completed');
-      expect(completed!.artifactId).toBeDefined();
+      if (completed === undefined) {
+        throw new Error('job not found in queue after stop');
+      }
+      expect(completed.status).toBe('completed');
+      expect(completed.artifactId).toBeDefined();
     });
 
     test('all services can be started and stopped multiple times', () => {

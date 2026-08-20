@@ -80,8 +80,8 @@ function oldV2CountEdgeCrossings(nodes: PositionedNode[], edges: LayoutEdge[]): 
 
   const segments = edges
     .map(edge => {
-      const source = nodeMap.get(edge.source!);
-      const target = nodeMap.get(edge.target!);
+      const source = edge.source === undefined ? undefined : nodeMap.get(edge.source);
+      const target = edge.target === undefined ? undefined : nodeMap.get(edge.target);
       return source && target ? { source, target } : null;
     })
     .filter((segment): segment is { source: PositionedNode; target: PositionedNode } => segment !== null);
@@ -146,8 +146,8 @@ function oldV1DetectEdgeCrossings(nodes: PositionedNode[], edges: LayoutEdge[]):
 
   const segments: LineSegment[] = [];
   for (const edge of edges) {
-    const start = nodePositions.get(edge.from!);
-    const end = nodePositions.get(edge.to!);
+    const start = edge.from === undefined ? undefined : nodePositions.get(edge.from);
+    const end = edge.to === undefined ? undefined : nodePositions.get(edge.to);
 
     if (start && end) {
       segments.push({ edge, start, end });
@@ -231,12 +231,19 @@ interface Case {
   edges: LayoutEdge[];
 }
 
+/** E2 below always sets both endpoints, so v2 fixture edges carry them as
+ *  non-optional — the v1 mirror maps over them without asserting presence. */
+interface V2CaseEdge extends LayoutEdge {
+  source: string;
+  target: string;
+}
+
 const N = (id: string, x: number, y: number): PositionedNode => ({ id, label: id, x, y });
-const E2 = (source: string, target: string): LayoutEdge => ({ source, target, points: [] });
+const E2 = (source: string, target: string): V2CaseEdge => ({ source, target, points: [] });
 const E1 = (from: string, to: string): LayoutEdge => ({ from, to, points: [] });
 
 /** v2 cases (source/target fields, raw x/y endpoints). */
-const V2_CASES: Record<string, Case> = {
+const V2_CASES: Record<string, { nodes: PositionedNode[]; edges: V2CaseEdge[] }> = {
   properX: {
     nodes: [N('a', 100, 100), N('b', 500, 500), N('c', 100, 500), N('d', 500, 100)],
     edges: [E2('a', 'b'), E2('c', 'd')],
@@ -284,7 +291,7 @@ const V1_CASES: Record<string, Case> = Object.fromEntries(
     k,
     {
       nodes: c.nodes.map((n) => ({ ...n })),
-      edges: c.edges.map((e) => E1(e.source!, e.target!)),
+      edges: c.edges.map((e) => E1(e.source, e.target)),
     } satisfies Case,
   ])
 );

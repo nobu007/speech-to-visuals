@@ -234,7 +234,7 @@ describe('ConceptMapLayoutStrategy', () => {
 
   describe('validateInputs()', () => {
     it('should return false for empty nodes', () => {
-      expect(strategy.validateInputs!([], [])).toBe(false);
+      expect(strategy.validateInputs([], [])).toBe(false);
     });
 
     it('should return true for valid nodes and edges', () => {
@@ -243,7 +243,7 @@ describe('ConceptMapLayoutStrategy', () => {
         { id: 'b', label: 'B' },
       ];
       const edges: EdgeDatum[] = [{ from: 'a', to: 'b' }];
-      expect(strategy.validateInputs!(nodes, edges)).toBe(true);
+      expect(strategy.validateInputs(nodes, edges)).toBe(true);
     });
 
     it('should return false for duplicate node IDs', () => {
@@ -251,19 +251,19 @@ describe('ConceptMapLayoutStrategy', () => {
         { id: 'a', label: 'A' },
         { id: 'a', label: 'A2' },
       ];
-      expect(strategy.validateInputs!(nodes, [])).toBe(false);
+      expect(strategy.validateInputs(nodes, [])).toBe(false);
     });
 
     it('should return false for edges referencing non-existent nodes', () => {
       const nodes: NodeDatum[] = [{ id: 'a', label: 'A' }];
       const edges: EdgeDatum[] = [{ from: 'a', to: 'z' }];
-      expect(strategy.validateInputs!(nodes, edges)).toBe(false);
+      expect(strategy.validateInputs(nodes, edges)).toBe(false);
     });
   });
 
   describe('getStrategyDefaults()', () => {
     it('should return concept map-specific defaults', () => {
-      const defaults = strategy.getStrategyDefaults!();
+      const defaults = strategy.getStrategyDefaults();
 
       expect(defaults.nodeSeparation).toBe(50);
       expect(defaults.marginX).toBe(50);

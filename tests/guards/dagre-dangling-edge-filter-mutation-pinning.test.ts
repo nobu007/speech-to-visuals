@@ -107,8 +107,10 @@ describe('dagre dangling-edge filter — source anchors pinned per site (TC-307-
     // A drift that drops one path drops the match count below 2 → RED.
     const src = readFileSync(join(REPO_ROOT, 'src/visualization/enhanced-zero-overlap-layout.ts'), 'utf8');
     const matches = src.match(new RegExp(FILTER_ANCHOR.source, 'g'));
-    expect(matches).not.toBeNull();
-    expect(matches!.length).toBeGreaterThanOrEqual(2);
+    if (matches === null) {
+      throw new Error('dangling-edge FILTER_ANCHOR regex found ZERO matches in enhanced-zero-overlap-layout.ts');
+    }
+    expect(matches.length).toBeGreaterThanOrEqual(2);
   });
 });
 

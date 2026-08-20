@@ -340,7 +340,7 @@ describe('v1 strategy shared members single source (round 31)', () => {
           error.mockRestore();
           return { result, calls };
         };
-        const viaStrategy = capture(() => strategy.validateInputs!(c.nodes, c.edges));
+        const viaStrategy = capture(() => strategy.validateInputs(c.nodes, c.edges));
         const viaReplica = capture(() => legacyValidateInputs(c.nodes, c.edges, prefix));
         expect(viaStrategy.result).toBe(viaReplica.result);
         expect(viaStrategy.calls).toEqual(viaReplica.calls);
@@ -362,8 +362,13 @@ describe('v1 strategy shared members single source (round 31)', () => {
       // difference is the width/2 term of gridX for node n0.
       const plain = await strategy.generateLayout(mkNodes(false), [], config);
       const wide = await strategy.generateLayout(mkNodes(true), [], config);
-      const xPlain = plain.nodes.find(n => n.id === 'n0')!.x;
-      const xWide = wide.nodes.find(n => n.id === 'n0')!.x;
+      const plainN0 = plain.nodes.find(n => n.id === 'n0');
+      const wideN0 = wide.nodes.find(n => n.id === 'n0');
+      if (plainN0 === undefined || wideN0 === undefined) {
+        throw new Error('node n0 missing from NetworkLayoutStrategy output');
+      }
+      const xPlain = plainN0.x;
+      const xWide = wideN0.x;
       // The grid term alone is (260-120)/2 = 70; downstream force refinement
       // (width-dependent repulsion) nudges it slightly. Bracketed, because the
       // exact refinement delta is an implementation detail — the drift this

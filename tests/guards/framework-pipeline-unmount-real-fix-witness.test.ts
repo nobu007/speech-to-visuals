@@ -159,8 +159,10 @@ describe('useFrameworkPipeline unmount guard — source anchor pinned (TC-318-01
     // load-bearing line — removing it lets the stray commit through.
     const body = src();
     const m = body.match(/const execute = useCallback\(async \(input: PipelineInput\) => \{[\s\S]*?\}, \[/);
-    expect(m).not.toBeNull();
-    const execBody = m![0];
+    if (m === null) {
+      throw new Error('execute useCallback body not found in source');
+    }
+    const execBody = m[0];
 
     const awaitIdx = execBody.indexOf('await pipelineRef.current.execute(input)');
     const guardIdx = execBody.indexOf('if (!mountedRef.current) return;');
@@ -177,8 +179,10 @@ describe('useFrameworkPipeline unmount guard — source anchor pinned (TC-318-01
     // unmounted hook.
     const body = src();
     const m = body.match(/const execute = useCallback\(async \(input: PipelineInput\) => \{[\s\S]*?\}, \[/);
-    expect(m).not.toBeNull();
-    const execBody = m![0];
+    if (m === null) {
+      throw new Error('execute useCallback body not found in source');
+    }
+    const execBody = m[0];
     expect(execBody).toMatch(/catch \(error: unknown\) \{[\s\S]*?if \(mountedRef\.current\) \{[\s\S]*?setExecutionState/);
     expect(execBody).toMatch(/if \(mountedRef\.current\) \{[\s\S]*?setExecutionState\(prev => \(\{ \.\.\.prev, progress: 100/);
   });
@@ -190,8 +194,10 @@ describe('useFrameworkPipeline unmount guard — source anchor pinned (TC-318-01
     // This anchor pins that fetchLog is guarded too.
     const body = src();
     const m = body.match(/const fetchLog = useCallback\(async \(\) => \{[\s\S]*?\}, \[\]\);/);
-    expect(m).not.toBeNull();
-    const fetchBody = m![0];
+    if (m === null) {
+      throw new Error('fetchLog useCallback body not found in source');
+    }
+    const fetchBody = m[0];
     expect(fetchBody).toMatch(/await fetch\('\/api\/iteration-log'\);[\s\S]*?if \(!mountedRef\.current\) return;/);
     // The finally-block setLoading must be guarded (finally runs on early return).
     expect(fetchBody).toMatch(/finally \{[\s\S]*?if \(mountedRef\.current\) \{[\s\S]*?setLoading\(false\)/);
@@ -232,8 +238,11 @@ describe('useFrameworkPipeline unmount guard — absorbs unmount-during-await (T
     // it — the commit POST is never made.
     const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
-    // Controllable deferred so the test controls WHEN execute resolves.
-    let resolveExecution!: (value: unknown) => void;
+    // Controllable deferred so the test controls WHEN execute resolves. The
+    // executor runs synchronously at `new Promise(...)`, so the holder is
+    // assigned before either guard below fires — kept `| undefined` and
+    // checked fail-loudly instead of asserted away with `!`.
+    let resolveExecution: ((value: unknown) => void) | undefined;
     mockExecute.mockReturnValue(
       new Promise((r) => {
         resolveExecution = r;
@@ -245,7 +254,7 @@ describe('useFrameworkPipeline unmount guard — absorbs unmount-during-await (T
     );
 
     // Fire execute WITHOUT awaiting; it suspends at the framework execute().
-    let execPromise!: Promise<void>;
+    let execPromise: Promise<void> | undefined;
     act(() => {
       execPromise = result.current.execute(defaultPipelineInput);
     });
@@ -255,12 +264,18 @@ describe('useFrameworkPipeline unmount guard — absorbs unmount-during-await (T
 
     // Now resolve the in-flight run (the hook is gone).
     await act(async () => {
+      if (resolveExecution === undefined) {
+        throw new Error('execute mock executor did not capture the resolver synchronously');
+      }
       resolveExecution(commitExecution);
       await Promise.resolve();
       await Promise.resolve();
     });
     // Swallow the (guarded) resolution so an unhandled-rejection never surfaces.
-    await execPromise!.catch(() => {});
+    if (execPromise === undefined) {
+      throw new Error('execute() promise was not captured inside act()');
+    }
+    await execPromise.catch(() => {});
 
     // WITH the guard: the post-await early return fired, so the commit branch
     // (and its /api/git/commit POST) never ran.

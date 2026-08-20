@@ -467,8 +467,10 @@ describe('PipelineOrchestrator Integration', () => {
 
       expect(result.passed).toBe(false);
       const durationResult = result.results.find((r) => r.criterionName === 'audioDuration');
-      expect(durationResult).toBeDefined();
-      expect(durationResult!.passed).toBe(false);
+      if (durationResult === undefined) {
+        throw new Error('criterion audioDuration missing from stage evaluation results');
+      }
+      expect(durationResult.passed).toBe(false);
     });
 
     it('evaluates stage 1 and fails when sample rate is below threshold', () => {
@@ -480,8 +482,10 @@ describe('PipelineOrchestrator Integration', () => {
 
       expect(result.passed).toBe(false);
       const rateResult = result.results.find((r) => r.criterionName === 'sampleRate');
-      expect(rateResult).toBeDefined();
-      expect(rateResult!.passed).toBe(false);
+      if (rateResult === undefined) {
+        throw new Error('criterion sampleRate missing from stage evaluation results');
+      }
+      expect(rateResult.passed).toBe(false);
     });
 
     it('evaluates stage 1 and fails when noise level is too high', () => {
@@ -493,8 +497,10 @@ describe('PipelineOrchestrator Integration', () => {
 
       expect(result.passed).toBe(false);
       const noiseResult = result.results.find((r) => r.criterionName === 'noiseLevel');
-      expect(noiseResult).toBeDefined();
-      expect(noiseResult!.passed).toBe(false);
+      if (noiseResult === undefined) {
+        throw new Error('criterion noiseLevel missing from stage evaluation results');
+      }
+      expect(noiseResult.passed).toBe(false);
     });
 
     it('evaluates stage 2 (Analysis) with passing input', () => {
@@ -564,7 +570,10 @@ describe('PipelineOrchestrator Integration', () => {
 
       expect(result.passed).toBe(false);
       const overlapResult = result.results.find((r) => r.criterionName === 'zeroOverlap');
-      expect(overlapResult!.passed).toBe(false);
+      if (overlapResult === undefined) {
+        throw new Error('criterion zeroOverlap missing from stage evaluation results');
+      }
+      expect(overlapResult.passed).toBe(false);
     });
 
     it('evaluates stage 3 and detects timeline gaps', () => {
@@ -581,7 +590,10 @@ describe('PipelineOrchestrator Integration', () => {
 
       expect(result.passed).toBe(false);
       const continuityResult = result.results.find((r) => r.criterionName === 'timelineContinuity');
-      expect(continuityResult!.passed).toBe(false);
+      if (continuityResult === undefined) {
+        throw new Error('criterion timelineContinuity missing from stage evaluation results');
+      }
+      expect(continuityResult.passed).toBe(false);
     });
 
     it('returns failed for unregistered stage', () => {
@@ -836,8 +848,11 @@ describe('PipelineOrchestrator Integration', () => {
 
       expect(result.success).toBe(false);
       expect(result.attempts).toBe(3); // 1 initial + 2 retries
-      expect(result.lastError).toBeDefined();
-      expect(result.lastError!.message).toBe('Always fails');
+      const lastError = result.lastError;
+      if (lastError === undefined) {
+        throw new Error('retry result carries no lastError after exhaustion');
+      }
+      expect(lastError.message).toBe('Always fails');
     });
 
     it('uses fallback when primary operation fails', async () => {

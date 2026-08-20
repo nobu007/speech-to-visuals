@@ -75,9 +75,9 @@ describe('TC-086-01: Phase 31 module exports', () => {
       ellipsis: '...',
     };
     const result: LabelSizingResult = sizeLabel('Hello World Test Label', 80, 30, config);
-    expect(result.fontSize).toBeGreaterThanOrEqual(config.minFontSize!);
-    expect(result.fontSize).toBeLessThanOrEqual(config.defaultFontSize!);
-    expect(result.lines.length).toBeLessThanOrEqual(config.maxLines!);
+    expect(result.fontSize).toBeGreaterThanOrEqual(config.minFontSize ?? Number.NaN);
+    expect(result.fontSize).toBeLessThanOrEqual(config.defaultFontSize ?? Number.NaN);
+    expect(result.lines.length).toBeLessThanOrEqual(config.maxLines ?? Number.NaN);
     expect(result.truncated).toBe(true); // text is too long for 80px at 12px font
   });
 

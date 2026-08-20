@@ -65,8 +65,10 @@ describe('scene-synchronizer durationMs sanitization — source anchors pinned',
     // splitCaptionAtSceneBoundary, validateSceneCaptionSync.
     // Drop any one → match count < 4 → RED.
     const matches = src().match(/sanitizeFinite\([^)]*\.durationMs[^)]*\)/g);
-    expect(matches).not.toBeNull();
-    expect(matches!.length).toBeGreaterThanOrEqual(4);
+    if (matches === null) {
+      throw new Error('sanitizeFinite(durationMs) anchor regex found ZERO matches — the migration reverted');
+    }
+    expect(matches.length).toBeGreaterThanOrEqual(4);
   });
 });
 

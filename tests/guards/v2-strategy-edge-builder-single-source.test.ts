@@ -721,11 +721,20 @@ describe('v2 strategy edge builder — unified dangling shape (round-32-3)', () 
     const applied = strategy.apply(nodes, edges);
     expect(applied.edges).toHaveLength(3);
 
-    const valid = applied.edges.find((e) => e.id === 'ok')!;
+    /** Fail-loud edge lookup — names the id the builder dropped. */
+    const requireEdge = (id: string) => {
+      const found = applied.edges.find((e) => e.id === id);
+      if (found === undefined) {
+        throw new Error(`edge ${id} missing from applied output`);
+      }
+      return found;
+    };
+
+    const valid = requireEdge('ok');
     expect(valid.points).toHaveLength(2);
 
     for (const id of ['drop-target', 'drop-source']) {
-      const dangling = applied.edges.find((e) => e.id === id)!;
+      const dangling = requireEdge(id);
       expect(dangling.points).toEqual([]);
       expect(dangling.id).toBe(id);
       expect(dangling.label).toBe(id === 'drop-target' ? 'dangling-target' : 'dangling-source');

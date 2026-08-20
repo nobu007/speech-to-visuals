@@ -63,9 +63,13 @@ describe('TimelineStrategy', () => {
     for (let i = 1; i < result.nodes.length; i++) {
       const prev = result.nodes.find((n) => n.id === `n${i - 1}`);
       const curr = result.nodes.find((n) => n.id === `n${i}`);
-      expect(prev).toBeDefined();
-      expect(curr).toBeDefined();
-      expect(prev!.y).toBeLessThan(curr!.y);
+      if (prev === undefined) {
+        throw new Error(`node n${i - 1} missing from timeline layout output`);
+      }
+      if (curr === undefined) {
+        throw new Error(`node n${i} missing from timeline layout output`);
+      }
+      expect(prev.y).toBeLessThan(curr.y);
     }
   });
 
@@ -148,8 +152,10 @@ describe('TimelineStrategy', () => {
     expect(result.edges).toHaveLength(2);
     // The edge to n99 should have empty points
     const brokenEdge = result.edges.find((e) => e.to === 'n99');
-    expect(brokenEdge).toBeDefined();
-    expect(brokenEdge!.points).toHaveLength(0);
+    if (brokenEdge === undefined) {
+      throw new Error('edge to dangling node "n99" missing from timeline layout output');
+    }
+    expect(brokenEdge.points).toHaveLength(0);
   });
 
   it('should return correct estimateComplexity', () => {

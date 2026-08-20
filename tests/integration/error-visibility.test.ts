@@ -148,7 +148,10 @@ describe('Error visibility: handleError → user notification', () => {
     // Simulate .catch where handleError also fails — the outer .catch
     // must still produce a visible notification
     let outerCatchTriggered = false;
-    let surfacedError: Error | null = null;
+    // Holder without initializer: the assignment happens inside a .catch
+    // callback, which control-flow analysis cannot see — an initializer would
+    // narrow every later read to `null`.
+    let surfacedError: Error | undefined;
 
     await failingOperation()
       .catch(async (err: Error) => {
@@ -164,8 +167,10 @@ describe('Error visibility: handleError → user notification', () => {
 
     // The outer .catch was triggered → error not swallowed
     expect(outerCatchTriggered).toBe(true);
-    expect(surfacedError).not.toBeNull();
-    expect(surfacedError!.message).toContain('handleError internal failure');
+    if (surfacedError === undefined) {
+      throw new Error('outer .catch did not capture the error surfaced by handleError');
+    }
+    expect(surfacedError.message).toContain('handleError internal failure');
 
     // The original error was still registered via callbacks before the throw
     expect(alerts).toHaveLength(1);

@@ -165,16 +165,20 @@ describe('PDF byte-offset guard — structural invariant on an accented-Latin PD
     // "startxref", so indexOf finds the table, not the trailer keyword).
     const xrefByteOff = text.indexOf('\nxref\n') + 1;
     const m = text.match(/startxref\n(\d+)\n/);
-    expect(m).not.toBeNull();
-    expect(Number(m![1])).toBe(xrefByteOff);
+    if (m === null) {
+      throw new Error('startxref keyword not found in PDF fixture');
+    }
+    expect(Number(m[1])).toBe(xrefByteOff);
   });
 
   it('the content-stream /Length equals the byte distance stream→endstream', async () => {
     const text = await accentedPdfLatin1();
     const lenMatch = text.match(/\/Length (\d+) >>\nstream\n/);
-    expect(lenMatch).not.toBeNull();
-    const declared = Number(lenMatch![1]);
-    const afterStream = (lenMatch!.index ?? 0) + lenMatch![0].length;
+    if (lenMatch === null) {
+      throw new Error('content-stream /Length header not found in PDF fixture');
+    }
+    const declared = Number(lenMatch[1]);
+    const afterStream = (lenMatch.index ?? 0) + lenMatch[0].length;
     const streamEnd = text.indexOf('\nendstream', afterStream);
     expect(streamEnd - afterStream).toBe(declared);
   });
@@ -204,8 +208,10 @@ describe('PDF byte-offset guard — mutation witness (TC-303-03)', () => {
     const text = await accentedPdfLatin1();
 
     const lenMatch = text.match(/\/Length (\d+) >>\nstream\n/);
-    expect(lenMatch).not.toBeNull();
-    const afterStream = (lenMatch!.index ?? 0) + lenMatch![0].length;
+    if (lenMatch === null) {
+      throw new Error('content-stream /Length header not found in PDF fixture');
+    }
+    const afterStream = (lenMatch.index ?? 0) + lenMatch[0].length;
     const streamEnd = text.indexOf('\nendstream', afterStream);
     const streamLatin1 = text.slice(afterStream, streamEnd);
 

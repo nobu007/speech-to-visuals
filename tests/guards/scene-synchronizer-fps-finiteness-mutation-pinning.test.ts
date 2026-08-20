@@ -58,8 +58,10 @@ describe('scene-synchronizer FPS finiteness guard — source anchors pinned (TC-
     // converter (e.g. "frameToMs is only called with sanitized fps") drops the
     // match count below 2 → RED.
     const matches = src().match(/!Number\.isFinite\(fps\) \|\| fps <= 0\) fps = DEFAULT_FPS/g);
-    expect(matches).not.toBeNull();
-    expect(matches!.length).toBeGreaterThanOrEqual(2);
+    if (matches === null) {
+      throw new Error('fps guard anchor regex found ZERO matches — the combined isFinite clause is gone from both converters');
+    }
+    expect(matches.length).toBeGreaterThanOrEqual(2);
   });
 
   it('no bare `if (fps <= 0) fps = DEFAULT_FPS` survives without the isFinite clause', () => {

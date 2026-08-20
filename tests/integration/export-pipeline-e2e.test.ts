@@ -283,13 +283,13 @@ describe('TASK-0199: Export pipeline E2E integration', () => {
       const layers = lottie.layers as Record<string, unknown>[];
 
       // SVG contains all scene labels
-      for (const scene of THREE_SCENES.scenes!) {
+      for (const scene of THREE_SCENES.scenes) {
         expect(svg).toContain(scene.label);
       }
 
       // Lottie layer names match scene labels
-      for (let i = 0; i < THREE_SCENES.scenes!.length; i++) {
-        expect(layers[i].nm).toBe(THREE_SCENES.scenes![i].label);
+      for (let i = 0; i < THREE_SCENES.scenes.length; i++) {
+        expect(layers[i].nm).toBe(THREE_SCENES.scenes[i].label);
       }
     });
 
@@ -305,9 +305,9 @@ describe('TASK-0199: Export pipeline E2E integration', () => {
         outro: '#0f3460',
       };
 
-      for (let i = 0; i < THREE_SCENES.scenes!.length; i++) {
-        const scene = THREE_SCENES.scenes![i];
-        const expectedHex = svgColorMap[scene.type!];
+      for (let i = 0; i < THREE_SCENES.scenes.length; i++) {
+        const scene = THREE_SCENES.scenes[i];
+        const expectedHex = svgColorMap[scene.type];
         // SVG uses hex color
         expect(svg).toContain(expectedHex);
 

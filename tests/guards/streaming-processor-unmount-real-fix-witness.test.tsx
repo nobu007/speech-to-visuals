@@ -205,8 +205,10 @@ describe('StreamingProcessor unmount guard — source anchor pinned (TC-319-01)'
     // line — removing it lets the stray onComplete through.
     const body = src();
     const m = body.match(/const handleFileProcessing = useCallback\(async \(\) => \{[\s\S]*?\}, \[onComplete\]\);/);
-    expect(m).not.toBeNull();
-    const fnBody = m![0];
+    if (m === null) {
+      throw new Error('handleFileProcessing useCallback body not found in source');
+    }
+    const fnBody = m[0];
 
     const awaitIdx = fnBody.indexOf('await transcriber.current.transcribeStream');
     const guardIdx = fnBody.indexOf('if (!mountedRef.current) return;');
@@ -223,8 +225,10 @@ describe('StreamingProcessor unmount guard — source anchor pinned (TC-319-01)'
     // EVERY async path in the function or a sibling hides.)
     const body = src();
     const m = body.match(/const handleFileProcessing = useCallback\(async \(\) => \{[\s\S]*?\}, \[onComplete\]\);/);
-    expect(m).not.toBeNull();
-    expect(m![0]).toMatch(
+    if (m === null) {
+      throw new Error('handleFileProcessing useCallback body not found in source');
+    }
+    expect(m[0]).toMatch(
       /catch \(err\) \{[\s\S]*?if \(mountedRef\.current\) \{[\s\S]*?setStatus\('error'\)/,
     );
   });
@@ -275,8 +279,11 @@ describe('StreamingProcessor unmount guard — absorbs unmount-during-await (TC-
     // is never invoked.
     const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
-    // Controllable deferred so the test controls WHEN transcribeStream resolves.
-    let resolveTranscribe!: (value: unknown) => void;
+    // Controllable deferred so the test controls WHEN transcribeStream
+    // resolves. The executor runs synchronously at `new Promise(...)`, so the
+    // holder is assigned before the guard below fires — kept `| undefined`
+    // and checked fail-loudly instead of asserted away with `!`.
+    let resolveTranscribe: ((value: unknown) => void) | undefined;
     transcribeStreamMock.mockReturnValue(
       new Promise((r) => {
         resolveTranscribe = r;
@@ -311,6 +318,9 @@ describe('StreamingProcessor unmount guard — absorbs unmount-during-await (TC-
     // component is gone). Pre-fix this would enter the `result.segments.length
     // > 0` branch and fire onComplete.
     await act(async () => {
+      if (resolveTranscribe === undefined) {
+        throw new Error('transcribeStream mock executor did not capture the resolver synchronously');
+      }
       resolveTranscribe({ segments: [{ start: 0, end: 1500, text: 'flow process step' }] });
       await Promise.resolve();
       await Promise.resolve();

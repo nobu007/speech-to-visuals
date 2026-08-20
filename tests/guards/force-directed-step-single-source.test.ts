@@ -541,7 +541,10 @@ describe('force-directed step: semantics', () => {
       const before = new Map(shifted.map(n => [n.id, { x: n.x ?? 0, y: n.y ?? 0 }]));
       applyForceDirectedStep(shifted, edges, 2.0, 80, { width: 4000, height: 4000 });
       for (const n of shifted) {
-        const p = before.get(n.id)!;
+        const p = before.get(n.id);
+        if (p === undefined) {
+          throw new Error(`node ${n.id} missing from the pre-step position map`);
+        }
         const moved = distance((n.x ?? 0) - p.x, (n.y ?? 0) - p.y);
         expect(moved).toBeLessThanOrEqual(ceiling);
       }

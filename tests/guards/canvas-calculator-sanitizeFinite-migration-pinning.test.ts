@@ -66,8 +66,10 @@ describe('canvas-calculator sanitizeFinite — source anchors pinned', () => {
     // layout-utils. 4 reads + 2 map-reproject sites in center() = 6 minimum.
     // Drop any one → match count < 6 → RED.
     const matches = src().match(/sanitizeFinite\(/g);
-    expect(matches).not.toBeNull();
-    expect(matches!.length).toBeGreaterThanOrEqual(6);
+    if (matches === null) {
+      throw new Error('sanitizeFinite( anchor regex found ZERO matches — the migration reverted');
+    }
+    expect(matches.length).toBeGreaterThanOrEqual(6);
   });
 
   it('routes both extent scans through the sanitized read (round 41)', () => {

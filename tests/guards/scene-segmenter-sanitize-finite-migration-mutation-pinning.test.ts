@@ -68,8 +68,10 @@ describe('scene-segmenter sanitizeFinite migration — source anchors pinned', (
     // (testResults.score, seg.confidence ×2). A regression that drops
     // sanitizeFinite from any of the new sites drops the count below 13.
     const matches = src().match(/sanitizeFinite\(/g);
-    expect(matches).not.toBeNull();
-    expect(matches!.length).toBeGreaterThanOrEqual(13);
+    if (matches === null) {
+      throw new Error('sanitizeFinite( anchor regex found ZERO matches — the migration reverted');
+    }
+    expect(matches.length).toBeGreaterThanOrEqual(13);
   });
 
   it('uses sanitizeFinite at the duration aggregation sites (Math.max wrapper)', () => {
@@ -77,8 +79,10 @@ describe('scene-segmenter sanitizeFinite migration — source anchors pinned', (
     // non-negative" semantics via `Math.max(0, sanitizeFinite(d))`. A revert
     // to `Number.isFinite(d) ? Math.max(0, d) : 0` drops this anchor → RED.
     const matches = src().match(/Math\.max\(0, sanitizeFinite\(d\)\)/g);
-    expect(matches).not.toBeNull();
-    expect(matches!.length).toBeGreaterThanOrEqual(2);
+    if (matches === null) {
+      throw new Error('Math.max(0, sanitizeFinite(d)) anchor regex found ZERO matches — the non-negative duration wrapper reverted');
+    }
+    expect(matches.length).toBeGreaterThanOrEqual(2);
   });
 
   it('does NOT contain inline `Number.isFinite(x) ? ... : ...` value-coercion ternaries', () => {

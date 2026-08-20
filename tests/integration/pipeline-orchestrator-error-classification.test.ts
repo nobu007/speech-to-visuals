@@ -164,9 +164,11 @@ describe('REQ-159: PipelineOrchestrator → ErrorClassifier Integration', () => 
       expect(result.success).toBe(false);
       expect(result.error).toBeDefined();
 
-      // Verify the classified error is present
-      expect(result.metrics?.classifiedError).toBeDefined();
-      const classified = result.metrics!.classifiedError as ClassifiedError;
+      // Verify the classified error is present (typed field — no cast needed)
+      const classified = result.metrics?.classifiedError;
+      if (classified === undefined) {
+        throw new Error('failed run metrics carry no classifiedError');
+      }
 
       expect(classified.type).toBe('QUALITY_GATE_FAILED');
       expect(classified.severity).toBe('high');
@@ -235,7 +237,10 @@ describe('REQ-159: PipelineOrchestrator → ErrorClassifier Integration', () => 
 
       const result = await orchestrator.execute(createValidInput());
 
-      const classified = result.metrics!.classifiedError as ClassifiedError;
+      const classified = result.metrics?.classifiedError;
+      if (classified === undefined) {
+        throw new Error('run metrics carry no classifiedError');
+      }
       expect(classified.originalError).toBeDefined();
       expect(classified.originalError).toBeInstanceOf(Error);
       expect(classified.originalError.message).toBeTruthy();
@@ -313,7 +318,10 @@ describe('REQ-159: PipelineOrchestrator → ErrorClassifier Integration', () => 
 
       const result = await orchestrator.execute(createValidInput());
 
-      const classified = result.metrics!.classifiedError as ClassifiedError;
+      const classified = result.metrics?.classifiedError;
+      if (classified === undefined) {
+        throw new Error('run metrics carry no classifiedError');
+      }
 
       // Verify all ClassifiedError interface fields are present
       expect(typeof classified.type).toBe('string');

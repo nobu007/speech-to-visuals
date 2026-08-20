@@ -286,7 +286,7 @@ describe('CulturalLayoutAdapter (TASK-0065)', () => {
   describe('Visual style adaptation', () => {
     it('should apply minimalist style (smaller nodes, more space)', async () => {
       const layout = makeSampleLayout();
-      const originalWs = layout.nodes.map(n => n.w!);
+      const originalWs = layout.nodes.map(n => (n.w ?? Number.NaN));
 
       const result = await adapter.applyCulturalAdaptation(layout, {
         languageCode: 'ja',
@@ -304,7 +304,7 @@ describe('CulturalLayoutAdapter (TASK-0065)', () => {
 
     it('should apply expressive style (larger nodes)', async () => {
       const layout = makeSampleLayout();
-      const originalWs = layout.nodes.map(n => n.w!);
+      const originalWs = layout.nodes.map(n => (n.w ?? Number.NaN));
 
       const result = await adapter.applyCulturalAdaptation(layout, {
         languageCode: 'en',
@@ -322,7 +322,7 @@ describe('CulturalLayoutAdapter (TASK-0065)', () => {
 
     it('should apply technical style (standard size, compact)', async () => {
       const layout = makeSampleLayout();
-      const originalWs = layout.nodes.map(n => n.w!);
+      const originalWs = layout.nodes.map(n => (n.w ?? Number.NaN));
 
       const result = await adapter.applyCulturalAdaptation(layout, {
         languageCode: 'en',
@@ -441,8 +441,8 @@ describe('CulturalLayoutAdapter (TASK-0065)', () => {
       for (const node of result.nodes) {
         expect(isFinite(node.x)).toBe(true);
         expect(isFinite(node.y)).toBe(true);
-        expect(isFinite(node.w!)).toBe(true);
-        expect(isFinite(node.h!)).toBe(true);
+        expect(isFinite(node.w ?? Number.NaN)).toBe(true);
+        expect(isFinite(node.h ?? Number.NaN)).toBe(true);
       }
     });
 

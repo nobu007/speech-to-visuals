@@ -48,10 +48,18 @@ describe('FlowchartStrategy (LayoutStrategy)', () => {
     ];
 
     const result = strategy.apply(nodes, edges);
-    const startNode = result.nodes.find((n) => n.id === 'start')!;
-    const endNode = result.nodes.find((n) => n.id === 'end')!;
+    const startNode = result.nodes.find((n) => n.id === 'start');
+    const endNode = result.nodes.find((n) => n.id === 'end');
+    if (startNode === undefined) {
+      throw new Error('node "start" missing from flowchart layout output');
+    }
+    if (endNode === undefined) {
+      throw new Error('node "end" missing from flowchart layout output');
+    }
 
-    expect(startNode.y + startNode.height! / 2).toBeLessThan(endNode.y + endNode.height! / 2);
+    expect(startNode.y + (startNode.height ?? Number.NaN) / 2).toBeLessThan(
+      endNode.y + (endNode.height ?? Number.NaN) / 2
+    );
   });
 
   it('should generate edge points for connected nodes', () => {

@@ -240,8 +240,10 @@ describe('PipelineInterface unmount guard — source anchor pinned (TC-321-01)',
   it('handleDownloadVideo guards BEFORE window.open (post-fetch + post-text)', () => {
     const body = src();
     const m = body.match(/const handleDownloadVideo = useCallback\(async \(\) => \{[\s\S]*?\}, \[result\]\);/);
-    expect(m).not.toBeNull();
-    const fnBody = m![0];
+    if (m === null) {
+      throw new Error('handleDownloadVideo useCallback body not found in source');
+    }
+    const fnBody = m[0];
 
     const fetchIdx = fnBody.indexOf('await fetch(');
     const guardPositions = [...fnBody.matchAll(/if \(!mountedRef\.current\) return;/g)].map(
@@ -273,8 +275,10 @@ describe('PipelineInterface unmount guard — source anchor pinned (TC-321-01)',
   it('handleProcessAudio guards the post-await path BEFORE setStatus complete', () => {
     const body = src();
     const m = body.match(/const handleProcessAudio = useCallback\(async \(\) => \{[\s\S]*?\}, \[selectedFile, pipeline\]\);/);
-    expect(m).not.toBeNull();
-    const fnBody = m![0];
+    if (m === null) {
+      throw new Error('handleProcessAudio useCallback body not found in source');
+    }
+    const fnBody = m[0];
 
     const executeIdx = fnBody.indexOf('await pipeline.execute');
     const guardIdx = fnBody.indexOf('if (!mountedRef.current) return;');
@@ -290,8 +294,10 @@ describe('PipelineInterface unmount guard — source anchor pinned (TC-321-01)',
     // path must not setState on the gone component.
     const body = src();
     const m = body.match(/const handleProcessAudio = useCallback\(async \(\) => \{[\s\S]*?\}, \[selectedFile, pipeline\]\);/);
-    expect(m).not.toBeNull();
-    expect(m![0]).toMatch(
+    if (m === null) {
+      throw new Error('handleProcessAudio useCallback body not found in source');
+    }
+    expect(m[0]).toMatch(
       /catch \(err\) \{[\s\S]*?if \(!mountedRef\.current\) return;[\s\S]*?setStatus\('error'\)/,
     );
   });
@@ -340,8 +346,11 @@ describe('PipelineInterface unmount guard — absorbs unmount-during-await (TC-3
     const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
     const openSpy = jest.spyOn(window, 'open').mockImplementation(() => null);
 
-    // Controllable deferred so the test controls WHEN fetch resolves.
-    let resolveFetch!: (value: unknown) => void;
+    // Controllable deferred so the test controls WHEN fetch resolves. The
+    // executor runs synchronously at `new Promise(...)`, so the holder is
+    // assigned before the guard below fires — kept `| undefined` and checked
+    // fail-loudly instead of asserted away with `!`.
+    let resolveFetch: ((value: unknown) => void) | undefined;
     fetchMock.mockReturnValue(
       new Promise((r) => {
         resolveFetch = r as (value: unknown) => void;
@@ -369,6 +378,9 @@ describe('PipelineInterface unmount guard — absorbs unmount-during-await (TC-3
     // Now resolve the in-flight fetch with an ok response carrying a videoUrl
     // (the component is gone). Pre-fix this would reach window.open.
     await act(async () => {
+      if (resolveFetch === undefined) {
+        throw new Error('fetch mock executor did not capture the resolver synchronously');
+      }
       resolveFetch({
         ok: true,
         status: 200,

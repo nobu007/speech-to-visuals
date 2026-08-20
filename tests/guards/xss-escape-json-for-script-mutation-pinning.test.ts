@@ -54,8 +54,10 @@ const GUARD_FILE = 'src/export/enhanced-export-engine.ts';
 function escapeFnBody(): string {
   const src = readFileSync(GUARD_FILE, 'utf8');
   const m = src.match(/function escapeJsonForScript\(json: string\): string \{([\s\S]*?)\n\}/);
-  expect(m).not.toBeNull();
-  return m![1];
+  if (m === null) {
+    throw new Error(`escapeJsonForScript body not found in ${GUARD_FILE}`);
+  }
+  return m[1];
 }
 
 // --- (TC-305-01) source anchors: pin the two global angle-bracket replacements --

@@ -81,10 +81,12 @@ describe('DiagramVideo time-unit integration', () => {
         //   const currentTime = (frame / Math.max(fps, 1)) * 1000;
         const currentTimeMs = (frame / DEFAULT_FPS) * 1000;
         const result = findSceneAtTime(scenes, currentTimeMs);
-        expect(result).not.toBeNull();
+        if (result === null) {
+          throw new Error('findSceneAtTime returned null during the frame sweep');
+        }
 
         const expectedIndex = frame < 90 ? 0 : 1;
-        expect(result!.index).toBe(expectedIndex);
+        expect(result.index).toBe(expectedIndex);
       }
     });
 
@@ -110,8 +112,10 @@ describe('DiagramVideo time-unit integration', () => {
       for (const { frame, expectedScene } of checks) {
         const currentTimeMs = (frame / DEFAULT_FPS) * 1000;
         const result = findSceneAtTime(scenes, currentTimeMs);
-        expect(result).not.toBeNull();
-        expect(result!.index).toBe(expectedScene);
+        if (result === null) {
+          throw new Error('findSceneAtTime returned null during the frame sweep');
+        }
+        expect(result.index).toBe(expectedScene);
       }
     });
   });
@@ -154,9 +158,11 @@ describe('DiagramVideo time-unit integration', () => {
     it('returns first scene at time 0', () => {
       const scenes = [makeScene(3000, 'A'), makeScene(3000, 'B')];
       const result = findSceneAtTime(scenes, 0);
-      expect(result).not.toBeNull();
-      expect(result!.index).toBe(0);
-      expect(result!.timeInScene).toBe(0);
+      if (result === null) {
+        throw new Error('findSceneAtTime returned null at t=0 despite a scene starting at 0ms');
+      }
+      expect(result.index).toBe(0);
+      expect(result.timeInScene).toBe(0);
     });
   });
 });

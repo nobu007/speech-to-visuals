@@ -69,13 +69,15 @@ describe('fold census — doc-pin 3-way (TC-005-02, D9)', () => {
     expect([...markers.keys()].sort()).toEqual(CENSUS_FAMILIES.map((fam) => fam.id).sort());
     for (const fam of CENSUS_FAMILIES) {
       const marker = markers.get(fam.id);
-      expect(marker).toBeDefined();
+      if (marker === undefined) {
+        throw new Error(`census marker for family ${fam.id} missing from ${CENSUS_DOC}`);
+      }
       // doc == data pin…
-      expect(marker!.sites).toBe(fam.pin.sites);
-      expect(marker!.files).toBe(fam.pin.files);
+      expect(marker.sites).toBe(fam.pin.sites);
+      expect(marker.files).toBe(fam.pin.files);
       // …and data pin == engine measurement (ties the doc to the walk)
-      expect(SNAPSHOT.family[fam.id].sites).toBe(marker!.sites);
-      expect(SNAPSHOT.family[fam.id].files).toBe(marker!.files);
+      expect(SNAPSHOT.family[fam.id].sites).toBe(marker.sites);
+      expect(SNAPSHOT.family[fam.id].files).toBe(marker.files);
     }
   });
 });

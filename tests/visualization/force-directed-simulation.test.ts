@@ -14,7 +14,7 @@
  * enableMultiLevel: false, enableClustering: false).
  */
 
-import { NodeDatum, EdgeDatum, DiagramType } from '@stv/core/types/diagram';
+import { NodeDatum, EdgeDatum, DiagramType, PositionedNode } from '@stv/core/types/diagram';
 import { ComplexLayoutEngine, ComplexLayoutConfig } from '@/visualization/complex-layout-engine';
 import { OverlapResolver } from '@/visualization/strategies/OverlapResolver';
 import { LayoutOptimizer } from '@/visualization/strategies/LayoutOptimizer';
@@ -83,6 +83,16 @@ function makeStarGraph(leaves: number): { nodes: NodeDatum[]; edges: EdgeDatum[]
     to: `n${i + 1}`,
   }));
   return { nodes, edges };
+}
+
+/** Fail-loud node lookup in engine output — a dropped node must abort with a
+ *  labeled error, not surface as NaN distances or a silent expect-failure. */
+function requireNode(nodes: PositionedNode[], id: string): PositionedNode {
+  const node = nodes.find(n => n.id === id);
+  if (node === undefined) {
+    throw new Error(`node "${id}" missing from layout output`);
+  }
+  return node;
 }
 
 // ---------------------------------------------------------------------------
@@ -175,14 +185,13 @@ describe('Force-Directed Simulation (REQ-094, TASK-0140)', () => {
 
       expect(result.success).toBe(true);
 
-      const n0 = result.layout.nodes.find(n => n.id === 'n0')!;
-      expect(n0).toBeDefined();
+      const n0 = requireNode(result.layout.nodes, 'n0');
 
       // Measure total pairwise distances — connected edges should pull nodes together
       // compared to completely unconnected pairs
       let connectedTotal = 0;
       for (let i = 1; i <= 6; i++) {
-        const ni = result.layout.nodes.find(n => n.id === `n${i}`)!;
+        const ni = requireNode(result.layout.nodes, `n${i}`);
         connectedTotal += Math.sqrt(
           Math.pow(n0.x + (n0.w ?? 120) / 2 - (ni.x + (ni.w ?? 120) / 2), 2) +
           Math.pow(n0.y + (n0.h ?? 60) / 2 - (ni.y + (ni.h ?? 60) / 2), 2)
@@ -194,8 +203,8 @@ describe('Force-Directed Simulation (REQ-094, TASK-0140)', () => {
       const nonConnectedPairs: [string, string][] = [['n1', 'n2'], ['n3', 'n4'], ['n5', 'n6']];
       let nonConnectedTotal = 0;
       for (const [a, b] of nonConnectedPairs) {
-        const na = result.layout.nodes.find(n => n.id === a)!;
-        const nb = result.layout.nodes.find(n => n.id === b)!;
+        const na = requireNode(result.layout.nodes, a);
+        const nb = requireNode(result.layout.nodes, b);
         nonConnectedTotal += Math.sqrt(
           Math.pow(na.x + (na.w ?? 120) / 2 - (nb.x + (nb.w ?? 120) / 2), 2) +
           Math.pow(na.y + (na.h ?? 60) / 2 - (nb.y + (nb.h ?? 60) / 2), 2)

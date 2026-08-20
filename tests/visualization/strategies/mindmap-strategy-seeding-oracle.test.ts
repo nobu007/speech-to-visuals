@@ -61,7 +61,10 @@ describe('MindMapStrategy — seeded unassigned-node jitter (round 17)', () => {
     const rng = createLayoutRng(nodes.map((n) => n.id).join('|'));
     const byId = new Map(result.nodes.map((n) => [n.id, n]));
     for (const id of ['n4', 'n5', 'n6']) {
-      const placed = byId.get(id)!;
+      const placed = byId.get(id);
+      if (placed === undefined) {
+        throw new Error(`orphan node "${id}" missing from mindmap layout output`);
+      }
       // Center is (960, 540); strategy stores top-left coords (x = pos.x - w/2).
       const expectedX = 960 + (rng() - 0.5) * 400 - (placed.width ?? 0) / 2;
       const expectedY = 540 + (rng() - 0.5) * 400 - (placed.height ?? 0) / 2;
@@ -106,7 +109,14 @@ describe('MindMapStrategy — seeded unassigned-node jitter (round 17)', () => {
       // held to the zero-overlap floor.
       for (let i = 0; i < connectedIds.length; i++) {
         for (let j = i + 1; j < connectedIds.length; j++) {
-          expect(nodesOverlap(placed.get(connectedIds[i])!, placed.get(connectedIds[j])!)).toBe(false);
+          const nodeI = placed.get(connectedIds[i]);
+          const nodeJ = placed.get(connectedIds[j]);
+          if (nodeI === undefined || nodeJ === undefined) {
+            throw new Error(
+              `connected node "${nodeI === undefined ? connectedIds[i] : connectedIds[j]}" missing from mindmap layout output`
+            );
+          }
+          expect(nodesOverlap(nodeI, nodeJ)).toBe(false);
         }
       }
       for (const n of result.nodes) {

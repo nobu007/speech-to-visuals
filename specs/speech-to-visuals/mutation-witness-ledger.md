@@ -309,6 +309,16 @@ judge が再実行なしに主張を検証できるようにする（AI Hub stee
 
 ---
 
+## MW-035 — 義務 C 第2ゲート 3 dir exact-0 pin の同時 teeth（REQ-361・Phase 167・TASK-0253）
+
+- **claim**: 義務 C 第2ゲート（tests total ≤ 100）を、steering 指定の残り 3 ディレクトリ（guards・visualization・integration）残存全数 57 ファイル / 155 ノードの fail-loud idiom 置換で 0 にして通過する（191 − 155 = 36 ≤ 100）。**3 ディレクトリそれぞれ** の exact-0 pin が単発 `!` 再注入で独立に RED になる（dir ratchet 0→1 と tests-total ratchet 36→37 の同時 RED）ことを3種の mutation で実証する — MW-033（unit 単 dir）の横展開。
+- **target**: `tests/integration/export-service-shutdown.test.ts`（findJob 結果の labeled guard）+ `tests/visualization/advanced-layouts.test.ts`（find 結果の labeled guard）+ `tests/guards/framework-pipeline-unmount-real-fix-witness.test.ts`（`| undefined` resolver holder の invocation-time guard）
+- **mutation**: (a) `expect(completed.status)` → `expect(completed!.status)`（integration・Phase-167 rewrite への単発 `!` 再注入）・(b) `expect(rootNode.y)` → `expect(rootNode!.y)`（visualization・同）・(c) `resolveExecution(commitExecution)` → `resolveExecution!(commitExecution)`（guards・同）
+- **command**: 各 mutation 適用後に `NODE_OPTIONS='--experimental-vm-modules --max-old-space-size=4096' npx jest --config jest.config.cjs --testPathPatterns 'non-null-assertion-census'`
+- **observed** (2026-08-21・Phase 167 実施時): (a)(b)(c) とも census 2 failed — directory ratchet `Expected: <= 0 / Received: 1` と tests-total ratchet `Expected: <= 36 / Received: 37` の**同時 RED**（11 tests 中 2 failed / 9 passed）。各 revert で census 11/11 GREEN 復元・触 3 suite（export-service-shutdown / advanced-layouts / framework-pipeline-unmount-real-fix-witness）GREEN。監査 pin **≥34 → ≥35** に引き上げ（MW-035 追加で 34 → 35 エントリ）。
+
+---
+
 ## 恒久 mutation test（ledger 対象外・常時 CI で走るもの）
 
 以下は「一時 mutant → RED 確認 → revert」ではなく mutant を恒久テスト化したもので、

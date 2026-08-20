@@ -524,6 +524,26 @@ const REPO_ROOT = fileURLToPath(new URL('../../', import.meta.url));
  * in nullable-access-null-guard: tests/unit 61 − 61 = 0 — the SECOND
  * directory pinned at exact-0 (transcription was first, Phase 154);
  * tests total 252 − 61 = 191).
+ * and 2026-08-21 (Phase 167 / REQ-361: monotone decrease round 10 — the
+ * 義務 C second gate: the three directories steering named, ALL remaining
+ * files / 155 nodes → 0 via the same fail-loud idioms (find/get/null
+ * labeled guards, `requireTopology`/`requireNode` helpers, resolver
+ * holders without initializers for callback-assigned captures,
+ * `?? Number.NaN` for optional-dim arithmetic, typed-metrics guard reads
+ * that drop the now-unneeded casts, typeof-captured finiteness
+ * narrowing): tests/guards 51 − 51 = 0; tests/visualization 54 − 54 = 0;
+ * tests/integration 50 − 50 = 0 — directories three through five pinned
+ * at exact-0; tests total 191 − 155 = 36, under the ≤100 goal).
+ * Mutation-verified (Phase 167, MW-035): re-injecting ONE `!` per
+ * rewritten directory — `expect(completed.status)` back to
+ * `expect(completed!.status)` in
+ * tests/integration/export-service-shutdown.test.ts,
+ * `expect(rootNode.y)` back to `expect(rootNode!.y)` in
+ * tests/visualization/advanced-layouts.test.ts, and `resolveExecution(`
+ * back to `resolveExecution!(` in
+ * tests/guards/framework-pipeline-unmount-real-fix-witness.test.ts —
+ * each turns BOTH its directory exact-0 ratchet (0 → 1) and the
+ * tests-total ratchet (36 → 37) RED.
  */
 const PINNED = {
   'src/visualization (production)': 0,
@@ -533,7 +553,7 @@ const PINNED = {
   'src/monitoring (production)': 0,
   'src/analysis (production)': 0,
   'src (production, excl. __tests__/__mocks__)': 0,
-  'tests (excl. __mocks__)': 191,
+  'tests (excl. __mocks__)': 36,
 } as const;
 
 /**
@@ -544,9 +564,9 @@ const PINNED = {
  */
 const TESTS_DIR_PINS: Record<string, number> = {
   unit: 0,
-  integration: 50,
-  visualization: 54,
-  guards: 51,
+  integration: 0,
+  visualization: 0,
+  guards: 0,
   pipeline: 11,
   analysis: 6,
   quality: 9,

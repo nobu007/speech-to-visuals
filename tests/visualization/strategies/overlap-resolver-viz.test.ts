@@ -42,8 +42,8 @@ describe('OverlapResolver (visualization/strategies)', () => {
       const n0 = result.nodes[0];
       const n1 = result.nodes[1];
       // Check they're no longer overlapping
-      const overlap = n0.x < n1.x + n1.w! && n0.x + n0.w! > n1.x &&
-                      n0.y < n1.y + n1.h! && n0.y + n0.h! > n1.y;
+      const overlap = n0.x < n1.x + (n1.w ?? Number.NaN) && n0.x + (n0.w ?? Number.NaN) > n1.x &&
+                      n0.y < n1.y + (n1.h ?? Number.NaN) && n0.y + (n0.h ?? Number.NaN) > n1.y;
       expect(overlap).toBe(false);
     });
 

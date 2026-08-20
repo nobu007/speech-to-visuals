@@ -235,7 +235,10 @@ describe('SmartLabelSizer: sizeAllLabels', () => {
     ];
     const config: LabelSizingConfig = { defaultFontSize: 10, minFontSize: 6 };
     const results = sizeAllLabels(nodes, config);
-    const result = results.get('n1')!;
+    const result = results.get('n1');
+    if (result === undefined) {
+      throw new Error('node "n1" missing from sizeAllLabels results');
+    }
     expect(result.fontSize).toBeLessThanOrEqual(10);
     expect(result.fontSize).toBeGreaterThanOrEqual(6);
   });
@@ -246,6 +249,10 @@ describe('SmartLabelSizer: sizeAllLabels', () => {
     ];
     const results = sizeAllLabels(nodes);
     expect(results.has('n1')).toBe(true);
-    expect(results.get('n1')!.fontSize).toBeGreaterThan(0);
+    const n1Result = results.get('n1');
+    if (n1Result === undefined) {
+      throw new Error('node "n1" missing from sizeAllLabels results despite has() === true');
+    }
+    expect(n1Result.fontSize).toBeGreaterThan(0);
   });
 });

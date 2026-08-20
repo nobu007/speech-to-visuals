@@ -50,8 +50,10 @@ describe('REQ-171: Cross-module typed errors → ErrorClassifier integration', (
         classified = classifier.classify(err);
       }
     }
-    expect(classified).toBeDefined();
-    return classified!;
+    if (classified === undefined) {
+      throw new Error('classifier did not classify the thrown error');
+    }
+    return classified;
   }
 
   // --- MonitoringError (replaces raw throw in performance-dashboard.ts) ---

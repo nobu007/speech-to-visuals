@@ -86,9 +86,11 @@ describe('bytesToMb — canonical binary-megabyte builder', () => {
     // never the inline `/ 1024 / 1024` / `/ 1048576` shapes the guard forbids.
     const body = stripComments(metricsUtilsSrc)
       .match(/function\s+bytesToMb\s*\([^)]*\)\s*:[^{]*\{[\s\S]*?\}/);
-    expect(body).not.toBeNull();
-    expect(body![0]).not.toMatch(BYTES_DIVISION);
-    expect(body![0]).not.toMatch(BYTES_LITERAL);
+    if (body === null) {
+      throw new Error('bytesToMb body not found in metrics-utils source');
+    }
+    expect(body[0]).not.toMatch(BYTES_DIVISION);
+    expect(body[0]).not.toMatch(BYTES_LITERAL);
   });
 
   it('returns binary megabytes: 1 MiB === 1048576 bytes, exact at powers of two', () => {

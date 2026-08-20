@@ -171,7 +171,7 @@ describe('TASK-0200: Renderer → Engine integration', () => {
     });
 
     it('buildLayerShapes produces correct rectangle for each scene type', () => {
-      for (const scene of ALL_TYPES.scenes!) {
+      for (const scene of ALL_TYPES.scenes) {
         const shapes = buildLayerShapes(scene, 1920, 1080);
         expect(shapes).toHaveLength(1);
         const group = shapes[0] as Record<string, unknown>;

@@ -52,8 +52,10 @@ describe('REQ-166: Export typed errors → ErrorClassifier integration', () => {
         classified = classifier.classify(err);
       }
     }
-    expect(classified).toBeDefined();
-    return classified!;
+    if (classified === undefined) {
+      throw new Error('classifier did not classify the thrown error');
+    }
+    return classified;
   }
 
   // --- ExportError (replaces raw throws in enhanced-export-engine.ts, multi-format-exporter.ts) ---

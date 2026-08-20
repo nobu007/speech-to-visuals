@@ -93,9 +93,11 @@ describe('raw-localStorage remove chokepoint — source anchor pinned (TC-315-01
     // Locate the resetConfig method body and assert it does not contain the
     // raw call. We use a non-greedy match across the resetConfig method.
     const resetBody = prodSrc.match(/resetConfig\(\):\s*void\s*\{[\s\S]*?\n\s*\}/);
-    expect(resetBody).not.toBeNull();
-    expect(resetBody![0]).not.toMatch(/localStorage\.removeItem\(/);
-    expect(resetBody![0]).toMatch(/safeRemoveFromStorage\(/);
+    if (resetBody === null) {
+      throw new Error('resetConfig method body not found in production-config source');
+    }
+    expect(resetBody[0]).not.toMatch(/localStorage\.removeItem\(/);
+    expect(resetBody[0]).toMatch(/safeRemoveFromStorage\(/);
   });
 
   it('chokepoint corruption report uses the same `reportCorruption` chokepoint as load/save', () => {

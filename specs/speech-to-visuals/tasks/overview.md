@@ -107,7 +107,7 @@
 
 ## タスク番号管理
 
-**使用済みタスク番号**: TASK-0001 ~ TASK-0249（Phase 131: TASK-0217、Phase 132: TASK-0218〜0222、Phase 140: TASK-0223〜0225、Phase 141: TASK-0226〜0228、Phase 142: TASK-0229、Phase 143: TASK-0230、Phase 144: TASK-0231、Phase 145: TASK-0232、Phase 146: TASK-0233、Phase 147: TASK-0234、Phase 148: TASK-0235、Phase 149: TASK-0236、Phase 150: TASK-0237、Phase 151: TASK-0238、Phase 152: TASK-0239、Phase 153: TASK-0240、Phase 154: TASK-0241、Phase 155: TASK-0242、Phase 156: TASK-0243、Phase 157〜159: TASK-0244〜0246、Phase 161: TASK-0247、Phase 162: TASK-0248、Phase 163: TASK-0249、Phase 164: TASK-0250、Phase 165: TASK-0251、Phase 166: TASK-0252）
+**使用済みタスク番号**: TASK-0001 ~ TASK-0253（Phase 131: TASK-0217、Phase 132: TASK-0218〜0222、Phase 140: TASK-0223〜0225、Phase 141: TASK-0226〜0228、Phase 142: TASK-0229、Phase 143: TASK-0230、Phase 144: TASK-0231、Phase 145: TASK-0232、Phase 146: TASK-0233、Phase 147: TASK-0234、Phase 148: TASK-0235、Phase 149: TASK-0236、Phase 150: TASK-0237、Phase 151: TASK-0238、Phase 152: TASK-0239、Phase 153: TASK-0240、Phase 154: TASK-0241、Phase 155: TASK-0242、Phase 156: TASK-0243、Phase 157〜159: TASK-0244〜0246、Phase 161: TASK-0247、Phase 162: TASK-0248、Phase 163: TASK-0249、Phase 164: TASK-0250、Phase 165: TASK-0251、Phase 166: TASK-0252、Phase 167: TASK-0253)
 **次回開始番号**: TASK-0252
 
 > **REQ 番号帯（Phase 140 決定）**: REQ-313〜322 は acceptance-criteria の TC 帯（TC-313〜321 実在・TC-322 は未 merge PR #9 提案中）との番号衝突回避のため予約（未使用）。機能要件は REQ-323 から、TC は TC-323 から採番する（REQ-326/TC-323 が適用例）。
@@ -2515,9 +2515,37 @@ zero-fallback {0,0} は実測（null と区別）・isFiniteMetric は defense-i
 
 - 全 1 タスク 🔵（契約テスト 10 + null 伝播 6 + gate 4 tests GREEN + MW-034 3 独立 mutation RED 実測）
 
+## Phase 167: 義務 C 第2ゲート guards・visualization・integration exact-0 — 残存全 57 ファイル 155 ノード一括撲滅（REQ-361・MW-035）
+
+**ステータス**: ✅完了（2026-08-21・TASK-0253 完了・実装 + specs を単一 commit に同梱）
+
+**背景**: steering 主要指示 —「義務 C の残りディレクトリ（integration 50・visualization 54・guards 51）の exact-0 化を進める。cors-config 型の単純置換ではなく fireCapturedResolver/requireDefined 型の fail-loud idiom を用い、各段階で MW-033 と同じ再注入 mutation で ratchet の実効性を実測して ledger に残せ」。第1ゲート（unit exact-0・Phase 165）に続く第2ゲート（tests total ≤ 100）を 3 dir 全数撲滅で通過。
+
+**実装**:
+
+- guards 20 ファイル 51 → 0（inline regex-match null guard・resolver holder・`V2CaseEdge` typed fixture・concrete method 直接呼び出し・requireEdge helper・ledger guard throw）
+- visualization 17 ファイル 54 → 0（`requireTopology`/`requireNode` helper・labeled find guard・`?? Number.NaN` 寸法伝播保存・`strategy.validateInputs(` 直接呼び出し）
+- integration 20 ファイル 50 → 0（typed-errors 5 ファイル同一 guard・typed metrics field の cast 削除 guard 読み・typeof narrow 化 `Number.isFinite` 三項・fixture 配列の vestigial bang 削除・`.catch()` 捕捉の initializer なし holder）
+- census pin: 3 dir → 0・total 191 → **36**（第2ゲート ≤ 100 通過・残存 pipeline 11/quality 9/analysis 6/他 10）
+- MW-035: 3 mutation（3 dir 各 1 `!` 再注入）で dir ratchet 0→1 と total 36→37 の同時 RED 実測・監査 pin ≥34 → ≥35
+
+**タスク**:
+
+- [x] [TASK-0253: 義務 C 第2ゲート guards・visualization・integration exact-0（REQ-361・MW-035）](TASK-0253.md) - 3h (DIRECT) 🔵 ✅2026-08-21（guards 20/447 + visualization 17/1197 + integration 20/833 GREEN・tsc 新規 0・MW-035 3 mutation 同時 RED 実測 + pin ≥34→≥35 + REQ/TC/TASK/MW/overview を同一 commit 同梱）
+
+```
+`.catch()` コールバック捕捉変数は initializer なし `| undefined` holder — `= null` は CFA で全 read を never 狕化（alias も initializer が優勝・実測 TS2339）
+typed optional field の `x!.f as T` は `x?.f` + guard で cast ごと削除（field が typed なら cast は最初から不要）
+残存 36 = pipeline 11・quality 9・analysis 6・他 10 — 全 dir exact-0 で manual unskip gate（TC-342）発火
+```
+
+### 信頼性レベルサマリー（Phase 167 追加分）
+
+- 全 1 タスク 🔵（3 dir 計 57 suites / 2477 tests GREEN + census 11/11 + MW-035 3 独立 mutation 同時 RED 実測）
+
 ### 次フェーズ開始番号
 
-**次回開始番号**: TASK-0253
+**次回開始番号**: TASK-0254
 
 
 ## Spine: external references

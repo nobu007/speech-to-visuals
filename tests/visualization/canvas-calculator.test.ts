@@ -129,8 +129,8 @@ describe('CanvasCalculator', () => {
       const centered = calculator.center(nodes, canvas);
 
       // Bounding box center should be at canvas center
-      const allX = centered.map((n) => n.x + n.width! / 2);
-      const allY = centered.map((n) => n.y + n.height! / 2);
+      const allX = centered.map((n) => n.x + (n.width ?? Number.NaN) / 2);
+      const allY = centered.map((n) => n.y + (n.height ?? Number.NaN) / 2);
       const avgX = allX.reduce((a, b) => a + b, 0) / allX.length;
       const avgY = allY.reduce((a, b) => a + b, 0) / allY.length;
 
