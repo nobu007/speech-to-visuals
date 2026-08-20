@@ -544,6 +544,32 @@ describe('HealthCheckService (REQ-122)', () => {
       const result = await healthCheckService.performHealthCheck();
       expect(result.checks.errorRecovery.status).toBe('unhealthy');
     });
+
+    test('should report degraded when errors.errorRate is non-finite (NaN) (REQ-351)', async () => {
+      realTimeMonitor.getSnapshot.mockReturnValue({
+        ...defaultSnapshot,
+        errors: { ...defaultSnapshot.errors, errorRate: Number.NaN },
+      });
+
+      const result = await healthCheckService.performHealthCheck();
+      expect(result.checks.errorRecovery.status).toBe('degraded');
+      expect(result.checks.errorRecovery.message).toBe(
+        'Error recovery unavailable: backend omitted/non-finite errorRate/recoverySuccessRate'
+      );
+    });
+
+    test('should report degraded when errors.recoverySuccessRate is omitted (REQ-351)', async () => {
+      realTimeMonitor.getSnapshot.mockReturnValue({
+        ...defaultSnapshot,
+        errors: { ...defaultSnapshot.errors, recoverySuccessRate: undefined },
+      });
+
+      const result = await healthCheckService.performHealthCheck();
+      expect(result.checks.errorRecovery.status).toBe('degraded');
+      expect(result.checks.errorRecovery.message).toBe(
+        'Error recovery unavailable: backend omitted/non-finite errorRate/recoverySuccessRate'
+      );
+    });
   });
 
   // =========================================================================

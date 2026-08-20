@@ -32,7 +32,7 @@ export const HEALTH_CHECK_INTERVAL_MS = 10_000;
  * this guard, `undefined > 0.95` and `NaN < 70` both evaluate to FALSE, which
  * silently routes missing/non-finite fields into the `else` branch — the
  * fabricated "unhealthy: NaN% success rate" / "critical: NaN% memory usage"
- * verdicts that REQ-347/348/349/350 routed to a `degraded` "monitoring
+ * verdicts that REQ-347/348/349/350/351 routed to a `degraded` "monitoring
  * unavailable" return instead.
  *
  * Returning `value is number` narrows the call-site so the same expression
@@ -504,6 +504,36 @@ class HealthCheckService {
 
     const errorRate = snapshot.errors.errorRate;
     const recoveryRate = snapshot.errors.recoverySuccessRate;
+
+    // REQ-351 (MW-027, Phase 161): the last unguarded metric read in this
+    // service. `realTimeMonitor.getSnapshot().errors` can return non-finite
+    // (NaN) or omitted `errorRate` / `recoverySuccessRate` when the error
+    // backend's metrics stream drops the fields. Both threshold chains
+    //   `errorRate < WARNING && recoveryRate > 0.80`
+    //   `errorRate < CRITICAL || recoveryRate > 0.50`
+    // evaluate their NaN/undefined operands to FALSE, so a dropped field
+    // collides into the `else if` / `else` branches and reports a fabricated
+    // "Error recovery is degraded/failing (NaN.0% ...)" verdict — the upstream
+    // dashboard sees a degraded/unhealthy call with an unparsable NaN rate and
+    // `generateRecommendations` acts on an absent signal. Mirror the
+    // REQ-347/348/349/350 fail-loud contract so the real reason (non-finite or
+    // omitted metrics) is visible instead of a fabricated verdict.
+    if (!isFiniteMetric(errorRate) || !isFiniteMetric(recoveryRate)) {
+      const errorRateType = errorRate === undefined ? 'undefined' : typeof errorRate;
+      const recoveryRateType =
+        recoveryRate === undefined ? 'undefined' : typeof recoveryRate;
+      logger?.warn?.(
+        `[HealthCheck] Error recovery health check unavailable: backend omitted fields ` +
+          `(errorRate=${errorRateType}, recoverySuccessRate=${recoveryRateType})`
+      );
+      return {
+        status: 'degraded',
+        message:
+          'Error recovery unavailable: backend omitted/non-finite errorRate/recoverySuccessRate',
+        latency: Date.now() - startTime,
+        lastChecked: Date.now(),
+      };
+    }
 
     let status: 'healthy' | 'degraded' | 'unhealthy';
     let message: string;
