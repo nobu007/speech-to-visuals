@@ -107,8 +107,8 @@
 
 ## タスク番号管理
 
-**使用済みタスク番号**: TASK-0001 ~ TASK-0238（Phase 131: TASK-0217、Phase 132: TASK-0218〜0222、Phase 140: TASK-0223〜0225、Phase 141: TASK-0226〜0228、Phase 142: TASK-0229、Phase 143: TASK-0230、Phase 144: TASK-0231、Phase 145: TASK-0232、Phase 146: TASK-0233、Phase 147: TASK-0234、Phase 148: TASK-0235、Phase 149: TASK-0236、Phase 150: TASK-0237、Phase 151: TASK-0238）
-**次回開始番号**: TASK-0239
+**使用済みタスク番号**: TASK-0001 ~ TASK-0239（Phase 131: TASK-0217、Phase 132: TASK-0218〜0222、Phase 140: TASK-0223〜0225、Phase 141: TASK-0226〜0228、Phase 142: TASK-0229、Phase 143: TASK-0230、Phase 144: TASK-0231、Phase 145: TASK-0232、Phase 146: TASK-0233、Phase 147: TASK-0234、Phase 148: TASK-0235、Phase 149: TASK-0236、Phase 150: TASK-0237、Phase 151: TASK-0238、Phase 152: TASK-0239）
+**次回開始番号**: TASK-0240
 
 > **REQ 番号帯（Phase 140 決定）**: REQ-313〜322 は acceptance-criteria の TC 帯（TC-313〜321 実在・TC-322 は未 merge PR #9 提案中）との番号衝突回避のため予約（未使用）。機能要件は REQ-323 から、TC は TC-323 から採番する（REQ-326/TC-323 が適用例）。
 
@@ -2100,6 +2100,34 @@ MW 台帳（TASK-0228）に MW-018 追加・監査 pin ≥17 → ≥18
 ### 次フェーズ開始番号
 
 **次回開始番号**: TASK-0240
+
+## Phase 153: tests ツリー non-null assertion ratchet 単調減少ラウンド 6・4 ディレクトリ横断（analysis 44 → 13・pipeline 45 → 20・visualization 107 → 78・integration 132 → 107）
+
+**ステータス**: ✅完了（2026-08-20・TASK-0240 完了）
+
+**背景**: steering が ratchet 単調減少の継続を指令（tests/unit 0 到達時の 14 ディレクトリ pin → tests 全体 exact-0 pin 集約は unit 残 103 のため未発火）。対象選定を Phase 152 までの「ディレクトリ指定 + 降順上位」から **機械閾値「残存ファイルのうち node ≥ 10 を全数」** に切り替え、4 ディレクトリ横断 8 ファイル 110 node（llm-cache-debounce 20・cycle-strategy(root) 16・improvement-detector 15・cycle-strategy(strategies) 13・pipeline-orchestrator-recovery 13・export-artifact-pipeline-e2e 12・budget-alert-boundary 11・bottleneck-detector 10）を一括対象化。fail-loud helper 群（`requireDisk()`（null 戻り cache 読み・cachePath 付き throw）・`requireAlert(alerts, type)`（`BudgetAlert['type']` 引数）・`requireOpportunity(report, area)`（中間 verdict 保存）・`requireWorstBottleneck`/`requireStage`（Phase 151 同型再導入）・root 側構造型 `centerXOf`/`centerYOf` と strategies 側 `PositionedNode`/`LayoutEdge` **型付き** `findNode`/`findEdge`（`LayoutEdge.from: string | undefined` のため型付き必須・matcher 型エラー解消）・`requireMetrics` + `requireRecoveryReport`（旧 `as RunRecoveryReport` cast 解消）・`requireDefined<T>` ×2）で挙動保存・verdict 保存置換し 110 node → 0・**tests/analysis pin 44 → 13・tests/pipeline pin 45 → 20・tests/visualization pin 107 → 78・tests/integration pin 132 → 107・tests 合計 pin 538 → 428**。MW-019（rewrite への `!` 1 node 再注入で合計 ratchet 429 > 428 と pipeline dir ratchet 21 > 20 の 2 RED）で減少の機械強制を継続実証。
+
+### タスク一覧
+
+- [x] [TASK-0240: tests ツリー non-null assertion ratchet 単調減少ラウンド 6・4 ディレクトリ横断（analysis 44 → 13・pipeline 45 → 20・visualization 107 → 78・integration 132 → 107）](TASK-0240.md) - 3h (DIRECT) 🔵 ✅2026-08-20（110 node→0・pin 13/20/78/107/428・MW-019）
+
+### 依存関係
+
+```
+TASK-0240 は REQ-337 の TESTS_DIR_PINS（TASK-0234）を Phase 148〜152 に続き縮小側に更新（analysis/pipeline は初回縮小）
+requireDefined/requireWorstBottleneck/requireMetrics/requireRecoveryReport は REQ-340〜342 と同型・requireDisk/requireAlert/requireOpportunity/requireStage/findEdge/構造型 centerXOf は新規
+MW 台帳（TASK-0228）に MW-019 追加・監査 pin ≥18 → ≥19
+次候補: tests 残 428 の継続縮小（unit 残 103 が最大プール・node ≥ 10 全数閾は成立しなくなったため降順上位選定に戻る）
+```
+
+### 信頼性レベルサマリー（Phase 153 追加分）
+
+- 全 1 タスク 🔵（A152 残課題（「tests 残 538 の継続縮小」）+ steering の単調減少継続指令 + 実測（census + ledger guard 51 tests・対象パターン 13 suites 247 tests GREEN・tsc 0 新規 error・full suite 0 failed・MW-019 mutant RED 2 failed）に出典）
+- 推定工数: 3 時間
+
+### 次フェーズ開始番号
+
+**次回開始番号**: TASK-0241
 
 ## Spine: external references
 

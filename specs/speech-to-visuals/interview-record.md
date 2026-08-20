@@ -4588,6 +4588,27 @@ Phase 1-13 全13フェーズ完了（93/93タスク）。ソースファイル�
 
 ---
 
+### A153: Phase 153 — tests ツリー non-null assertion ratchet 単調減少ラウンド 6・4 ディレクトリ横断（analysis 44 → 13・pipeline 45 → 20・visualization 107 → 78・integration 132 → 107）（2026-08-20 第234回検証）
+
+- **判断**（機械閾値への対象選定の切り替え → root/strategies の構造型 vs 型付き helper 使い分け → 証拠 run の木確定の徹底）:
+
+1. **対象選定を「ディレクトリ指定 + 上位 N」から機械閾値へ**: task registry TASK-0240 と一致。steering は単調減少の継続を指令（tests 全体 0 到達時の exact-0 pin 集約は unit 残 103 のため未発火）。A152 の census 次点リスト上位 5 ファイルを全て含む **「残存ファイルのうち node ≥ 10 を全数」** の横断閾値で 4 ディレクトリ 8 ファイル 110 node（llm-cache-debounce 20・cycle-strategy(root) 16・improvement-detector 15・cycle-strategy(strategies) 13・pipeline-orchestrator-recovery 13・export-artifact-pipeline-e2e 12・budget-alert-boundary 11・bottleneck-detector 10）を対象化 — ディレクトリ横断でも選定根拠が手動列挙に退化しない設計。
+2. **helper の型戦略の使い分け（verdict 保存は全 8 ファイルで共通）**: (a) `requireDisk()`（`readCacheFile(): {entries} | null` の null を cachePath 付き throw で guard・`disk!`/`readCacheFile()!`/`updated!` の 3 形態を集約）・(b) `requireAlert(alerts, type)`（`BudgetAlert['type']` 引数で「どの alert が発火しなかったか」を throw）・(c) `requireOpportunity(report, area)`（中間 `const opp = find(…)` + `toBeDefined()` verdict は保存）・(d) `requireWorstBottleneck`/`requireStage`（Phase 151 unit 版の同型再導入）・(e) center 算術は root 側（`@stv/core` 型を import しない）は**構造型** `{ x; width? }` で十分だが・strategies 側は `LayoutEdge.from` が `string | undefined` のため **`PositionedNode`/`LayoutEdge` 型付き helper** が必須（初回構造型版で 7 件の新規 tsc error → 型付き化で解消。戻り型が `.points` 等の下游読みを型安全に）・(f) `requireMetrics` + `requireRecoveryReport` で旧 `metrics!.recoveryReport as RunRecoveryReport` の **double 抑制 + cast を解消**（field は ExtendedPipelineMetrics で既に `RunRecoveryReport` 型）・(g) `requireDefined<T>`（e2e の stage チェーン）。
+3. **証拠 run の「木確定」の徹底（本ラウンドの教訓）**: 1 回目の full run（13:50 開始）は run 中に MW-019 台帳エントリと監査 pin 18→19 の編集が混入し証拠として木が確定しなかったため**全編集完了後の再 run で出典取り直し**。また 14 suite の HEAD vs worktree A/B（285 → 287 tests）で「本ラウンド由来の test 数変化は ledger it.each の +2 のみ・8 ファイルは件数不変」を確認 — テスト追加なしの置換のみという主張の根拠。MW-019: improvement-detector の `expect(requireOpportunity(report, 'Processing Speed').priority).toBe('medium');` → `expect(opp!.priority).toBe('medium');` 再注入で **tests 合計 ratchet（429 > 428）と tests/pipeline dir ratchet（21 > 20）の 2 tests RED** を実測 → revert で GREEN。
+
+- **根拠**: TASK-0240・census + ledger guard 実行出力（2 suites / 51 tests GREEN・監査 pin ≥19）・MW-019 再実行プロトコル（台帳本文）・guard-first per-file census 実測（analysis 44→13 / pipeline 45→20 / visualization 107→78 / integration 132→107 / 総 538→428）・tsc tsconfig.test.json 0 新規 error（census guard の既知 3 error のみ・git stash で HEAD 同一を確認）・TC-339 再検証コマンド 13 suites / 247 tests GREEN・14 suite HEAD A/B 285→287 tests。
+
+- **最終フルスイート**（Phase 153 全変更後・全編集確定後の再 run・並走なし・exit=0）:
+  `[EVIDENCE] started≈2026-08-20T14:01:07+09:00 ended≈2026-08-20T14:03:24+09:00 exit=0 (jest Time: 136.555s) cmd=NODE_OPTIONS='--experimental-vm-modules --max-old-space-size=6144' npx jest --config jest.config.cjs commit=884d91de+phase153-worktree branch=ai/instruction-speech-to-visuals-20260820-043151-728186` → **742 suites / 742 passed・23,161 passed / 0 failed / 17 skipped**（A152 記録 23,157 に対し +4 — +2 は MW-019 台帳エントリによる ledger 監査 it.each 増（18 → 19 エントリ × 2 block）・残り +2 は worktree 間の測定差（本 worktree で編集 14 suite の HEAD A/B は件数不変 +2 のみを確認済み・両 run とも 0 failed）。時刻は完了時出力ファイル mtime 14:03:24 から jest Time を差し引いた導出値）
+
+- **信頼性への影響**:
+
+- REQ-343 追加（🔵・実装+guard pin+MW-019 に出典）。🔵 326 → 327 件。
+- tests ツリーの `!` が 6 ラウンド連続で減少（1096 → 1002 → 899 → 794 → 728 → 538 → **428**・analysis 44 → **13**・pipeline 45 → **20**・visualization 107 → **78**・integration 132 → **107**・unit 103 不変）。110 node の checker 抑制が verdict 保存置換で除去され・cast 2 site（`as RunRecoveryReport`）も解消。残 428（census 次点: unit 配下の 7-9 node 層と visualization/pipeline の 1 桁台ファイル群）。
+- 残課題（引継ぎ）: tests 残 428 の継続縮小（tests 全体 0 到達時に 14 ディレクトリ個別 pin を tests 全体 exact-0 pin へ集約する steering 指令を未実施・unit 残 103）・Phase 132 TASK-0218〜0222 未着手・requirements.md の PR #12 由来 dead citation 残存（A137 引継ぎ）。
+
+---
+
 ## 関連文書
 
 - **要件定義書**: [requirements.md](requirements.md)

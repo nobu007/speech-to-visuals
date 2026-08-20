@@ -5876,6 +5876,12 @@
 - [x] **TC-338-02**: 減少の強制が継続実証されていること — Phase 152 rewrite への `!` 1 node 再注入（`const centerA = centerXOf(nodeA);` → `const centerA = nodeA.x + nodeA.width! / 2;`・flow-strategy.test.ts）が tests/visualization ディレクトリ ratchet（108 > 107 超過）と tests 合計 ratchet（539 > 538 超過）の **2 tests RED** を生むこと（MW-018・revert 後 GREEN）。置換は verdict 保存であること — (b) の `getJobStatus()` は `BatchJobStatus | null` を返すため helper は **null を guard** すること（旧: `null.status` TypeError = RED・新: throw Error = 同一 RED verdict）・(e) の `centerXOf` は旧 `node.width!` 算術の undefined→NaN 伝播を `?? Number.NaN` で**保存**すること（`!` は runtime 値を変えないので NaN 挙動が旧と同一）・(f) の definite-assignment `let MindMapStrategy!: typeof import(…)` は `let mod: typeof import(…) | undefined` holder + 各テストの `requireModule` destructure に置換され・beforeAll import 失敗時は module 名入り Error で RED であること・ledger 監査 pin が **≥17 → ≥18** に引き上げられ MW-018 エントリで GREEN であること 🔵
   - **再検証コマンド**: `NODE_OPTIONS='--experimental-vm-modules --max-old-space-size=4096' npx jest --config jest.config.cjs --testPathPatterns 'tests/guards/non-null-assertion-census|tests/guards/mutation-witness-ledger|tests/integration/phase32-quality-pipeline|tests/integration/batch|tests/integration/secure-download-pipeline|tests/integration/test_pipeline_health_smoke|tests/integration/label-sizing-pipeline|tests/visualization/importance-scaler|tests/visualization/strategies/flow-strategy|tests/visualization/strategies/tree-strategy|tests/visualization/complex-layout-engine'`（13 suites / 228 tests）
 
+#### REQ-343: tests ツリー non-null assertion ratchet 単調減少ラウンド 6・4 ディレクトリ横断（Phase 153）
+
+- [x] **TC-339-01**: REQ-337 の ratchet が Phase 152 に引き続き **4 ディレクトリ横断**で単調減少していること — Phase 153 実施後、tests/analysis ディレクトリ pin が **44 → 13**（llm-cache-debounce.test.ts 20 node → 0・budget-alert-boundary.test.ts 11 node → 0・計 31 node）に・tests/pipeline ディレクトリ pin が **45 → 20**（improvement-detector.test.ts 15 node → 0・bottleneck-detector.test.ts 10 node → 0・計 25 node）に・tests/visualization ディレクトリ pin が **107 → 78**（cycle-strategy.test.ts 16 node → 0・strategies/cycle-strategy.test.ts 13 node → 0・計 29 node）に・tests/integration ディレクトリ pin が **132 → 107**（pipeline-orchestrator-recovery.test.ts 13 node → 0・export-artifact-pipeline-e2e.test.ts 12 node → 0・計 25 node）に・tests 合計 pin が **538 → 428** に縮小され、guard が縮小後の pin で GREEN であること・対象が guard-first survey の **node ≥ 10 全数**（手動列挙なし・横断的機械閾値）で選定されていること・置換対象 8 suite を含むパターン一致 **13 suites / 247 tests** が GREEN であること 🔵
+- [x] **TC-339-02**: 減少の強制が継続実証されていること — Phase 153 rewrite への `!` 1 node 再注入（`expect(requireOpportunity(report, 'Processing Speed').priority).toBe('medium');` → `expect(opp!.priority).toBe('medium');`・improvement-detector.test.ts）が tests/pipeline ディレクトリ ratchet（21 > 20 超過）と tests 合計 ratchet（429 > 428 超過）の **2 tests RED** を生むこと（MW-019・revert 後 GREEN）。置換は verdict 保存であること — (a) の `readCacheFile()` は `| null` を返すため `requireDisk()` は **null を guard** すること（旧: `null.entries` TypeError = RED・新: throw Error = 同一 RED verdict）・(e) の `centerXOf` は旧 `node.width!` 算術の undefined→NaN 伝播を `?? Number.NaN` で**保存**すること（root 側は構造型 `{ x; width? }`・strategies 側は `LayoutEdge.from` が `string | undefined` のため `PositionedNode`/`LayoutEdge` **型付き helper** とし matcher の `number | undefined` 型エラーをも解消）・(f) は `metrics?.recoveryReport` の narrowing で旧 `as RunRecoveryReport` cast をも解消していること（field は ExtendedPipelineMetrics で既に `RunRecoveryReport` 型）・(c) の中間 `const opp = …find(…)` + `expect(opp).toBeDefined()` verdict は保存されていること・ledger 監査 pin が **≥18 → ≥19** に引き上げられ MW-019 エントリで GREEN であること 🔵
+  - **再検証コマンド**: `NODE_OPTIONS='--experimental-vm-modules --max-old-space-size=4096' npx jest --config jest.config.cjs --testPathPatterns 'tests/guards/non-null-assertion-census|tests/guards/mutation-witness-ledger|tests/analysis/llm-cache-debounce|tests/analysis/budget-alert-boundary|tests/pipeline/improvement-detector|tests/pipeline/bottleneck-detector|tests/visualization/cycle-strategy|tests/visualization/strategies/cycle-strategy|tests/integration/pipeline-orchestrator-recovery|tests/integration/export-artifact-pipeline-e2e'`（13 suites / 247 tests）
+
 
 ### Phase 111+ 受け入れ基準サマリー
 
@@ -5936,7 +5942,8 @@
 | REQ-340: tests ツリー non-null assertion ratchet 単調減少ラウンド 3 | 2 | 🔵 |
 | REQ-341: tests ツリー non-null assertion ratchet 単調減少ラウンド 4 | 2 | 🔵 |
 | REQ-342: tests ツリー non-null assertion ratchet 単調減少ラウンド 5・tests/unit 外初回 | 2 | 🔵 |
-| **合計** | **132** | **🔵 92.4% / 🟡 7.6%** |
+| REQ-343: tests ツリー non-null assertion ratchet 単調減少ラウンド 6・4 ディレクトリ横断 | 2 | 🔵 |
+| **合計** | **134** | **🔵 92.4% / 🟡 7.6%** |
 
 
 <!-- spine:references:begin -->

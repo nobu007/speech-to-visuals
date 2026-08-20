@@ -175,6 +175,16 @@ judge が再実行なしに主張を検証できるようにする（AI Hub stee
 
 ---
 
+## MW-019 — tests ratchet の単調減少強制ラウンド 6（REQ-343・Phase 153・Phase 153 rewrite への `!` 再注入）
+
+- **claim**: tests/guards/non-null-assertion-census.test.ts ヘッダ「re-injecting ONE `!` into the Phase-153 rewrite — `expect(requireOpportunity(report, 'Processing Speed').priority)` back to `expect(opp!.priority)` in tests/pipeline/improvement-detector.test.ts — turns BOTH the tests/pipeline directory ratchet (20 → 21) and the tests-total ratchet (428 → 429) RED」
+- **target**: `tests/pipeline/improvement-detector.test.ts`（Phase 153 置換後の `expect(requireOpportunity(report, 'Processing Speed').priority).toBe('medium');` 行）
+- **mutation**: `expect(requireOpportunity(report, 'Processing Speed').priority).toBe('medium');` → `expect(opp!.priority).toBe('medium');`（Phase 153 が fail-loud helper `requireOpportunity(report, area)` で除去した checker 抑制の 1 node 再注入）
+- **command**: `npx jest --config jest.config.cjs tests/guards/non-null-assertion-census.test.ts`
+- **observed** (2026-08-20): `Tests: 2 failed, 9 passed, 11 total` — RED は tests 合計 ratchet（429 > 428 超過）と tests/pipeline ディレクトリ ratchet（21 > 20 超過）の 2 件。Phase 153 の減少（pipeline 45 → 20・総 538 → 428）が ratchet で強制されている実証。revert 後 census guard `11 passed`
+
+---
+
 ## 恒久 mutation test（ledger 対象外・常時 CI で走るもの）
 
 以下は「一時 mutant → RED 確認 → revert」ではなく mutant を恒久テスト化したもので、
