@@ -408,8 +408,34 @@ class HealthCheckService {
       };
     }
 
+    // REQ-350 (MW-025, Phase 159): Phase 142's `intelligent-cache` self-referential
+    // formula fix closed the *updater* path, but `realTimeMonitor.getSnapshot().llm`
+    // can still return non-finite (NaN) or omitted `cacheHitRate` when the LLM
+    // backend's metrics stream drops the field. The downstream comparison
+    //   `cacheHitRate > 0.4` / `cacheHitRate > 0.2`
+    // evaluates to FALSE for both `undefined` and `NaN`, so the call collides
+    // into the `else` branch and reports `unhealthy` "LLM integration may have
+    // issues (NaN% cache hit rate)" — the upstream dashboard sees a fabricated
+    // critical for an UNKNOWN observation window and `generateRecommendations`
+    // emits a CRITICAL recommendation for an absent signal. Mirror
+    // `checkMemoryHealth`'s (REQ-347) / `checkCacheHealth`'s (REQ-348) /
+    // `checkPipelineHealth`'s (REQ-349) fail-loud contract so the real reason
+    // (non-finite or omitted metrics) is visible instead of a fabricated critical.
     const cacheHitRate = snapshot.llm.cacheHitRate;
     const totalRequests = snapshot.llm.totalRequests;
+
+    if (typeof cacheHitRate !== 'number' || !Number.isFinite(cacheHitRate)) {
+      logger?.warn?.(
+        `[HealthCheck] LLM health check unavailable: backend omitted/non-finite metrics ` +
+          `(cacheHitRate=${typeof cacheHitRate === 'number' ? cacheHitRate : 'undefined'})`
+      );
+      return {
+        status: 'degraded',
+        message: 'LLM integration unavailable: backend omitted/non-finite cacheHitRate',
+        latency: Date.now() - startTime,
+        lastChecked: Date.now(),
+      };
+    }
 
     let status: 'healthy' | 'degraded' | 'unhealthy';
     let message: string;

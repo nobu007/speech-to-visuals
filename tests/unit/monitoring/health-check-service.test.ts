@@ -487,6 +487,32 @@ describe('HealthCheckService (REQ-122)', () => {
       const result = await healthCheckService.performHealthCheck();
       expect(result.checks.llm.status).toBe('unhealthy');
     });
+
+    test('should report degraded when llm.cacheHitRate is non-finite (NaN) (REQ-350)', async () => {
+      realTimeMonitor.getSnapshot.mockReturnValue({
+        ...defaultSnapshot,
+        llm: { ...defaultSnapshot.llm, cacheHitRate: Number.NaN, totalRequests: 100 },
+      });
+
+      const result = await healthCheckService.performHealthCheck();
+      expect(result.checks.llm.status).toBe('degraded');
+      expect(result.checks.llm.message).toBe(
+        'LLM integration unavailable: backend omitted/non-finite cacheHitRate'
+      );
+    });
+
+    test('should report degraded when llm.cacheHitRate is omitted (REQ-350)', async () => {
+      realTimeMonitor.getSnapshot.mockReturnValue({
+        ...defaultSnapshot,
+        llm: { ...defaultSnapshot.llm, cacheHitRate: undefined, totalRequests: 100 },
+      });
+
+      const result = await healthCheckService.performHealthCheck();
+      expect(result.checks.llm.status).toBe('degraded');
+      expect(result.checks.llm.message).toBe(
+        'LLM integration unavailable: backend omitted/non-finite cacheHitRate'
+      );
+    });
   });
 
   // =========================================================================
