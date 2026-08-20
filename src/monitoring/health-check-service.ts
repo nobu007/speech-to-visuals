@@ -163,10 +163,13 @@ class HealthCheckService {
     // fabricated critical state (REQ-347, see specs/speech-to-visuals/
     // tasks/TASK-0243.md §義務 A).
     if (typeof memoryUsage.heapUsed !== 'number' || typeof memoryUsage.heapTotal !== 'number') {
+      const heapUsedType =
+        memoryUsage.heapUsed === undefined ? 'undefined' : typeof memoryUsage.heapUsed;
+      const heapTotalType =
+        memoryUsage.heapTotal === undefined ? 'undefined' : typeof memoryUsage.heapTotal;
       logger?.warn?.(
-        `[HealthCheck] Memory health check unavailable: backend omitted heapUsed/heapTotal (${
-          memoryUsage.heapUsed === undefined ? 'undefined' : typeof memoryUsage.heapUsed
-        } / ${memoryUsage.heapTotal === undefined ? 'undefined' : typeof memoryUsage.heapTotal})`
+        `[HealthCheck] Memory health check unavailable: backend omitted fields ` +
+          `(heapUsed=${heapUsedType}, heapTotal=${heapTotalType})`
       );
       return {
         status: 'degraded',
@@ -227,6 +230,41 @@ class HealthCheckService {
       return {
         status: 'degraded',
         message: 'Cache backend unreachable',
+        latency: Date.now() - startTime,
+        lastChecked: Date.now(),
+      };
+    }
+
+    // REQ-348 (MW-023, Phase 157): Phase 142's `intelligent-cache` self-referential
+    // formula fix (commit 2428e472) closed the *updater* path, but `getStats()` still
+    // returns a stats object whose `totalHits`/`totalMisses` may be undefined when the
+    // count fields were never populated, forcing the fallback `stats.hitRate *
+    // stats.totalEntries`. The compound formula `totalHits/(totalHits+totalMisses) || 0`
+    // then collapses two distinct silent-corruption paths into a fabricated
+    // "Cache is ineffective (0% hit rate)" status that fires the unhealthy branch:
+    //   (1) `stats.hitRate === undefined`/`stats.totalEntries === undefined`
+    //       → `Math.round(undefined * N)` = NaN → `NaN / NaN` = NaN → `|| 0` → 0%.
+    //   (2) `stats.hitRate === NaN` (broken backend returning a non-finite rate)
+    //       → `Math.round(NaN * N)` = NaN → same downstream collapse.
+    // Either way the upstream dashboard sees a fabricated `unhealthy` "Cache is
+    // ineffective" message and `generateRecommendations` emits "CRITICAL: Cache is
+    // ineffective - review caching strategy" for an UNKNOWN observation window.
+    // Mirror `checkMemoryHealth`'s fail-loud contract (MW-022) so the real reason
+    // (non-finite or omitted metrics) is visible instead of a fabricated critical.
+    if (
+      typeof stats.hitRate !== 'number' ||
+      typeof stats.totalEntries !== 'number' ||
+      !Number.isFinite(stats.hitRate) ||
+      !Number.isFinite(stats.totalEntries)
+    ) {
+      logger?.warn?.(
+        `[HealthCheck] Cache health check unavailable: backend returned non-finite or omitted metrics ` +
+          `(hitRate=${typeof stats.hitRate === 'number' ? stats.hitRate : 'undefined'}, ` +
+          `totalEntries=${typeof stats.totalEntries === 'number' ? stats.totalEntries : 'undefined'})`
+      );
+      return {
+        status: 'degraded',
+        message: 'Cache monitoring unavailable: backend returned non-finite or omitted metrics',
         latency: Date.now() - startTime,
         lastChecked: Date.now(),
       };

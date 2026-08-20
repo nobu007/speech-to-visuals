@@ -2215,6 +2215,37 @@ revert 余裕: gate 通過後の manual unskip に同型の手順書を提供
 
 **次回開始番号**: TASK-0244
 
+## Phase 157: HealthCheckService.checkCacheHealth の non-finite/omitted hitRate NaN-routing 修正（義務 A 2 件目・MW-023・self-referential rate formula 拡張の fail-loud 化）
+
+**ステータス**: ✅完了（2026-08-20・TASK-0244 完了）
+
+**背景**: TC-342-02 で宣言された「次サイクル obligation」のうち、義務 A（実 production null-path 修正を少なくとも 1 件）の 2 件目。MW-022 が閉じた `HealthCheckService.checkMemoryHealth()` の heap field 欠損経路と隣接する `HealthCheckService.checkCacheHealth()` 経路を、memory の recurring-bug-classes.md "Self-referential rate/proportion formula"（Phase 142 commit 2428e472 が `intelligent-cache.updateHitRate` を閉じた live instance）の延長線上で hunt し、同一 silent corruption クラスを発見：`globalCache.getStats()` 戻り値の `stats.hitRate` / `stats.totalEntries` が backend omit / non-finite（例：`hitRate = NaN` を返す broken cache）のとき、`Math.round(undefined * N) = NaN` → `NaN / (NaN + NaN) = NaN` → `|| 0` で `0%` → "Cache is ineffective (0% hit rate)" → **unhealthy** を返し、`generateRecommendations` が "CRITICAL: Cache is ineffective - review caching strategy" を unknown observation window で emit する silent corruption。本ラウンドは **2 つの deliverable**:
+1. **実 production 修正**: `src/monitoring/health-check-service.ts` の `checkCacheHealth()` 冒頭に `typeof stats.hitRate !== 'number' || typeof stats.totalEntries !== 'number' || !Number.isFinite(stats.hitRate) || !Number.isFinite(stats.totalEntries)` の 4 条件 OR ガードを追加し、MW-022 と同型の fail-loud 経路 `'Cache monitoring unavailable: backend returned non-finite or omitted metrics'` を投入。
+2. **MW-023 ledger 登録**: `tests/guards/mutation-witness-ledger.test.ts` audit pin ≥21 通過継続（MW-023 追加で ledger 22 → 23 件）。`tests/unit/monitoring/health-check-service.test.ts` に 2 件（`hitRate = NaN` 完全欠損 + `hitRate/totalEntries` omit）の RED-verifying tests を追加。MW-022 と同型の mutation（4 条件すべてのオペランド反転）で `45 passed / 7 failed` の真のセマンティクス保存（=欠損/non-finite 時のみ degraded・妥当入力時は healthy/degraded/unhealthy の数値判定）を実証。`defaultCacheStats` には production-realistic な `hitRate: 0.6, totalEntries: 1000` を追加（修正前テスト全件が silent corruption で RED していた状態が finite input で解消する根拠）。
+
+### タスク一覧
+
+- [x] [TASK-0244: HealthCheckService.checkCacheHealth の non-finite/omitted hitRate NaN-routing 修正（REQ-348）+ MW-023 ledger 2 件目履行](TASK-0244.md) - 1h (DIRECT) 🔵 ✅2026-08-20（src diff 1 site + 新規 test 2 件 + mutation RED 確認 + green 復元 + ledger 1 エントリ追加）
+
+### 依存関係
+
+```
+TASK-0244 は TASK-0243（Phase 156）の義務 A 2 件目として履行
+MW-023 は MW ledger（MW-014〜022）の逆引きで intelligent-cache.ts getStats() 経路の self-referential rate formula を
+  HealthCheckService caller 側で fail-loud 化（Phase 142 が intelligent-cache.ts 直で閉じた更新経路とは別の read path）
+義務 B（architecture.md mirror 同期の spec build hook 化）は次サイクル obligation として残置
+義務 C（ratchet 終了条件の gate 通過 — `tests/unit exact-0` + `tests total ≤ 100` — と manual unskip）は次サイクル obligation
+```
+
+### 信頼性レベルサマリー（Phase 157 追加分）
+
+- 全 1 タスク 🔵（MW-022 と完全に同型の手法・mutation 4 条件反転で真逆セマンティクスを実証・test 52 件 GREEN 復元・ledger audit 48 件 GREEN 継続）
+- 推定工数: 1 時間
+
+### 次フェーズ開始番号
+
+**次回開始番号**: TASK-0245
+
 ## Spine: external references
 
 - [speech-to-visuals API エンドポイント仕様](/home/jinno/speech-to-visuals/specs/speech-to-visuals/api-endpoints.md)

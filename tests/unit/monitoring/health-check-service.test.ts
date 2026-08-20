@@ -75,6 +75,8 @@ const defaultCacheStats = {
   maxSize: 500,
   totalHits: 600,
   totalMisses: 400,
+  hitRate: 0.6,
+  totalEntries: 1000,
   evictions: 10,
 };
 
@@ -324,6 +326,47 @@ describe('HealthCheckService (REQ-122)', () => {
 
       const result = await healthCheckService.performHealthCheck();
       expect(result.checks.cache.status).toBe('unhealthy');
+    });
+
+    // MW-023 (REQ-348, Phase 157): backend may return a non-finite hitRate
+    // (broken cache producing NaN) or omit hitRate/totalEntries entirely.
+    // Before the guard, both paths collapsed `Math.round(NaN * N) = NaN`
+    // through `totalHits/(totalHits+totalMisses) || 0` into a fabricated
+    // "Cache is ineffective (0% hit rate)" → unhealthy. Now mirrored as
+    // `degraded` with the omit-fields-style message so consumers see the
+    // real reason instead of a fabricated critical.
+    test('should report degraded when stats.hitRate is non-finite (NaN) (REQ-348)', async () => {
+      globalCache.getStats.mockReturnValue({
+        ...defaultCacheStats,
+        totalHits: undefined,
+        totalMisses: undefined,
+        hitRate: Number.NaN,
+        totalEntries: 1000,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any);
+
+      const result = await healthCheckService.performHealthCheck();
+      expect(result.checks.cache.status).toBe('degraded');
+      expect(result.checks.cache.message).toBe(
+        'Cache monitoring unavailable: backend returned non-finite or omitted metrics'
+      );
+    });
+
+    test('should report degraded when stats.hitRate/totalEntries are omitted (REQ-348)', async () => {
+      globalCache.getStats.mockReturnValue({
+        ...defaultCacheStats,
+        totalHits: undefined,
+        totalMisses: undefined,
+        hitRate: undefined,
+        totalEntries: undefined,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any);
+
+      const result = await healthCheckService.performHealthCheck();
+      expect(result.checks.cache.status).toBe('degraded');
+      expect(result.checks.cache.message).toBe(
+        'Cache monitoring unavailable: backend returned non-finite or omitted metrics'
+      );
     });
   });
 
