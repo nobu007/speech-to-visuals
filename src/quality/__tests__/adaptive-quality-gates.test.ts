@@ -718,4 +718,87 @@ describe('AdaptiveQualityGatesSystem', () => {
       expect(memoryGate!.message).not.toContain('UNAVAILABLE');
     });
   });
+
+  // ─── producer-less quality / LLM-timing fields (REQ-364) ───────────
+  // The snapshot's `quality` trio and per-model LLM response times have NO
+  // producer: getSnapshot() used to FABRICATE `0.90 / 0 / 0.85` / `0` —
+  // constants sitting exactly at/above the DEFAULT gates' thresholds — so the
+  // blocker 'Transcription Accuracy' (gte 0.85), blocker 'Layout Overlap
+  // Rate' (eq 0) and major 'LLM Response Time' (lt 15000) gates were
+  // PERMANENTLY green on unmeasured metrics, and the adaptable Transcription
+  // Accuracy gate adapted its threshold toward the fabricated 0.90. REQ-364
+  // makes those fields explicit null; the null path here is the REQ-360
+  // METRIC UNAVAILABLE branch, extended from memory fields to quality/LLM.
+  describe('producer-less quality metrics are null — blocker gates fail loud, never pass on constants (REQ-364)', () => {
+    test('default blocker Transcription Accuracy gate FAILS on null (fabricated 0.90 used to pass it)', async () => {
+      mockGetSnapshot.mockReturnValue(makeSnapshot({
+        quality: { transcriptionAccuracy: null },
+      }));
+
+      const result = await gates.evaluateGates();
+      const gate = result.gates.find(g => g.name === 'Transcription Accuracy');
+
+      // Legacy: snapshot.quality.transcriptionAccuracy was the constant 0.90
+      // → `0.90 >= 0.85` → blocker permanently green on an unmeasured metric.
+      expect(gate!.passed).toBe(false);
+      expect(gate!.message).toContain('UNAVAILABLE');
+      expect(result.summary.blockers).toBeGreaterThanOrEqual(1);
+      expect(result.deploymentReady).toBe(false);
+    });
+
+    test('default blocker Layout Overlap Rate gate FAILS on null (fabricated 0 used to pass eq-0)', async () => {
+      mockGetSnapshot.mockReturnValue(makeSnapshot({
+        quality: { layoutOverlapRate: null },
+      }));
+
+      const result = await gates.evaluateGates();
+      const gate = result.gates.find(g => g.name === 'Layout Overlap Rate');
+
+      // Legacy: snapshot.quality.layoutOverlapRate was the constant 0 →
+      // `0 === 0` → zero-tolerance blocker permanently green.
+      expect(gate!.passed).toBe(false);
+      expect(gate!.message).toContain('UNAVAILABLE');
+    });
+
+    test('default major LLM Response Time gate FAILS on null (fabricated 0 ms used to pass lt-15000)', async () => {
+      mockGetSnapshot.mockReturnValue(makeSnapshot({
+        llm: { avgFlashResponseTime: null },
+      }));
+
+      const result = await gates.evaluateGates();
+      const gate = result.gates.find(g => g.name === 'LLM Response Time');
+
+      // Legacy: snapshot.llm.avgFlashResponseTime was the constant 0 →
+      // `0 < 15000` → "instant" response time that was never measured.
+      expect(gate!.passed).toBe(false);
+      expect(gate!.message).toContain('UNAVAILABLE');
+    });
+
+    test('null quality metrics seed NO adaptive baseline (fabricated 0.90 never enters history)', async () => {
+      mockGetSnapshot.mockReturnValue(makeSnapshot({
+        quality: { transcriptionAccuracy: null },
+      }));
+
+      await gates.evaluateGates();
+
+      // Legacy: updateAdaptiveThresholds fed the fabricated 0.90 in as a
+      // baselineValue, adapting the threshold toward a value that was never
+      // measured (REQ-360 poisoning class, here via fabrication).
+      expect(gates.getAdaptiveThresholdInfo('transcriptionAccuracy')).toBeNull();
+    });
+
+    test('a REAL measured quality reading still evaluates normally (null contract changes nothing else)', async () => {
+      mockGetSnapshot.mockReturnValue(makeSnapshot({
+        quality: { transcriptionAccuracy: 0.95, layoutOverlapRate: 0 },
+      }));
+
+      const result = await gates.evaluateGates();
+      const taGate = result.gates.find(g => g.name === 'Transcription Accuracy');
+      const loGate = result.gates.find(g => g.name === 'Layout Overlap Rate');
+
+      expect(taGate!.passed).toBe(true);
+      expect(loGate!.passed).toBe(true);
+      expect(taGate!.message).not.toContain('UNAVAILABLE');
+    });
+  });
 });

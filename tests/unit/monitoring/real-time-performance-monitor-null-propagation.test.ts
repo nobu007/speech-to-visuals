@@ -125,4 +125,50 @@ describe('getSnapshot system memory fields — finite-or-null contract (REQ-359)
       expect(Number.isFinite(snapshot.timestamp)).toBe(true);
     });
   });
+
+  describe('producer-less quality / LLM-timing fields — null, never fabricated (REQ-364)', () => {
+    /**
+     * REQ-364: the `quality` trio and the per-model LLM response times have
+     * NO producer ("Populated externally" — nothing ever populated them).
+     * The snapshot previously FABRICATED `0.90 / 0 / 0.85` and `0 / 0` —
+     * constants that sat exactly at/above the adaptive-gate thresholds
+     * (Transcription Accuracy `gte 0.85` blocker, Layout Overlap Rate `eq 0`
+     * blocker, LLM Response Time `lt 15000` major), keeping those gates
+     * permanently green on unmeasured metrics. The contract: unmeasured =
+     * EXPLICIT null, which adaptive-quality-gates fails LOUD (METRIC
+     * UNAVAILABLE) — the metric-DEFAULT-coupled-to-GATE-threshold class
+     * (memory L3 ledger, hunt-order #1).
+     */
+    test('quality trio is null — no fabricated 0.90/0/0.85 gate-satisfying constants', () => {
+      mockGetMemoryUsage.mockReturnValue({ heapUsed: 100, heapTotal: 200 });
+
+      const snapshot = new RealTimePerformanceMonitorClass().getSnapshot();
+
+      expect(snapshot.quality.transcriptionAccuracy).toBeNull();
+      expect(snapshot.quality.layoutOverlapRate).toBeNull();
+      expect(snapshot.quality.avgSceneQuality).toBeNull();
+    });
+
+    test('per-model LLM response times are null — no fabricated 0 ms "instant" readings', () => {
+      mockGetMemoryUsage.mockReturnValue({ heapUsed: 100, heapTotal: 200 });
+
+      const snapshot = new RealTimePerformanceMonitorClass().getSnapshot();
+
+      expect(snapshot.llm.avgFlashResponseTime).toBeNull();
+      expect(snapshot.llm.avgProResponseTime).toBeNull();
+    });
+
+    test('display-only llm accumulators stay finite 0 (contract boundary unchanged)', () => {
+      mockGetMemoryUsage.mockReturnValue({ heapUsed: 100, heapTotal: 200 });
+
+      const snapshot = new RealTimePerformanceMonitorClass().getSnapshot();
+
+      // flashUsagePercent/proUsagePercent/estimatedCostSavings have no gate —
+      // 0 is the honest "nothing recorded yet" for display accumulators, so
+      // REQ-364 deliberately does NOT null them (cpuUsagePercent same).
+      expect(snapshot.llm.flashUsagePercent).toBe(0);
+      expect(snapshot.llm.proUsagePercent).toBe(0);
+      expect(snapshot.llm.estimatedCostSavings).toBe(0);
+    });
+  });
 });

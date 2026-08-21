@@ -331,12 +331,16 @@ class AdaptiveQualityGatesSystem {
    * defect-9 silent-pass class). `extractMetricValue` and `isKnownMetric` both
    * read this map so the two can never drift apart.
    *
-   * Memory-derived system fields return `number | null` (REQ-359): null = the
-   * memory backend supplied no reading, and `evaluateGate` FAILS such a gate
-   * LOUD (UNAVAILABLE) instead of letting `null` coerce through relational
-   * comparison (`null < 85` → true → a critical gate silently passing on a
-   * value that was never measured) or crash the message builder
-   * (`null.toFixed(2)` TypeError).
+   * Memory-derived system fields return `number | null` (REQ-359), and the
+   * producer-less quality fields plus per-model LLM response times return
+   * `number | null` (REQ-364): null = no reading was ever taken, and
+   * `evaluateGate` FAILS such a gate LOUD (UNAVAILABLE) instead of letting
+   * `null` coerce through relational comparison (`null < 85` → true → a
+   * critical gate silently passing on a value that was never measured) or
+   * crash the message builder (`null.toFixed(2)` TypeError). Before REQ-364
+   * the snapshot FABRICATED `quality.transcriptionAccuracy: 0.90` /
+   * `layoutOverlapRate: 0`, which sat exactly at/above the blocker gates'
+   * thresholds here — the gates were permanently green on constants.
    */
   private static readonly METRIC_EXTRACTORS: Readonly<
     Record<string, (snapshot: PerformanceSnapshot) => number | null>

@@ -75,8 +75,19 @@ export interface PerformanceSnapshot {
     totalRequests: number;
     flashUsagePercent: number;
     proUsagePercent: number;
-    avgFlashResponseTime: number;
-    avgProResponseTime: number;
+    /**
+     * Average per-model response times carry the REQ-364 finite-or-null
+     * contract: the monitor counts LLM requests/cache hits but never times
+     * per-model responses (no producer exists), so these are EXPLICIT null =
+     * "no reading". Never a fabricated 0: 0 ms would read as "instant" to the
+     * lower-is-better `LLM Response Time` gate and silently pass it, and an
+     * adaptable gate would shrink its threshold toward a baseline that was
+     * never measured. The percentage/cost fields stay `number` — they are
+     * display-only accumulators with no gate, where 0 is the honest
+     * "nothing recorded yet".
+     */
+    avgFlashResponseTime: number | null;
+    avgProResponseTime: number | null;
     cacheHitRate: number;
     estimatedCostSavings: number;
   };
@@ -103,9 +114,22 @@ export interface PerformanceSnapshot {
     recoverySuccessRate: number;
   };
   quality: {
-    transcriptionAccuracy: number;
-    layoutOverlapRate: number;
-    avgSceneQuality: number;
+    /**
+     * Pipeline-quality fields carry the REQ-364 finite-or-null contract: the
+     * monitor has NO quality producer (the comments said "Populated
+     * externally" but nothing ever populated them), so these are EXPLICIT
+     * null = "no reading". Never fabricated constants: the previous
+     * `0.90 / 0 / 0.85` sat exactly at/above the adaptive-gate thresholds
+     * (DEFAULT_TRANSCRIPTION_ACCURACY_THRESHOLD 0.85 `gte`, Layout Overlap
+     * Rate `eq 0`), so two BLOCKER gates were permanently green on values
+     * that were never measured, and the adaptable Transcription Accuracy gate
+     * adapted its threshold toward the fabricated 0.90 (the REQ-360
+     * poisoning hazard). Consumers (adaptive-quality-gates) fail such gates
+     * LOUD as METRIC UNAVAILABLE instead of passing on the absent value.
+     */
+    transcriptionAccuracy: number | null;
+    layoutOverlapRate: number | null;
+    avgSceneQuality: number | null;
   };
 }
 
@@ -513,8 +537,10 @@ class RealTimePerformanceMonitor extends EventEmitter {
         totalRequests: this.counters.llmRequests,
         flashUsagePercent: 0, // Populated externally
         proUsagePercent: 0,   // Populated externally
-        avgFlashResponseTime: 0, // Populated externally
-        avgProResponseTime: 0,   // Populated externally
+        // REQ-364: no per-model timing producer exists — null (no reading),
+        // not a fabricated 0 ms that would pass the LLM Response Time gate.
+        avgFlashResponseTime: null,
+        avgProResponseTime: null,
         cacheHitRate: roundTo(cacheHitRate, 3),
         estimatedCostSavings: 0 // Populated externally
       },
@@ -532,9 +558,13 @@ class RealTimePerformanceMonitor extends EventEmitter {
         recoverySuccessRate: roundTo(recoveryRate, 3)
       },
       quality: {
-        transcriptionAccuracy: 0.90, // Populated externally
-        layoutOverlapRate: 0,         // Populated externally
-        avgSceneQuality: 0.85         // Populated externally
+        // REQ-364: no quality producer exists — explicit null (no reading),
+        // not fabricated 0.90/0/0.85 constants that sat exactly at/above the
+        // adaptive-gate thresholds and kept two BLOCKER gates permanently
+        // green on unmeasured metrics (see PerformanceSnapshot.quality docs).
+        transcriptionAccuracy: null,
+        layoutOverlapRate: null,
+        avgSceneQuality: null
       }
     };
   }

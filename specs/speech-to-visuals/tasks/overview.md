@@ -107,8 +107,8 @@
 
 ## タスク番号管理
 
-**使用済みタスク番号**: TASK-0001 ~ TASK-0253（Phase 131: TASK-0217、Phase 132: TASK-0218〜0222、Phase 140: TASK-0223〜0225、Phase 141: TASK-0226〜0228、Phase 142: TASK-0229、Phase 143: TASK-0230、Phase 144: TASK-0231、Phase 145: TASK-0232、Phase 146: TASK-0233、Phase 147: TASK-0234、Phase 148: TASK-0235、Phase 149: TASK-0236、Phase 150: TASK-0237、Phase 151: TASK-0238、Phase 152: TASK-0239、Phase 153: TASK-0240、Phase 154: TASK-0241、Phase 155: TASK-0242、Phase 156: TASK-0243、Phase 157〜159: TASK-0244〜0246、Phase 161: TASK-0247、Phase 162: TASK-0248、Phase 163: TASK-0249、Phase 164: TASK-0250、Phase 165: TASK-0251、Phase 166: TASK-0252、Phase 167: TASK-0253、Phase 168: TASK-0254)
-**次回開始番号**: TASK-0252
+**使用済みタスク番号**: TASK-0001 ~ TASK-0256（Phase 131: TASK-0217、Phase 132: TASK-0218〜0222、Phase 140: TASK-0223〜0225、Phase 141: TASK-0226〜0228、Phase 142: TASK-0229、Phase 143: TASK-0230、Phase 144: TASK-0231、Phase 145: TASK-0232、Phase 146: TASK-0233、Phase 147: TASK-0234、Phase 148: TASK-0235、Phase 149: TASK-0236、Phase 150: TASK-0237、Phase 151: TASK-0238、Phase 152: TASK-0239、Phase 153: TASK-0240、Phase 154: TASK-0241、Phase 155: TASK-0242、Phase 156: TASK-0243、Phase 157〜159: TASK-0244〜0246、Phase 161: TASK-0247、Phase 162: TASK-0248、Phase 163: TASK-0249、Phase 164: TASK-0250、Phase 165: TASK-0251、Phase 166: TASK-0252、Phase 167: TASK-0253、Phase 168: TASK-0254、Phase 169: TASK-0255、Phase 170: TASK-0256)
+**次回開始番号**: TASK-0257
 
 > **REQ 番号帯（Phase 140 決定）**: REQ-313〜322 は acceptance-criteria の TC 帯（TC-313〜321 実在・TC-322 は未 merge PR #9 提案中）との番号衝突回避のため予約（未使用）。機能要件は REQ-323 から、TC は TC-323 から採番する（REQ-326/TC-323 が適用例）。
 
@@ -2608,9 +2608,35 @@ CI type-check job が src しか見ない間は tests tree baseline は不可視
 
 - 全 1 タスク 🔵（検証 pattern 9 suites / 234 tests + guards 76 suites / 3241 tests GREEN + tsc 両 config 0 + MW-037 3 独立 mutation RED 実測）
 
+## Phase 170: L3 hunt #1 — RTPM 捏造 quality/LLM-timing メトリック撲滅（REQ-364・MW-038）
+
+**ステータス**: ✅完了（2026-08-21・TASK-0256 完了・実装 + specs を単一 commit に同梱・**memory L3 台帳 hunt-order #1 の live instance 解消**）
+
+**背景**: steering は「ratchet 系自己言及的 churn をやめ次の義務へ」（具体的な T0244/freeze-guard 指定は cross-repo contamination — `specs/task-0244-test-inventory-ratchet/` は trans_parency_os_private repo のパス）。TASK-0255 §残存 obligation と memory L3 台帳が指定する hunt-order #1「**0.85 metric-DEFAULT coupled-to-GATE-threshold**」を hunt し、`getSnapshot()` の producer-less quality/LLM-timing 5 field（捏造定数 0.90/0/0.85/0/0・「Populated externally」だが populate する producer は repo 内に存在しない）が adaptive-quality-gates の blocker 2 gate（Transcription Accuracy gte 0.85・Layout Overlap Rate eq 0）+ major 1 gate（LLM Response Time lt 15000）を**恒久 green** にし、adaptable gate の閾値適応を捏造 0.90 で汚染している実欠陥を特定。
+
+**実装**:
+
+- REQ-358〜360（Phase 166）の finite-or-null 契約を当該 5 field に拡張: `PerformanceSnapshot` 型 `number | null` + producer 明示 null（no reading）。gate の無い display-only accumulator（flashUsagePercent/proUsagePercent/estimatedCostSavings・cpuUsagePercent）は 0 のまま契約境界不変
+- 消費側は既存機構に乗るのみ: `evaluateGate` METRIC UNAVAILABLE fail-loud（REQ-360）+ `updateAdaptiveThresholds` null skip。消費側は事前全数列挘（AdminAnalyticsDashboard は pipeline.p95 のみ・generateRecommendations は system.memoryUsagePercent のみ）
+- MW-038: 2 mutation（producer 捏造定数再注入 → 契約 test `Received: 0.9` RED・extractor `?? 0.90` silent-pass 再注入 → blocker gate `Expected: false / Received: true` 含む 3 failed RED）の独立 RED 実測 → revert 63/63 GREEN 復元・監査 pin ≥37 → ≥38
+
+**タスク**:
+
+- [x] [TASK-0256: RTPM 捏造 quality/LLM-timing メトリック撲滅 — finite-or-null 契約拡張（REQ-364・MW-038）](TASK-0256.md) - 1.5h (DIRECT) 🔵 ✅2026-08-21（RTPM 契約 3 + gates 5 tests 追加・触 10 suites / 235 tests GREEN・tsc 両 config 0・MW-038 2 mutation 独立 RED 実測 + pin ≥37→≥38 + REQ/TC/TASK/MW/overview を同一 commit 同梱）
+
+```
+「Populated externally」コメントは populate される保証ではない — producer の全数 grep で初めて捏造と判別する
+metric-DEFAULT が gate threshold と結合すると default flip = gate flip（0.90→0.8 で無実の blocker FAIL）— 未測定は null で UNAVAILABLE fail-loud が正典（Phase 166 契約の直接拡張）
+adaptable gate の baseline に捏造値が入ると閾値適応そのものが汚染される（REQ-360 poisoning の fabrication 版）— null round skip が必要
+```
+
+### 信頼性レベルサマリー（Phase 170 追加分）
+
+- 全 1 タスク 🔵（触 10 suites / 235 tests GREEN + tsc 両 config 0 + MW-038 2 独立 mutation RED 実測）
+
 ### 次フェーズ開始番号
 
-**次回開始番号**: TASK-0256
+**次回開始番号**: TASK-0257
 
 
 ## Spine: external references
