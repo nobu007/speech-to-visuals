@@ -107,7 +107,7 @@
 
 ## タスク番号管理
 
-**使用済みタスク番号**: TASK-0001 ~ TASK-0258（Phase 131: TASK-0217、Phase 132: TASK-0218〜0222、Phase 140: TASK-0223〜0225、Phase 141: TASK-0226〜0228、Phase 142: TASK-0229、Phase 143: TASK-0230、Phase 144: TASK-0231、Phase 145: TASK-0232、Phase 146: TASK-0233、Phase 147: TASK-0234、Phase 148: TASK-0235、Phase 149: TASK-0236、Phase 150: TASK-0237、Phase 151: TASK-0238、Phase 152: TASK-0239、Phase 153: TASK-0240、Phase 154: TASK-0241、Phase 155: TASK-0242、Phase 156: TASK-0243、Phase 157〜159: TASK-0244〜0246、Phase 161: TASK-0247、Phase 162: TASK-0248、Phase 163: TASK-0249、Phase 164: TASK-0250、Phase 165: TASK-0251、Phase 166: TASK-0252、Phase 167: TASK-0253、Phase 168: TASK-0254、Phase 169: TASK-0255、Phase 170: TASK-0256、Phase 171: TASK-0257、Phase 172: TASK-0258、Phase 173: TASK-0259）
+**使用済みタスク番号**: TASK-0001 ~ TASK-0262（Phase 131: TASK-0217、Phase 132: TASK-0218〜0222、Phase 140: TASK-0223〜0225、Phase 141: TASK-0226〜0228、Phase 142: TASK-0229、Phase 143: TASK-0230、Phase 144: TASK-0231、Phase 145: TASK-0232、Phase 146: TASK-0233、Phase 147: TASK-0234、Phase 148: TASK-0235、Phase 149: TASK-0236、Phase 150: TASK-0237、Phase 151: TASK-0238、Phase 152: TASK-0239、Phase 153: TASK-0240、Phase 154: TASK-0241、Phase 155: TASK-0242、Phase 156: TASK-0243、Phase 157〜159: TASK-0244〜0246、Phase 161: TASK-0247、Phase 162: TASK-0248、Phase 163: TASK-0249、Phase 164: TASK-0250、Phase 165: TASK-0251、Phase 166: TASK-0252、Phase 167: TASK-0253、Phase 168: TASK-0254、Phase 169: TASK-0255、Phase 170: TASK-0256、Phase 171: TASK-0257、Phase 172: TASK-0258、Phase 173: TASK-0259、Phase 174: TASK-0260、Phase 176: TASK-0261、Phase 177: TASK-0262）
 **次回開始番号**: TASK-0260
 
 > **REQ 番号帯（Phase 140 決定）**: REQ-313〜322 は acceptance-criteria の TC 帯（TC-313〜321 実在・TC-322 は未 merge PR #9 提案中）との番号衝突回避のため予約（未使用）。機能要件は REQ-323 から、TC は TC-323 から採番する（REQ-326/TC-323 が適用例）。
@@ -2762,6 +2762,52 @@ bonus/violation の witness fixture は DEFECT-9 cap（measured quality なし �
 ### 次フェーズ開始番号
 
 **次回開始番号**: TASK-0261
+
+---
+
+## Phase 175: AI Hub make-run steering feedback 統合（REQ-378〜381 仕様化）
+
+**ステータス**: ✅完了（2026-08-21・specs 同梱・**実装なし**・REQ-378〜381 を requirements.md に仕様化）
+
+**背景**: 前イテレーション VALUABLE 判定（4 commits of concrete bug fixes）からの継続プロンプト 4 件（count-or-null 一般化方針昇格 / suite-count parity leg 不変量化 / pre-fold registry entry-count audit 追加 / 4-row mutant ledger template 付録昇格）を次サイクル要件として具象化。Phase 174 で閉じた QualityMonitor layoutOverlap の隣接地（health-check-service / regression-detector）を audit 対象として名指し。4-row mutant ledger template は Phase 175 時点で mutation-witness-ledger.md 末尾に付録追加せず MW-043 ledger 末尾で実装（REQ-381 履行）。
+
+**成果物**:
+- REQ-378: count-or-null 契約一般化方針昇格（health-check-service / regression-detector 監査要件）
+- REQ-379: suite-count == registry-entry-count parity leg 不変量化
+- REQ-380: pre-fold registry entry-count audit を architecture.md freeze-guard セクション天井図に 2 カラムで毎回記録
+- REQ-381: 4-row mutant ledger template 付録昇格（MW-043 で実装）
+
+---
+
+## Phase 176: health-check-service fallback count-or-null + checkCacheHealth || 0 撲滅（REQ-378 a・MW-043）
+
+**ステータス**: ✅完了（2026-08-21・TASK-0261 完了・実装 + specs を単一 commit `44cad711` に同梱）
+
+**背景**: Phase 174 が QualityMonitor（0-100 scale）で閉じた「DEFAULT 0 が eq-0 zero-tolerance gate を無測定で恒久 GREEN にする」class の隣接地を audit: (a) `performHealthCheck` catch fallback（REQ-368 で部分適用済の memory/quality/llm-timing 以外）の 6 gate-fed field が fabricated 0 を返していた、(b) `checkCacheHealth` の `0/0 || 0` が fabricated 0% を返していた。
+
+- [x] [TASK-0261: health-check-service fallback count-or-null + checkCacheHealth || 0 撲滅 — count-or-null 契約 + cache no-events guard（REQ-378・MW-043）](TASK-0261.md) - 2h (DIRECT) 🔵 ✅2026-08-21（catch fallback 6 field null 化 + `|| 0` 早期 return 置換 + PerformanceSnapshot type widen + 既存 test message 拡張 2 件 + 影響 2 suites / 68 tests + 広域回帰 22 suites / 660 tests GREEN + tsc 両 config 0 + MW-043 3 独立 mutation RED 実測 + pin ≥42→≥43 + REQ-378/TC-362/TASK-0261/MW-043/overview を同一 commit `44cad711` 同梱）
+
+### 信頼性レベルサマリー（Phase 176 追分量）
+
+- 全 1 タスク 🔵（影響 2 suites / 68 tests + 広域回帰 22 suites / 660 tests GREEN + tsc 両 config 0 + MW-043 3 独立 mutation RED 実測 + pin ≥42→≥43）
+
+---
+
+## Phase 177: REQ-378 残存 obligation + REQ-379 parity 不変量化 + REQ-380 audit pin 整合（REQ-378 残存・REQ-379・REQ-380 一括履行）
+
+**ステータス**: 🟡 着手予定（TASK-0262）
+
+**背景**: TASK-0261 が REQ-378 (a)(b)(c) を完了させたが、REQ-378 自体の完全履行には残存 3 サブ項目（regression-detector.ts:298 silent skip / checkXxxHealth summary `?? 0` 監査 / recommendations 分数 `?? 0` 監査）+ REQ-379（parity leg 不変量化）+ REQ-380（pre-fold audit pin 整合）がある。AI Hub steering feedback 4 件のうち 3 件を単一 TASK に統合（REQ-380 pin が REQ-379 composite の audience）。
+
+- [ ] [TASK-0262: REQ-378 残存 obligation + REQ-379 suite-count parity 不変量化 + REQ-380 pre-fold audit pin 整合 — warnings 経路化 + 監査 pin 3 + M-B3 mutant 3 site（REQ-378 残存・REQ-379・REQ-380・MW-044）](TASK-0262.md) - 3h (DIRECT) 🟡
+
+### 信頼性レベルサマリー（Phase 177 追分量）
+
+- 全 1 タスク 🟡（AI Hub steering feedback 3 件統合・相互依存性のため単一 TASK）
+
+### 次フェーズ開始番号
+
+**次回開始番号**: TASK-0263
 
 
 ## Spine: external references
