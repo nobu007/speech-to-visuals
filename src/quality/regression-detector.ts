@@ -18,7 +18,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { logger } from '@stv/core/utils/logger';
 import { QualityGateError } from '@/pipeline/pipeline-errors';
-import { changePercentOrNull } from '@stv/core/lib/metrics-utils';
+import { changePercentOrNull } from './lib/change-percent-or-null';
 
 export interface RegressionReport {
   timestamp: Date;
@@ -310,7 +310,8 @@ export class RegressionDetector {
       if (baselineValue === null || baselineValue === undefined) continue;
       if (currentValue === null || currentValue === undefined) continue;
       // REQ-378 (b): a zero baseline is NOT a "stable 0% change" verdict — it
-      // is an unmeasured comparison. The canonical helper `changePercentOrNull`
+      // is an unmeasured comparison. The vendored helper `changePercentOrNull`
+      // (src/quality/lib — pinned @stv/core v1.0.7 does not export it)
       // returns `null` for `baseline === 0` (and for non-finite baseline), and
       // the detector skips the metric but pushes a trace entry to `warnings`
       // so the report is provably complete instead of silently short. The
