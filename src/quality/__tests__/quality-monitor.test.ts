@@ -173,24 +173,28 @@ describe('QualityMonitor', () => {
     });
 
     it('detects performance improvement between iterations', async () => {
-      // First: slow
-      await monitor.assessPipelineQuality(makeResult({ processingTime: 60000 }));
+      // REQ-386: the speed leg divides by the measured content duration, so
+      // the two runs carry a realistic 60s-content duration (the bare
+      // `duration: 60` default left both runs at a ~0 ratio and no delta).
+      // First: slow — 60s content in 60s → ratio 1.0 → speed 0.5 → perf 0.8
+      await monitor.assessPipelineQuality(makeResult({ duration: 60000, processingTime: 60000 }));
       monitor.nextIteration();
 
-      // Second: fast
-      const assessment = await monitor.assessPipelineQuality(makeResult({ processingTime: 5000 }));
+      // Second: fast — ratio 12 → speed 1.0 → perf 1.0
+      const assessment = await monitor.assessPipelineQuality(makeResult({ duration: 60000, processingTime: 5000 }));
 
       const perfImprovements = assessment.improvements.filter(i => i.includes('Performance improved'));
       expect(perfImprovements.length).toBeGreaterThan(0);
     });
 
     it('detects performance decline between iterations', async () => {
-      // First: fast
-      await monitor.assessPipelineQuality(makeResult({ processingTime: 5000 }));
+      // REQ-386: same measured-duration setup as the improvement test above.
+      // First: fast — ratio 12 → speed 1.0 → perf 1.0
+      await monitor.assessPipelineQuality(makeResult({ duration: 60000, processingTime: 5000 }));
       monitor.nextIteration();
 
-      // Second: slow
-      const assessment = await monitor.assessPipelineQuality(makeResult({ processingTime: 60000 }));
+      // Second: slow — ratio 1.0 → speed 0.5 → perf 0.8
+      const assessment = await monitor.assessPipelineQuality(makeResult({ duration: 60000, processingTime: 60000 }));
 
       const perfConcerns = assessment.concerns.filter(c => c.includes('Performance declined'));
       expect(perfConcerns.length).toBeGreaterThan(0);
@@ -460,6 +464,80 @@ describe('QualityMonitor', () => {
 
       const criteriaMsg = assessment.improvements.find(i => i.includes('Phase Success Criteria'));
       expect(criteriaMsg).toContain('100.0%');
+    });
+  });
+
+  // --- REQ-386: performance legs read measured fields only ---
+
+  describe('assessPerformance (REQ-386: measured legs only)', () => {
+    it('speed ratio uses the measured result.duration, not a fabricated 60s audio', async () => {
+      // 12s of content processed in 10s → ratio 1.2 < 2x-realtime minimum →
+      // 1.2/2 = 0.6. Memory 128MB (measured) → 1.0, success → 1.0.
+      // performanceScore = (0.6*0.4 + 1.0*0.3 + 1.0*0.3) / 1.0 = 0.84.
+      // The old fabricated `assumedAudioDuration = 60000` scored the same run
+      // 6x-realtime → 1.0 → performanceScore 1.0.
+      const result = makeResult({
+        duration: 12000,
+        processingTime: 10000,
+        metrics: { totalRetryAttempts: 0, memoryUsage: 128 * 1024 * 1024 },
+      });
+
+      const assessment = await monitor.assessPipelineQuality(result);
+
+      expect(assessment.performanceScore).toBeCloseTo(0.84, 10);
+    });
+
+    it('measured over-threshold memoryUsage scores 0.0 and drags performanceScore down', async () => {
+      // 120s of content in 10s → ratio 12 → speed 1.0. memoryUsage 512MB
+      // (bytes contract) exceeds the 256MB target → 0.0. success → 1.0.
+      // performanceScore = (1.0*0.4 + 0.0*0.3 + 1.0*0.3) / 1.0 = 0.7.
+      // The old hardcoded `currentMemoryMB = 128` returned a constant 1.0 →
+      // performanceScore 1.0 for the same 512MB run.
+      const result = makeResult({
+        duration: 120000,
+        processingTime: 10000,
+        metrics: { totalRetryAttempts: 0, memoryUsage: 512 * 1024 * 1024 },
+      });
+
+      const assessment = await monitor.assessPipelineQuality(result);
+
+      expect(assessment.performanceScore).toBeCloseTo(0.7, 10);
+    });
+
+    it('unmeasured memoryUsage is EXCLUDED from the weighted average, not fabricated 1.0 nor scored 0', async () => {
+      // MainPipeline never produces metrics.memoryUsage. 120s of content in
+      // 40s → ratio 3 → (3-2)/(6-2) = 0.25; success → 1.0. Excluding the
+      // memory leg: performanceScore = (0.25*0.4 + 0.3) / 0.7 = 4/7 ≈ 0.5714.
+      // Fabricated 1.0 (old code) reports 0.7; scoring the leg 0 instead of
+      // excluding it reports 0.4 — both directions are pinned away.
+      const result = makeResult({
+        duration: 120000,
+        processingTime: 40000,
+        metrics: { totalRetryAttempts: 0 },
+      });
+
+      const assessment = await monitor.assessPipelineQuality(result);
+
+      expect(assessment.performanceScore).toBeCloseTo(4 / 7, 10);
+    });
+
+    it.each([
+      ['duration 0 (hard-error result shape)', 0],
+      ['non-finite duration', Number.NaN],
+    ])('%s excludes the speed leg — no vs-realtime claim without content duration', async (_label, duration) => {
+      // Without positive finite content duration the ratio is unmeasurable.
+      // Measured memory 128MB → 1.0, success → 1.0:
+      // performanceScore = (1.0*0.3 + 1.0*0.3) / 0.6 = 1.0. Scoring the leg
+      // 0 instead of excluding it would report 0.6.
+      const result = makeResult({
+        duration: duration as number,
+        processingTime: 10000,
+        metrics: { totalRetryAttempts: 0, memoryUsage: 128 * 1024 * 1024 },
+      });
+
+      const assessment = await monitor.assessPipelineQuality(result);
+
+      expect(assessment.performanceScore).toBeCloseTo(1, 10);
     });
   });
 

@@ -206,15 +206,27 @@ export class QualityMonitor {
     let score = 0;
     let maxScore = 0;
 
-    // Processing speed assessment (40% of performance score)
-    const speedScore = this.assessProcessingSpeed(result.processingTime);
-    score += speedScore * 0.4;
-    maxScore += 0.4;
+    // Processing speed assessment (40% of performance score) — REQ-386:
+    // measured-only. The vs-realtime ratio needs the content duration; an
+    // unmeasurable leg is EXCLUDED from both sum and denominator (the same
+    // policy REQ-383 applied to evaluateIterationQuality's memoryUsage leg).
+    const speedScore = this.assessProcessingSpeed(result.duration, result.processingTime);
+    if (speedScore !== null) {
+      score += speedScore * 0.4;
+      maxScore += 0.4;
+    }
 
-    // Memory usage assessment (30% of performance score)
-    const memoryScore = this.assessMemoryUsage();
-    score += memoryScore * 0.3;
-    maxScore += 0.3;
+    // Memory usage assessment (30% of performance score) — REQ-386: the old
+    // body hardcoded `currentMemoryMB = 128` and returned a constant 1.0, a
+    // fabricated always-pass that handed every run +0.3 of performanceScore
+    // (+0.09 overallScore) and could push a sub-threshold run over
+    // checkDeploymentReadiness's 0.7 gate. Now reads the measured
+    // `metrics.memoryUsage` (bytes) and is EXCLUDED when unmeasured.
+    const memoryScore = this.assessMemoryUsage(result);
+    if (memoryScore !== null) {
+      score += memoryScore * 0.3;
+      maxScore += 0.3;
+    }
 
     // Success rate assessment (30% of performance score)
     const successScore = result.success ? 1.0 : 0.0;
@@ -228,12 +240,22 @@ export class QualityMonitor {
   }
 
   /**
-   * Assess processing speed vs realtime target
+   * Assess processing speed vs realtime target.
+   *
+   * REQ-386: the ratio's numerator is the REQUIRED top-level
+   * `PipelineResult.duration` (ms — MainPipeline sets it to the sum of scene
+   * durationMs on success, 0 on the hard-error path), replacing the
+   * fabricated `assumedAudioDuration = 60000` that scored every run against
+   * an imaginary 60s audio. A run with no positive finite content duration
+   * has no measurable vs-realtime ratio → returns null and the caller omits
+   * the leg entirely (same required-field-over-fabrication move as REQ-383's
+   * processingTime leg).
    */
-  private assessProcessingSpeed(processingTime: number): number {
-    // Assume 60s audio for calculation (this would be dynamic in real implementation)
-    const assumedAudioDuration = 60000; // 60 seconds in milliseconds
-    const actualSpeedRatio = assumedAudioDuration / Math.max(processingTime, 1);
+  private assessProcessingSpeed(contentDurationMs: number, processingTime: number): number | null {
+    if (!Number.isFinite(contentDurationMs) || contentDurationMs <= 0) {
+      return null;
+    }
+    const actualSpeedRatio = contentDurationMs / Math.max(processingTime, 1);
 
     // Target: 2x realtime minimum, 6x realtime optimal
     const minTarget = 2.0;
@@ -251,12 +273,21 @@ export class QualityMonitor {
   }
 
   /**
-   * Assess memory usage efficiency
+   * Assess memory usage efficiency.
+   *
+   * REQ-386: measured-only. The score comes from the optional
+   * `metrics.memoryUsage` (bytes — ExtendedPipelineMetrics contract, the
+   * same signal REQ-383 reads in evaluateIterationQuality); when the run
+   * produced no finite measurement the caller omits the leg instead of
+   * scoring a fabricated value.
    */
-  private assessMemoryUsage(): number {
-    // In real implementation, this would measure actual memory usage
-    // For now, use thresholds based on observed performance
-    const currentMemoryMB = 128; // Current observed peak
+  private assessMemoryUsage(result: PipelineResult): number | null {
+    const memoryUsageBytes = result.metrics?.memoryUsage;
+    if (typeof memoryUsageBytes !== 'number' || !Number.isFinite(memoryUsageBytes)) {
+      return null;
+    }
+
+    const currentMemoryMB = memoryUsageBytes / (1024 * 1024);
     const targetMemoryMB = 256;  // Maximum acceptable
 
     if (currentMemoryMB <= targetMemoryMB / 2) {
