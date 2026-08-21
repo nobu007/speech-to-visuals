@@ -2815,9 +2815,21 @@ bonus/violation の witness fixture は DEFECT-9 cap（measured quality なし �
 - [x] MW-044 ledger observed を clean tag install から再取得した再現可能出力に差し替え（tsc 両 config exit 0・7 suites / 173 tests GREEN・mutant (a) 2 failed / 62 passed・(b) 2 failed / 3 passed・(c) 3 failed / 3 passed）
 - [x] policy guard: `tests/guards/mutation-witness-ledger.test.ts` に ledger target/mutation 欄の `node_modules/**` 記載禁止 it を追加（依存先 helper 正規化は vendoring か version bump のみ）
 
+## Phase 179: 4-row mutant ledger template 形状契約の guard 化（REQ-381・TC-365-01・MW-045）
+
+**ステータス**: ✅完了（2026-08-22・TASK-0263 完了・実装 + specs を単一 commit に同梱）
+
+**背景**: Phase 175 が仕様化した REQ-381（make-run steering「future ratchet tasks don't reinvent the table shape」）のうち appendix section 自体は Phase 175 spec commit で台帳末尾に導入済みだったが、機械 audit を担う `tests/guards/mutation-witness-ledger-shape.test.ts` が未実装で TC-365-01 が残件（722/723）だった。
+
+- [x] [TASK-0263: 4-row mutant ledger template 形状契約 guard 新設 — mutation-witness-ledger-shape.test.ts（REQ-381・TC-365-01・MW-045）](TASK-0263.md) - 2h (DIRECT) 🟡 ✅2026-08-22（shape guard 19 tests 新設 + MW-045 entry/appendix row dogfood + 監査 pin ≥44→≥45 + 3 mutation 独立 RED 実測 + TC-365-01 [x] 化 — 723/723 criteria green）
+
+### 信頼性レベルサマリー（Phase 179 追分量）
+
+- 全 1 タスク 🟡（REQ-381 は提案ベース要件・履行で GREEN 化。影響 6 suites / 141 tests GREEN + tsc 両 config 0 + specs:mirror:check exit 0 + MW-045 3 独立 mutation RED 実測）
+
 ### 次フェーズ開始番号
 
-**次回開始番号**: TASK-0263
+**次回開始番号**: TASK-0264
 
 
 ## Spine: external references
