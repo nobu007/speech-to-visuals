@@ -355,6 +355,16 @@ judge が再実行なしに主張を検証できるようにする（AI Hub stee
 
 ---
 
+## MW-040 — QualityMonitor reporter 捏造 trio/pair を canonical estimators 委譲の teeth（REQ-369〜370・Phase 172・TASK-0258）
+
+- **claim**: QualityMonitor に直結する reporter 2 site の捏造 metric を canonical estimators に委譲した — (1) SimplePipeline success-path の trio（`transcriptionAccuracy: transcript.length > 0 ? 0.9 : 0`・`sceneSegmentationF1: scenes.length > 0 ? 0.85 : 0`・`layoutOverlap: 0`「layout engine が保証」）は `detectViolations` threshold（0.85/0.75/0）と正確に結合する恒久 green で、MainPipeline/FrameworkIntegratedPipeline が委譲済みなのに対する MISSED-SIBLING-SITE。(2) GeminiAnalyzer の `entityExtractionF1: nodes.length > 0 ? 0.85 : 0.3` は 0.85 > threshold 0.80 で非空抽出が恒久 green（singleton 0.70・過密 0.50 の実 signal が無報告）。MW-040 の mutation は (a)〜(c) trio 各 field の捏造再注入・(d) gemini pair 再注入がそれぞれ独立に RED になる実 teeth を実証する。L3 台帳「0.85 metric-DEFAULT coupled-to-GATE-threshold」の reporter-side live instance 撲滅。
+- **target**: `src/pipeline/simple-pipeline.ts`（success-path recordMetrics の 3 field）/ `src/analysis/gemini-analyzer.ts`（createEnhancedParser 内 recordMetrics の entityExtractionF1）
+- **mutation**: (a) `transcriptionAccuracy: estimateTranscriptionAccuracy(qualitySignals)` → 捏造 `transcript` 復帰 `transcript.length > 0 ? 0.9 : 0`・(b) `sceneSegmentationF1: estimateSegmentationQuality(qualitySignals)` → `scenes.length > 0 ? 0.85 : 0`・(c) `layoutOverlap: countLayoutOverlaps(qualitySignals)` → `0`・(d) `nodes.length > 0 ? scoreNodeDensity(nodes.length) : 0` → `nodes.length > 0 ? 0.85 : 0.3`
+- **command**: 各 mutation 適用後に `NODE_OPTIONS='--experimental-vm-modules --max-old-space-size=4096' npx jest --config jest.config.cjs --testPathPatterns 'simple-pipeline.test|gemini-analyzer-entity-density'`
+- **observed** (2026-08-21・Phase 172 実施時): (a) 1 failed — 退化 fixture（単一 `['']` segment・30 秒単一 scene・overlap 1 pair）で **`Expected: 0.9, Received: 0`** で RED（空 transcript で捏造が 0 に崩れる = canonical 0.9 との分歧）。(b) 2 failed — **`Expected: 0.7 / 1, Received: 0.85`** で RED（0.85 は threshold 0.75 超過の恒久 green 値・実測 0.7/1.0 と分歧）。(c) 1 failed — **`Expected: 1, Received: 0`** で RED（実 overlap 1 を捏造 0 が隠す）。(d) 4 failed — **`Expected: 0.9 / 0.7 / 0.5 / 0`** に対し **`Received: 0.85 × 3, 0.3`** で RED。各 revert（perl 逆置換 — `git checkout` は fix ごと消すため不使用・grep で委譲残存確認）で影響 3 suites / 107 tests GREEN 復元・52 suites / 967 tests + guards/api/framework/acceptance/integration 156 suites / 4477 tests GREEN・tsc 両 config 0 error。**GOTCHA**: 退化 fixture が 11 個の空 segment だと `join(' ')` が空白のみの非空文字列を返し捏造 0.9 === canonical 0.9 で RED 不成立 — 単一 `['']` まで絞って初めて分歧する。監査 pin **≥39 → ≥40** に引き上げ（MW-040 追加で 39 → 40 エントリ）。
+
+---
+
 ## 恒久 mutation test（ledger 対象外・常時 CI で走るもの）
 
 以下は「一時 mutant → RED 確認 → revert」ではなく mutant を恒久テスト化したもので、

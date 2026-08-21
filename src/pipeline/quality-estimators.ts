@@ -3,11 +3,11 @@
  *
  * Single source of truth for deriving quality signals (transcription accuracy,
  * segmentation F1, entity/relation extraction, and layout-overlap count) from a
- * {@link PipelineResult}. Both {@link MainPipeline} and
- * {@link FrameworkIntegratedPipeline} delegate here so the self-improvement
- * framework (`RecursiveCustomInstructionsFramework.evaluateIteration`) sees
- * honest, identical quality signals regardless of which pipeline path produced
- * the result.
+ * {@link PipelineResult}. {@link MainPipeline}, {@link FrameworkIntegratedPipeline}
+ * AND {@link SimplePipeline} delegate here so the self-improvement framework
+ * (`RecursiveCustomInstructionsFramework.evaluateIteration`) and the Phase 27
+ * QualityMonitor see honest, identical quality signals regardless of which
+ * pipeline path produced the result.
  *
  * Why this module exists: `MainPipeline.buildQualityMetrics` previously read
  * fields that NO producer ever populates — `transcription.accuracy`,
@@ -27,6 +27,17 @@ import { DEFAULT_CANVAS_WIDTH, DEFAULT_CANVAS_HEIGHT } from '@/visualization/can
 import { sizeLabel } from '@/visualization/smart-label-sizer';
 
 /**
+ * Structural subset of {@link PipelineResult} the estimators actually read.
+ *
+ * Pipelines that are NOT PipelineResult-shaped (SimplePipeline produces a
+ * {@link SceneGraph[]} without `audioUrl`/`stages`) can still delegate to
+ * these estimators by supplying exactly the three fields read here — the
+ * signatures then honestly document what is consumed instead of demanding a
+ * full result nobody has. A full `PipelineResult` remains assignable.
+ */
+export type PipelineQualitySignals = Pick<PipelineResult, 'success' | 'scenes' | 'duration'>;
+
+/**
  * Estimate transcription accuracy from a pipeline result.
  *
  * A real score needs ground-truth comparison; in its absence we derive a
@@ -36,7 +47,7 @@ import { sizeLabel } from '@/visualization/smart-label-sizer';
  * - successful run with ≥1 scene → 0.90
  * - successful run with no scenes → 0.50
  */
-export function estimateTranscriptionAccuracy(result: PipelineResult): number {
+export function estimateTranscriptionAccuracy(result: PipelineQualitySignals): number {
   if (!result.success) return 0;
   return (result.scenes?.length ?? 0) > 0 ? 0.90 : 0.50;
 }
@@ -48,7 +59,7 @@ export function estimateTranscriptionAccuracy(result: PipelineResult): number {
  * - base 0.7; +0.15 for 2–10 scenes; +0.15 for 2–15s average scene duration
  * - clamped to [0, 1]
  */
-export function estimateSegmentationQuality(result: PipelineResult): number {
+export function estimateSegmentationQuality(result: PipelineQualitySignals): number {
   // `!scenes || scenes.length === 0` is exactly `(scenes?.length ?? 0) === 0`
   // (nullish scenes OR empty array), but narrows `scenes` for the reads below.
   const scenes = result.scenes;
@@ -69,12 +80,39 @@ export function estimateSegmentationQuality(result: PipelineResult): number {
 }
 
 /**
+ * Map an average node density to the entity-extraction quality score.
+ *
+ * SINGLE SOURCE for the density→score scale, consumed by BOTH extraction
+ * quality sites: {@link estimateEntityExtractionQuality} (nodes-per-scene
+ * over the pipeline's final scenes) and GeminiAnalyzer's detection-time
+ * sample (the LLM's node set for the analyzed content, pre-scene-split).
+ * Before this extraction the analyzer re-froze its own scale
+ * (`nodes.length > 0 ? 0.85 : 0.3`) — a value that equals-or-exceeds the
+ * 0.80 entity threshold on every non-empty extraction, so the
+ * entityExtractionF1 gate was permanently green there while the pipeline
+ * path scored the same signal 0.90/0.70/0.50. One mapping, both sites.
+ *
+ * - 2–10 → 0.90 (healthy extraction density)
+ * - 1 → 0.70 (singleton — below the 0.80 entity threshold on purpose)
+ * - otherwise (0 or >10) → 0.50
+ *
+ * A density of exactly 0 maps to 0.50 here by contract — callers that treat
+ * "nothing extracted at all" as a hard 0 must guard `count > 0` BEFORE
+ * calling (both current callers do).
+ */
+export function scoreNodeDensity(avgNodesPerScene: number): number {
+  if (avgNodesPerScene >= 2 && avgNodesPerScene <= 10) return 0.90;
+  if (avgNodesPerScene >= 1 && avgNodesPerScene < 2) return 0.70;
+  return 0.50;
+}
+
+/**
  * Estimate entity-extraction quality from nodes-per-scene density.
  *
  * - failed run / no scenes → 0
- * - 2–10 nodes/scene → 0.90; 1 (singleton) → 0.70; otherwise 0.50
+ * - delegates the density→score scale to {@link scoreNodeDensity}
  */
-export function estimateEntityExtractionQuality(result: PipelineResult): number {
+export function estimateEntityExtractionQuality(result: PipelineQualitySignals): number {
   const scenes = result.scenes;
   if (!result.success || !scenes || scenes.length === 0) return 0;
 
@@ -83,9 +121,7 @@ export function estimateEntityExtractionQuality(result: PipelineResult): number 
     scenesWithNodes.reduce((sum, s) => sum + (s.nodes || []).length, 0) /
     Math.max(scenesWithNodes.length, 1);
 
-  if (avgNodesPerScene >= 2 && avgNodesPerScene <= 10) return 0.90;
-  if (avgNodesPerScene >= 1 && avgNodesPerScene < 2) return 0.70;
-  return 0.50;
+  return scoreNodeDensity(avgNodesPerScene);
 }
 
 /**
@@ -94,7 +130,7 @@ export function estimateEntityExtractionQuality(result: PipelineResult): number 
  * - failed run / no scenes → 0
  * - ≥1 edge/scene → 0.85; otherwise 0.60
  */
-export function estimateRelationAccuracy(result: PipelineResult): number {
+export function estimateRelationAccuracy(result: PipelineQualitySignals): number {
   const scenes = result.scenes;
   if (!result.success || !scenes || scenes.length === 0) return 0;
 
@@ -116,7 +152,7 @@ export function estimateRelationAccuracy(result: PipelineResult): number {
  * from the producer's own overlap definition. Touching nodes (right edge ==
  * left edge) are NOT overlaps.
  */
-export function countLayoutOverlaps(result: PipelineResult): number {
+export function countLayoutOverlaps(result: PipelineQualitySignals): number {
   let totalOverlaps = 0;
 
   for (const scene of result.scenes || []) {
@@ -147,7 +183,7 @@ export function countLayoutOverlaps(result: PipelineResult): number {
  * silently accepted on the overlap count alone.
  */
 export function countNodeOverflow(
-  result: PipelineResult,
+  result: PipelineQualitySignals,
   canvasWidth: number = DEFAULT_CANVAS_WIDTH,
   canvasHeight: number = DEFAULT_CANVAS_HEIGHT,
 ): number {
@@ -196,7 +232,7 @@ export function countNodeOverflow(
  *
  * Defect COUNT (lower is better); `レイアウト破綻0` requires zero of these too.
  */
-export function countDanglingLayoutEdges(result: PipelineResult): number {
+export function countDanglingLayoutEdges(result: PipelineQualitySignals): number {
   let totalDangling = 0;
 
   for (const scene of result.scenes || []) {
@@ -252,7 +288,7 @@ export function countDanglingLayoutEdges(result: PipelineResult): number {
  * unmapped-key "any metric present" fallback (the criterion-mapping silent-pass
  * class, defect 7).
  */
-export function estimateLabelReadability(result: PipelineResult): number {
+export function estimateLabelReadability(result: PipelineQualitySignals): number {
   if (!result.success) return 0;
 
   let totalNodes = 0;

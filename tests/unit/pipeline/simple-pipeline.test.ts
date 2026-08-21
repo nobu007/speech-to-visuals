@@ -6,6 +6,7 @@
  */
 
 import { SimplePipeline, simplePipeline } from '@/pipeline/simple-pipeline';
+import { getQualityMonitor } from '@/pipeline/quality-monitor';
 import type { SceneGraph } from '@stv/core/types/diagram';
 
 // ---------------------------------------------------------------------------
@@ -458,5 +459,153 @@ describe('SimplePipeline — transcription language wiring (REQ-043)', () => {
     // No language override → the transcriber keeps its construction-time
     // default; updateConfig is not invoked for transcription at all.
     expect(updateSpy).not.toHaveBeenCalled();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Phase 27 quality-metrics delegation (Phase 172 / TASK-0258)
+//
+// The success-path recordMetrics values come from the canonical estimators in
+// quality-estimators (single source shared with MainPipeline /
+// FrameworkIntegratedPipeline), not inline constants. The previous fabricated
+// trio — `transcript.length > 0 ? 0.9 : 0`, `scenes.length > 0 ? 0.85 : 0`,
+// and the ASSERTED `layoutOverlap: 0` ("guaranteed by enhanced layout
+// engine") — equal-or-exceeded every QualityMonitor threshold on each
+// success, so three gates were permanently green. The witnesses below use
+// fixtures where each canonical value DIFFERS from its fabricated
+// predecessor, so re-injecting any one of the constants fails exactly one
+// assertion (the MW-040 mutation set).
+// ---------------------------------------------------------------------------
+
+describe('SimplePipeline — Phase 27 quality metrics delegate to canonical estimators', () => {
+  // This suite runs against the REAL collaborator modules (in this ESM setup
+  // jest.mock cannot intercept imports), so the four stage collaborators are
+  // stubbed per-run with jest.spyOn on the freshly constructed pipeline's own
+  // instances — the same technique the REQ-043 wiring tests above use — and
+  // the Phase 27 QualityMonitor singleton's recordMetrics is spied to observe
+  // the exact payload process() reports.
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  /** Collaborator instance handles on the (freshly constructed) pipeline. */
+  function collaborators(p: SimplePipeline): {
+    transcription: { transcribe: (...a: unknown[]) => Promise<unknown> };
+    segmenter: { segment: (...a: unknown[]) => Promise<unknown> };
+    detector: { analyze: (...a: unknown[]) => Promise<unknown> };
+    layoutEngine: { generateLayout: (...a: unknown[]) => Promise<unknown> };
+  } {
+    return p as unknown as ReturnType<typeof collaborators>;
+  }
+
+  /** Spy on the singleton QualityMonitor's recordMetrics (calls through). */
+  function recordMetricsSpy(): jest.MockInstance<void, unknown[]> {
+    const monitor = getQualityMonitor() as unknown as {
+      recordMetrics: (...args: unknown[]) => void;
+    };
+    return jest.spyOn(monitor, 'recordMetrics');
+  }
+
+  /** Drive process() through a full success path; returns the recordMetrics spy. */
+  async function runSuccessPath(fixture: {
+    segmentTexts: string[];
+    segmentMs: number;
+    layoutNodes: Array<Record<string, unknown>>;
+  }): Promise<jest.MockInstance<void, unknown[]>> {
+    const pipeline = createPipeline();
+    const cols = collaborators(pipeline);
+
+    jest.spyOn(cols.transcription, 'transcribe').mockResolvedValue({
+      success: true,
+      segments: fixture.segmentTexts.map((text, i) => ({
+        start: i * fixture.segmentMs,
+        end: (i + 1) * fixture.segmentMs,
+        text,
+        confidence: 0.9,
+      })),
+    });
+    jest.spyOn(cols.segmenter, 'segment').mockResolvedValue(
+      fixture.segmentTexts.map((_, i) => ({
+        startMs: i * fixture.segmentMs,
+        endMs: (i + 1) * fixture.segmentMs,
+        text: '',
+        summary: '',
+        keyphrases: [],
+      })),
+    );
+    jest.spyOn(cols.detector, 'analyze').mockResolvedValue({
+      type: 'flow',
+      confidence: 0.8,
+      nodes: [],
+      edges: [],
+      reasoning: 'fixture',
+    });
+    jest.spyOn(cols.layoutEngine, 'generateLayout').mockResolvedValue({
+      success: true,
+      layout: { nodes: fixture.layoutNodes, edges: [] },
+      confidence: 0.8,
+    });
+
+    const spy = recordMetricsSpy();
+    spy.mockClear();
+    await pipeline.process({ audioFile: audioFileFixture() });
+    return spy;
+  }
+
+  /** Minimal audio File sufficient for process(). */
+  function audioFileFixture(): File {
+    return new File(['audio-bytes'], 'speech.wav', { type: 'audio/wav' });
+  }
+
+  /** The success-path recordMetrics payload (the one carrying accuracy). */
+  function qualityPayload(spy: jest.MockInstance<void, unknown[]>): Record<string, unknown> {
+    const call = spy.mock.calls
+      .map((args: unknown[]) => args[0] as Record<string, unknown>)
+      .find((metrics: Record<string, unknown>) => 'transcriptionAccuracy' in metrics);
+    if (!call) throw new Error('success-path recordMetrics call not found');
+    return call;
+  }
+
+  it('records measured values on a degenerate run (empty transcript, one long scene, overlapping layout)', async () => {
+    const spy = await runSuccessPath({
+      // A single empty-text segment: transcript is '' (length 0) — the
+      // fabricated `transcript.length > 0 ? 0.9 : 0` would record 0 here
+      // even though the run produced a scene.
+      segmentTexts: [''],
+      // One 30s scene: misses BOTH segmentation bonuses (count < 2, avg
+      // duration > 15000ms) → canonical 0.70, not the fabricated 0.85.
+      segmentMs: 30_000,
+      // One overlapping pair → 1 measured overlap, not the asserted
+      // `layoutOverlap: 0`.
+      layoutNodes: [
+        { id: 'a', label: 'A', x: 0, y: 0, width: 100, height: 100 },
+        { id: 'b', label: 'B', x: 50, y: 50, width: 100, height: 100 },
+      ],
+    });
+
+    const payload = qualityPayload(spy);
+    // Canonical estimateTranscriptionAccuracy: success + ≥1 scene → 0.90.
+    expect(payload.transcriptionAccuracy).toBe(0.9);
+    // Canonical estimateSegmentationQuality: base 0.70, both bonuses missed.
+    expect(payload.sceneSegmentationF1).toBe(0.7);
+    // Canonical countLayoutOverlaps over the produced scene: 1 pair.
+    expect(payload.layoutOverlap).toBe(1);
+  });
+
+  it('records measured values on a healthy run (2 scenes × 2s, disjoint layouts)', async () => {
+    const spy = await runSuccessPath({
+      segmentTexts: ['first segment text', 'second segment text'],
+      segmentMs: 2000,
+      layoutNodes: [
+        { id: 'a', label: 'A', x: 0, y: 0, width: 100, height: 100 },
+        { id: 'b', label: 'B', x: 1000, y: 1000, width: 100, height: 100 },
+      ],
+    });
+
+    const payload = qualityPayload(spy);
+    expect(payload.transcriptionAccuracy).toBe(0.9);
+    // 2–10 scenes (+0.15) with 2s average duration (+0.15) → 1.0.
+    expect(payload.sceneSegmentationF1).toBe(1);
+    expect(payload.layoutOverlap).toBe(0);
   });
 });

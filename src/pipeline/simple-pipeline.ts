@@ -16,6 +16,12 @@ import { applyConfigToCollaborators } from './config-sync';
 import { calculatePipelineQualityScore } from './quality-score';
 import { continuousLearner } from '@/framework/continuous-learner';
 import { getQualityMonitor, formatQualityReport } from './quality-monitor';
+import {
+  estimateTranscriptionAccuracy,
+  estimateSegmentationQuality,
+  countLayoutOverlaps,
+  type PipelineQualitySignals,
+} from './quality-estimators';
 import { getHeapUsed } from '@stv/core/utils/memory-usage';
 import { sanitizeFinite, sanitizeDiagramType } from '@stv/core/utils/guards';
 import { ErrorClassifier } from '@/quality/error-classifier';
@@ -535,14 +541,32 @@ export class SimplePipeline {
         videoUrl
       });
 
-      // Phase 27: Record quality metrics for recursive improvement
+      // Phase 27: Record quality metrics for recursive improvement.
+      //
+      // Values come from the canonical estimators in quality-estimators —
+      // the single source MainPipeline and FrameworkIntegratedPipeline
+      // already use — NOT from inline constants. The previous
+      // `transcript.length > 0 ? 0.9 : 0`, `scenes.length > 0 ? 0.85 : 0`,
+      // and the ASSERTED `layoutOverlap: 0` ("guaranteed by enhanced layout
+      // engine") each equal-or-exceed their QualityMonitor thresholds on
+      // every success, so three gates were permanently green and the quality
+      // report never fired on real data — the same fabrication class the
+      // estimators were extracted to remove at MainPipeline. `duration` is
+      // the sum of per-scene durationMs (total covered media time, the same
+      // semantics PipelineResult.duration carries) because
+      // estimateSegmentationQuality derives average scene duration from it.
+      const qualitySignals: PipelineQualitySignals = {
+        success: true,
+        scenes,
+        duration: scenes.reduce((total, scene) => total + scene.durationMs, 0),
+      };
       const qualityMonitor = getQualityMonitor();
       qualityMonitor.recordMetrics({
         processingTime,
         memoryUsage: getHeapUsed() / (1024 * 1024),
-        transcriptionAccuracy: transcript.length > 0 ? 0.9 : 0,
-        sceneSegmentationF1: scenes.length > 0 ? 0.85 : 0,
-        layoutOverlap: 0, // Zero overlap guaranteed by enhanced layout engine
+        transcriptionAccuracy: estimateTranscriptionAccuracy(qualitySignals),
+        sceneSegmentationF1: estimateSegmentationQuality(qualitySignals),
+        layoutOverlap: countLayoutOverlaps(qualitySignals),
         errorCount: 0,
         warningCount: 0,
         fallbackTriggered: false,

@@ -34,6 +34,7 @@ import { parseJsonFromLLMText } from "./llm-utils";
 import { DEFAULT_RETRY_OPTIONS } from "./retry-strategy";
 import { LLMService, llmService } from "./llm-service";
 import { getQualityMonitor } from "@/pipeline/quality-monitor";
+import { scoreNodeDensity } from "@/pipeline/quality-estimators";
 import { getGeminiAnalyzerPrompt, type Language } from "./prompt-templates";
 import { DiagramStructureError } from "./analysis-errors";
 import { buildContentCacheKey } from "./cache-key";
@@ -245,10 +246,22 @@ export class GeminiAnalyzer {
       }
 
 
-      // Phase 27: Record relationship extraction quality
+      // Phase 27: Record relationship extraction quality.
+      //
+      // entityExtractionF1 delegates to the canonical density→score scale
+      // (scoreNodeDensity, shared with the pipeline-side estimator) instead
+      // of the previous `nodes.length > 0 ? 0.85 : 0.3`: that fabricated
+      // 0.85 exceeded the 0.80 entity threshold on EVERY non-empty
+      // extraction, so this gate was permanently green while a singleton
+      // (0.70) or over-dense (>10 → 0.50) extraction — real quality
+      // signals — went unreported. `nodes.length` is the density input:
+      // the LLM detection sample is one diagram's worth of entities.
+      // Nothing extracted at all is a hard 0 (below every threshold),
+      // not scoreNodeDensity(0) — the mapping's 0.50 is for degenerate
+      // densities, not empty extractions.
       const qualityMonitor = getQualityMonitor();
       qualityMonitor.recordMetrics({
-        entityExtractionF1: nodes.length > 0 ? 0.85 : 0.3,
+        entityExtractionF1: nodes.length > 0 ? scoreNodeDensity(nodes.length) : 0,
         relationshipAccuracy: confidence,
         edgeCompleteness: edgeRatio,
         edgeRatioQuality: edgeRatio,

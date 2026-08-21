@@ -107,8 +107,8 @@
 
 ## タスク番号管理
 
-**使用済みタスク番号**: TASK-0001 ~ TASK-0256（Phase 131: TASK-0217、Phase 132: TASK-0218〜0222、Phase 140: TASK-0223〜0225、Phase 141: TASK-0226〜0228、Phase 142: TASK-0229、Phase 143: TASK-0230、Phase 144: TASK-0231、Phase 145: TASK-0232、Phase 146: TASK-0233、Phase 147: TASK-0234、Phase 148: TASK-0235、Phase 149: TASK-0236、Phase 150: TASK-0237、Phase 151: TASK-0238、Phase 152: TASK-0239、Phase 153: TASK-0240、Phase 154: TASK-0241、Phase 155: TASK-0242、Phase 156: TASK-0243、Phase 157〜159: TASK-0244〜0246、Phase 161: TASK-0247、Phase 162: TASK-0248、Phase 163: TASK-0249、Phase 164: TASK-0250、Phase 165: TASK-0251、Phase 166: TASK-0252、Phase 167: TASK-0253、Phase 168: TASK-0254、Phase 169: TASK-0255、Phase 170: TASK-0256、Phase 171: TASK-0257)
-**次回開始番号**: TASK-0258
+**使用済みタスク番号**: TASK-0001 ~ TASK-0257（Phase 131: TASK-0217、Phase 132: TASK-0218〜0222、Phase 140: TASK-0223〜0225、Phase 141: TASK-0226〜0228、Phase 142: TASK-0229、Phase 143: TASK-0230、Phase 144: TASK-0231、Phase 145: TASK-0232、Phase 146: TASK-0233、Phase 147: TASK-0234、Phase 148: TASK-0235、Phase 149: TASK-0236、Phase 150: TASK-0237、Phase 151: TASK-0238、Phase 152: TASK-0239、Phase 153: TASK-0240、Phase 154: TASK-0241、Phase 155: TASK-0242、Phase 156: TASK-0243、Phase 157〜159: TASK-0244〜0246、Phase 161: TASK-0247、Phase 162: TASK-0248、Phase 163: TASK-0249、Phase 164: TASK-0250、Phase 165: TASK-0251、Phase 166: TASK-0252、Phase 167: TASK-0253、Phase 168: TASK-0254、Phase 169: TASK-0255、Phase 170: TASK-0256、Phase 171: TASK-0257、Phase 172: TASK-0258）
+**次回開始番号**: TASK-0259
 
 > **REQ 番号帯（Phase 140 決定）**: REQ-313〜322 は acceptance-criteria の TC 帯（TC-313〜321 実在・TC-322 は未 merge PR #9 提案中）との番号衝突回避のため予約（未使用）。機能要件は REQ-323 から、TC は TC-323 から採番する（REQ-326/TC-323 が適用例）。
 
@@ -2666,7 +2666,39 @@ cache hit を per-model 平均に混ぜない — 「測っていない速さ」
 
 ### 次フェーズ開始番号
 
-**次回開始番号**: TASK-0258
+**次回開始番号**: TASK-0259
+
+## Phase 172: 捏造 quality metric を canonical estimators に委譲 — simple-pipeline / gemini-analyzer の gate 恒久 green 撲滅（REQ-369〜371・MW-040）
+
+**ステータス**: ✅完了（2026-08-21・TASK-0258 完了・実装 + specs を単一 commit に同梱・**L3 台帳「0.85 metric-DEFAULT coupled-to-GATE-threshold」の reporter-side live instance 撲滅**）
+
+**背景**: Phase 170/171 は RTPM/adaptive-gates 系（monitor 出力側）の捏造 metric を finite-or-null 契約 + producer で閉じたが、QualityMonitor に直結する **reporter 側** に同型が 2 site 残存: (1) SimplePipeline success-path の trio（`0.9/0.85/0` — MainPipeline・FrameworkIntegratedPipeline は estimators 委譲済みの MISSED-SIBLING-SITE）・(2) GeminiAnalyzer の `entityExtractionF1: nodes.length > 0 ? 0.85 : 0.3`。いずれも `detectViolations` threshold と正確に結合し恒久 green。
+
+**実装**:
+
+- REQ-369: `PipelineQualitySignals`（= `Pick<PipelineResult, 'success' | 'scenes' | 'duration'>`）経由で SimplePipeline success-path を `estimateTranscriptionAccuracy` / `estimateSegmentationQuality` / `countLayoutOverlaps` に委譲。`duration` は `scenes.reduce(Σ durationMs)` 実測。「layout engine が保証」comment 削除。**GOTCHA**: `segments.map(s => s.text).join(' ')` は空 text 複数でも非空（空白）→ `transcript.length > 0` はほぼ恒真 — 退化 fixture は単一 `['']` でないと mutation が RED にならない
+- REQ-370: `scoreNodeDensity(nodes.length)`（2–10→0.90・1→0.70・その他→0.50）に委譲。**空抽出は hard 0**（`scoreNodeDensity(0)`=0.50 は degenerate density 用・旧 0.3「partial」も廃止）
+- REQ-371: estimator 8 関数の引数を `PipelineQualitySignals` に緩め（構造的部分型で既存呼び出し不変）・density scale を `scoreNodeDensity` として単一 source 化（duplicate-formula class 封じ）
+- MW-040: 4 mutation（trio 各 field の捏造再注入 1+2+1 failed・gemini pair 再注入 4 failed）の独立 RED 実測 → revert GREEN 復元・監査 pin ≥39 → ≥40
+
+**タスク**:
+
+- [x] [TASK-0258: 捏造 quality metric を canonical estimators に委譲 — simple-pipeline / gemini-analyzer の gate 恒久 green 撲滅（REQ-369〜371・MW-040）](TASK-0258.md) - 2h (DIRECT) 🔵 ✅2026-08-21（estimators 直接 pin 13 + simple-pipeline 2 + gemini 4 tests 追加・影響 3 suites / 107 tests + 52 suites / 967 tests + 回帰 156 suites / 4477 tests GREEN・tsc 両 config 0・MW-040 4 独立 mutation RED 実測 + pin ≥39→≥40 + REQ/TC/TASK/MW/overview を同一 commit 同梱）
+
+```
+捏造 metric の修正は「削る」だけでなく「正規の測定系に繋ぐ」— MainPipeline が既に委譲済みなら sibling 全数 grep が次の site を指す（SimplePipeline = 今回・pipeline-orchestrator は実 confidence で対象外）
+triplet の途中型は Pick で作る — 委譲先が読む field だけを要求すれば PipelineResult を持たない呼び出し元も構造的部分型で乗る（既存呼び出しは signature 緩和のみで不変）
+join(' ') 系の「非空判定」は空白のみ文字列で恒真 — 捏造 length>0 分岐の mutation witness を作るときは要素 1 個の配列まで絞る
+空抽出・空検出の score は 0 — 「degenerate density 用の中間値」を empty に流用すると無抽出が実 signal と同水準に偽装される
+```
+
+### 信頼性レベルサマリー（Phase 172 追分量）
+
+- 全 1 タスク 🔵（影響 3 suites / 107 tests + 52 suites / 967 tests + 回帰 156 suites / 4477 tests GREEN + tsc 両 config 0 + MW-040 4 独立 mutation RED 実測）
+
+### 次フェーズ開始番号
+
+**次回開始番号**: TASK-0259
 
 
 ## Spine: external references

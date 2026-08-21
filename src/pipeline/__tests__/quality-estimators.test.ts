@@ -13,6 +13,11 @@ import {
   countNodeOverflow,
   countDanglingLayoutEdges,
   estimateLabelReadability,
+  estimateTranscriptionAccuracy,
+  estimateSegmentationQuality,
+  estimateEntityExtractionQuality,
+  scoreNodeDensity,
+  type PipelineQualitySignals,
 } from '../quality-estimators';
 
 /** Build a minimal PipelineResult whose single scene carries only the layout
@@ -311,5 +316,124 @@ describe('estimateLabelReadability', () => {
       ],
     } as unknown as PipelineResult;
     expect(estimateLabelReadability(r)).toBe(1);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Accuracy estimators + shared density scale (Phase 172 / TASK-0258)
+//
+// estimateTranscriptionAccuracy / estimateSegmentationQuality /
+// estimateEntityExtractionQuality gained their first direct pins when
+// SimplePipeline started delegating to them (previously only the
+// MainPipeline/FrameworkIntegratedPipeline paths exercised them
+// indirectly). scoreNodeDensity is the single source for the density→score
+// scale consumed by BOTH estimateEntityExtractionQuality and
+// GeminiAnalyzer's detection-time sample — these pins make a scale change
+// at either consumer visible as a test failure here.
+// ---------------------------------------------------------------------------
+
+describe('scoreNodeDensity', () => {
+  it('maps healthy density (2–10) to 0.90 at both boundaries', () => {
+    expect(scoreNodeDensity(2)).toBe(0.9);
+    expect(scoreNodeDensity(10)).toBe(0.9);
+    expect(scoreNodeDensity(5)).toBe(0.9);
+  });
+
+  it('maps a singleton to 0.70 — below the 0.80 entity threshold on purpose', () => {
+    expect(scoreNodeDensity(1)).toBe(0.7);
+  });
+
+  it('maps degenerate densities (0, >10) to 0.50', () => {
+    expect(scoreNodeDensity(0)).toBe(0.5);
+    expect(scoreNodeDensity(11)).toBe(0.5);
+    expect(scoreNodeDensity(40)).toBe(0.5);
+  });
+});
+
+describe('estimateEntityExtractionQuality', () => {
+  /** Minimal successful signal source whose scenes carry node arrays. */
+  function signalsWithNodes(perSceneNodes: number[]): PipelineQualitySignals {
+    return {
+      success: true,
+      duration: 1000,
+      scenes: perSceneNodes.map(count => ({
+        type: 'flow' as const,
+        nodes: Array.from({ length: count }, (_, i) => ({ id: `n${i}`, label: `n${i}` })),
+        edges: [],
+        startMs: 0,
+        durationMs: 1000,
+        summary: '',
+        keyphrases: [],
+      })),
+    } as unknown as PipelineQualitySignals;
+  }
+
+  it('returns 0 for a failed run or a run with no scenes', () => {
+    expect(estimateEntityExtractionQuality({ success: false, scenes: [], duration: 0 })).toBe(0);
+    expect(estimateEntityExtractionQuality({ success: true, scenes: [], duration: 0 })).toBe(0);
+  });
+
+  it('delegates the density scale: 2–10 nodes/scene → 0.90', () => {
+    expect(estimateEntityExtractionQuality(signalsWithNodes([5]))).toBe(0.9);
+  });
+
+  it('delegates the density scale: singleton scene → 0.70', () => {
+    expect(estimateEntityExtractionQuality(signalsWithNodes([1]))).toBe(0.7);
+  });
+
+  it('delegates the density scale: over-dense scene → 0.50', () => {
+    expect(estimateEntityExtractionQuality(signalsWithNodes([15]))).toBe(0.5);
+  });
+});
+
+describe('estimateTranscriptionAccuracy', () => {
+  it('returns 0 for a failed run', () => {
+    expect(estimateTranscriptionAccuracy({ success: false, scenes: [], duration: 0 })).toBe(0);
+  });
+
+  it('returns 0.90 for a successful run with ≥1 scene', () => {
+    expect(
+      estimateTranscriptionAccuracy({
+        success: true,
+        duration: 1000,
+        scenes: [{ type: 'flow', nodes: [], edges: [], startMs: 0, durationMs: 1000, summary: '', keyphrases: [] }],
+      } as unknown as PipelineQualitySignals),
+    ).toBe(0.9);
+  });
+
+  it('returns 0.50 for a successful run with no scenes', () => {
+    expect(estimateTranscriptionAccuracy({ success: true, scenes: [], duration: 0 })).toBe(0.5);
+  });
+});
+
+describe('estimateSegmentationQuality', () => {
+  /** Signal source with `count` scenes of `durationMs` each. */
+  function signalsWithScenes(count: number, durationMs: number): PipelineQualitySignals {
+    return {
+      success: true,
+      duration: count * durationMs,
+      scenes: Array.from({ length: count }, (_, i) => ({
+        type: 'flow' as const,
+        nodes: [],
+        edges: [],
+        startMs: i * durationMs,
+        durationMs,
+        summary: '',
+        keyphrases: [],
+      })),
+    } as unknown as PipelineQualitySignals;
+  }
+
+  it('returns 0 for a failed run or a run with no scenes', () => {
+    expect(estimateSegmentationQuality({ success: false, scenes: [], duration: 0 })).toBe(0);
+    expect(estimateSegmentationQuality({ success: true, scenes: [], duration: 0 })).toBe(0);
+  });
+
+  it('scores the full 1.0 for 2–10 scenes with 2–15s average duration', () => {
+    expect(estimateSegmentationQuality(signalsWithScenes(2, 2000))).toBe(1);
+  });
+
+  it('keeps the 0.7 base when both bonuses miss (11 scenes, 1s average)', () => {
+    expect(estimateSegmentationQuality(signalsWithScenes(11, 1000))).toBe(0.7);
   });
 });
