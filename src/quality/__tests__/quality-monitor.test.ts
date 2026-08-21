@@ -396,6 +396,73 @@ describe('QualityMonitor', () => {
     });
   });
 
+  // --- REQ-384: compliance-phase legs claim measured evidence only ---
+
+  describe('evaluateRecursiveDevelopmentCompliance (REQ-384: measured legs only)', () => {
+    it('first successful run averages the 4 real legs (75.0%), not diluted by a fabricated commitPhase', async () => {
+      // implementationPhase 1.0 + testingPhase 1.0 + evaluationPhase 1.0 +
+      // improvementPhase 0.0 (no history yet) = 3/4 = 75.0%. The removed
+      // `commitPhase: 1.0 // Assuming proper commit strategy` leg reported
+      // (3 + 1) / 5 = 80.0% for the same run — a fabricated always-pass
+      // diluting every real leg (the sibling of REQ-383's documentation leg).
+      const assessment = await monitor.assessPipelineQuality(makeResult());
+
+      const complianceMsg = assessment.recommendations.find(
+        r => r.includes('Recursive Development Compliance')
+      );
+      expect(complianceMsg).toContain('75.0%');
+      expect(assessment.concerns).toContain('Recursive development cycle needs strengthening');
+    });
+
+    it('subsequent successful run scores 100.0% with no strengthening concern (happy path unchanged)', async () => {
+      await monitor.assessPipelineQuality(makeResult());
+
+      const assessment = await monitor.assessPipelineQuality(makeResult());
+
+      const complianceMsg = assessment.recommendations.find(
+        r => r.includes('Recursive Development Compliance')
+      );
+      expect(complianceMsg).toContain('100.0%');
+      expect(assessment.concerns).not.toContain('Recursive development cycle needs strengthening');
+    });
+
+    it('empty stages score testingPhase 0.0 — no vacuous every() pass for zero testing evidence', async () => {
+      // stages: [] → `every` is vacuously true; the old code read that as
+      // testingPhase 1.0 and, with history from the first call, reported
+      // 100.0% with zero testing evidence. Fail-closed: 0.0, so
+      // (1.0 + 0 + 1.0 + 1.0) / 4 = 75.0% and the concern fires.
+      await monitor.assessPipelineQuality(makeResult());
+
+      const assessment = await monitor.assessPipelineQuality(makeResult({ stages: [] }));
+
+      const complianceMsg = assessment.recommendations.find(
+        r => r.includes('Recursive Development Compliance')
+      );
+      expect(complianceMsg).toContain('75.0%');
+      expect(assessment.concerns).toContain('Recursive development cycle needs strengthening');
+    });
+  });
+
+  describe('assessPhaseSuccessCriteria (REQ-384: no vacuous integration pass)', () => {
+    it('empty stages score integration 0.0 — a stage-less run cannot claim full integration', async () => {
+      // mvp 1.0 (success + outputPath) + transcription/analysis/visualization
+      // 0.0 (stages missing — sibling precedent: find → undefined → 0.0) +
+      // integration 0.0 = 1/5 = 20.0%. The old vacuous `every` pass reported
+      // 2/5 = 40.0%.
+      const assessment = await monitor.assessPipelineQuality(makeResult({ stages: [] }));
+
+      const criteriaMsg = assessment.improvements.find(i => i.includes('Phase Success Criteria'));
+      expect(criteriaMsg).toContain('20.0%');
+    });
+
+    it('successful run with all named stages scores 100.0% (happy path unchanged)', async () => {
+      const assessment = await monitor.assessPipelineQuality(makeResult());
+
+      const criteriaMsg = assessment.improvements.find(i => i.includes('Phase Success Criteria'));
+      expect(criteriaMsg).toContain('100.0%');
+    });
+  });
+
   // --- Scene generation scoring edge cases ---
 
   describe('scene generation scoring', () => {

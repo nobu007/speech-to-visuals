@@ -757,16 +757,28 @@ export class QualityMonitor {
     assessment: QualityAssessment
   ): Promise<void> {
 
+    // REQ-384: `commitPhase: 1.0 // Assuming proper commit strategy` was a
+    // fabricated always-pass leg — the sibling of the documentation leg
+    // REQ-383 removed from evaluateIterationQuality. It diluted every real
+    // leg's weight ((sum + 1) / 5) and masked the < 0.9 concern for runs
+    // whose real legs summed to 3.5 (90.0% with the fabrication vs 87.5%
+    // without). `testingPhase` likewise must not claim a vacuous pass:
+    // `stages.every(...)` on an empty array is vacuously true, so a run with
+    // zero recorded stages claimed testing evidence it never had — the
+    // sibling assessPhaseSuccessCriteria legs score a missing stage 0.0.
     const compliance = {
       implementationPhase: result.success ? 1.0 : 0.0,
-      testingPhase: result.stages.every(stage => stage.success) ? 1.0 : 0.5,
+      testingPhase: result.stages.length > 0
+        ? (result.stages.every(stage => stage.success) ? 1.0 : 0.5)
+        : 0.0,
       evaluationPhase: result.metrics ? 1.0 : 0.0,
-      improvementPhase: this.iterationHistory.length > 0 ? 1.0 : 0.0,
-      commitPhase: 1.0 // Assuming proper commit strategy
+      improvementPhase: this.iterationHistory.length > 0 ? 1.0 : 0.0
+      // commitPhase: REMOVED (REQ-384) — no measurement backs a commit score;
+      // the keyset-derived denominator shrinks to the real legs.
     };
 
-    // Denominator derives from the averaged keyset itself — a hardcoded `/ 5`
-    // silently mis-averages the moment a sixth compliance phase is added.
+    // Denominator derives from the averaged keyset itself — a hardcoded `/ 4`
+    // silently mis-averages the moment a fifth compliance phase is added.
     const complianceValues = Object.values(compliance);
     const averageCompliance = complianceValues.reduce((a, b) => a + b, 0) / complianceValues.length;
 
@@ -792,7 +804,12 @@ export class QualityMonitor {
       transcription: result.stages.find(s => s.name === 'transcription')?.success ? 1.0 : 0.0,
       analysis: result.stages.find(s => s.name === 'analysis')?.success ? 1.0 : 0.0,
       visualization: result.stages.find(s => s.name === 'visualization')?.success ? 1.0 : 0.0,
-      integration: result.stages.every(stage => stage.success) ? 1.0 : 0.0
+      // REQ-384: same vacuous-every fix as testingPhase — `every` on an
+      // empty stages array is vacuously true and scored a stage-less run as
+      // fully integrated. Missing stages score 0.0 everywhere else here.
+      integration: result.stages.length > 0
+        ? (result.stages.every(stage => stage.success) ? 1.0 : 0.0)
+        : 0.0
     };
 
     // Same keyset-derived denominator rule as averageCompliance above.

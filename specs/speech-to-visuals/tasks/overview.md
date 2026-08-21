@@ -2863,7 +2863,24 @@ bonus/violation の witness fixture は DEFECT-9 cap（measured quality なし �
 
 ### 次フェーズ開始番号
 
-**次回開始番号**: TASK-0266
+**次回開始番号**: TASK-0267
+
+
+## Phase 182: compliance 評価の捏造 leg + vacuous every() pass 撲滅（REQ-384・TC-368-01〜03・MW-048）
+
+**ステータス**: ✅完了（2026-08-22・TASK-0266 完了・実装 + specs を単一 commit に同梱）
+
+**背景**: Phase 181 (TASK-0265) が `evaluateIterationQuality` から `documentation: 1.0 // Assuming proper documentation` を除去した際、同一ファイルの Custom Instructions Compliance 評価 2 関数に同型 sibling が残存していた（missed-sibling-site class）。(1) `evaluateRecursiveDevelopmentCompliance` の `commitPhase: 1.0 // Assuming proper commit strategy` は根拠ゼロ always-pass leg で実 4 leg の重みを希釈し、実 legs 合計 3.5 の run を 90.0% と報告して < 0.9 の strengthening concern を mask (2) `testingPhase` / `assessPhaseSuccessCriteria` `integration` は `stages.every(...)` が空配列で vacuously true になるため stage 記録ゼロの run が testing・integration 証拠を主張（sibling leg は missing stage を 0.0 扱いで一貫性欠如）。
+
+- [x] [TASK-0266: compliance 評価の捏造 leg + vacuous every() pass 撲滅 — commitPhase 除去・testingPhase/integration fail-closed 化（REQ-384・TC-368-01〜03・MW-048）](TASK-0266.md) - 2h (DIRECT) 🔵 ✅2026-08-22（commitPhase leg 除去 + 両 vacuous leg の `stages.length > 0` gate 化 + behavioral pin 5 tests 追加 41/41 GREEN・`quality-monitor` match 12 suites / 321 tests・広域 49 suites / 1349 tests・`main-pipeline` 7 suites / 93 tests GREEN + tsc 両 config 0 + specs:mirror:check exit 0 + MW-048 3 独立 mutation RED 実測（2/1/1 failed）+ 監査 pin ≥47→≥48。**設計決定**: commitPhase 代替 estimator は作成しない — 測定 signal が PipelineResult に存在せず Phase 171/383「fail-closed が計装を促す」方針）
+
+### 信頼性レベルサマリー（Phase 182 追加分量）
+
+- 全 1 タスク 🔵（実装・comment・sibling leg 全を live 読みで確認した実欠陥修正。MW-048 3 mutation 独立 RED 実測 + production caller 回帰 GREEN）
+
+### 次フェーズ開始番号
+
+**次回開始番号**: TASK-0267
 
 
 ## Spine: external references
