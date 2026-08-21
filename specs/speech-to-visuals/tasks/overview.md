@@ -2795,15 +2795,25 @@ bonus/violation の witness fixture は DEFECT-9 cap（measured quality なし �
 
 ## Phase 177: REQ-378 残存 obligation + REQ-379 parity 不変量化 + REQ-380 audit pin 整合（REQ-378 残存・REQ-379・REQ-380 一括履行）
 
-**ステータス**: 🟡 着手予定（TASK-0262）
+**ステータス**: ✅完了（2026-08-21・TASK-0262 完了・実装 + specs を単一 commit `f4631f63` に同梱・**ただし tsc-0 claim は Phase 178 で grounding 修復**）
 
 **背景**: TASK-0261 が REQ-378 (a)(b)(c) を完了させたが、REQ-378 自体の完全履行には残存 3 サブ項目（regression-detector.ts:298 silent skip / checkXxxHealth summary `?? 0` 監査 / recommendations 分数 `?? 0` 監査）+ REQ-379（parity leg 不変量化）+ REQ-380（pre-fold audit pin 整合）がある。AI Hub steering feedback 4 件のうち 3 件を単一 TASK に統合（REQ-380 pin が REQ-379 composite の audience）。
 
-- [ ] [TASK-0262: REQ-378 残存 obligation + REQ-379 suite-count parity 不変量化 + REQ-380 pre-fold audit pin 整合 — warnings 経路化 + 監査 pin 3 + M-B3 mutant 3 site（REQ-378 残存・REQ-379・REQ-380・MW-044）](TASK-0262.md) - 3h (DIRECT) 🟡
+- [x] [TASK-0262: REQ-378 残存 obligation + REQ-379 suite-count parity 不変量化 + REQ-380 pre-fold audit pin 整合 — warnings 経路化 + 監査 pin 3 + M-B3 mutant 3 site（REQ-378 残存・REQ-379・REQ-380・MW-044）](TASK-0262.md) - 3h (DIRECT) 🟡 ✅2026-08-21（warnings 経路化 + 監査 pin 3 + parity composite + pre-fold pin 整合・pin ≥43→≥44。ただし `changePercentOrNull` import が pinned @stv/core v1.0.7 に存在しない export 依存（node_modules 手パッチ・R5）だったため Phase 178 で vendoring 修復）
 
 ### 信頼性レベルサマリー（Phase 177 追分量）
 
 - 全 1 タスク 🟡（AI Hub steering feedback 3 件統合・相互依存性のため単一 TASK）
+
+## Phase 178: MW-044 broken import 修復 — changePercentOrNull in-repo vendoring（make-run R5 recovery・TASK-0262 継続）
+
+**ステータス**: ✅完了（2026-08-21・TASK-0262 recovery・実装 commit `ed540766` + specs/guard 同梱 commit）
+
+**背景**: make-run feedback で Phase 177（f4631f63）が NOT VALUABLE 判定 — `changePercentOrNull` は pinned `@stv/core` v1.0.7 に存在せず node_modules 手パッチ依存。fresh npm ci の tsc が HEAD で落ちるため GREEN/tsc-0 claim は grounding 不成立（R5）。
+
+- [x] recovery: `src/quality/lib/change-percent-or-null.ts` に in-repo vendoring（`percentChange` 同一式・`baseline===0` / non-finite → null 契約）+ import 切替 + 契約 pin 単体テスト新設（commit `ed540766`）
+- [x] MW-044 ledger observed を clean tag install から再取得した再現可能出力に差し替え（tsc 両 config exit 0・7 suites / 173 tests GREEN・mutant (a) 2 failed / 62 passed・(b) 2 failed / 3 passed・(c) 3 failed / 3 passed）
+- [x] policy guard: `tests/guards/mutation-witness-ledger.test.ts` に ledger target/mutation 欄の `node_modules/**` 記載禁止 it を追加（依存先 helper 正規化は vendoring か version bump のみ）
 
 ### 次フェーズ開始番号
 

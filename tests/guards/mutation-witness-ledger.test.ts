@@ -12,6 +12,9 @@
  *   - every entry carries the required fields,
  *   - the entry count never drops below the pin (new claims must add
  *     entries — the ledger's own "更新ルール" section),
+ *   - no entry names a `node_modules/**` path in its target/mutation fields
+ *     (Phase 178: a hand-patched dependency is invisible to fresh installs,
+ *     so any GREEN evidence taken in that state is ungrounded — R5),
  *   - the historical TC ids that specs cite (TC-205-04 / TC-214-02 /
  *     TC-304-04) all have entries.
  */
@@ -73,6 +76,24 @@ describe('mutation witness ledger (REQ-330)', () => {
     }
     const rel = target[1].split(':')[0];
     expect(existsSync(join(REPO_ROOT, rel))).toBe(true);
+  });
+
+  it('bans node_modules/** paths in target/mutation fields (Phase 178 policy)', () => {
+    // node_modules 手パッチは tracked diff に存在せず、fresh install で消滅する。
+    // その state で取った GREEN 証拠は必ず R5（grounding 不成立）になる —
+    // MW-044 の `changePercentOrNull` companion 追加が実例（Phase 177 の
+    // tsc-0 claim は v1.0.7 に存在しない export への依存だった）。依存先
+    // helper の正規化は in-repo vendoring か version bump のみで行うため、
+    // 台帳の target/mutation 欄に node_modules パスを記載することを禁止する。
+    // （`command` 欄の `node_modules/.bin/tsc` は実行 binary 指定なので対象外）
+    for (const entry of entries) {
+      for (const line of entry.body) {
+        if (!line.startsWith('- **target**:') && !line.startsWith('- **mutation**:')) continue;
+        expect(`${entry.id} target/mutation references node_modules: ${line}`).not.toContain(
+          'node_modules/',
+        );
+      }
+    }
   });
 
   it('covers the TC ids that acceptance-criteria.md cites as mutation-verified', () => {
