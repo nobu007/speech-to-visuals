@@ -66,6 +66,28 @@ describe('StageQualityGate', () => {
     expect(result.blocking).toBe(false);
   });
 
+  // REQ-385: `results.every(...)` on an empty criteria array is vacuously
+  // true — a gate registered with zero criteria used to pass its stage
+  // without evaluating anything (the sibling of the REQ-384 `stages.every`
+  // legs in quality-monitor). Fail closed with a loud synthetic row,
+  // mirroring the evaluator's own gateNotFound handling.
+  test('evaluate fails closed with a loud row when criteria list is empty', () => {
+    const gate = new StageQualityGate({
+      stage: 4,
+      name: 'criteria-less gate',
+      criteria: [],
+      blockingOnFailure: true,
+    });
+    const result = gate.evaluate({});
+    expect(result.passed).toBe(false);
+    expect(result.results).toHaveLength(1);
+    const row = requireCriterionResult(result, 'noCriteriaRegistered');
+    expect(row.passed).toBe(false);
+    expect(row.details).toContain('criteria-less gate');
+    expect(row.details).toContain('stage 4');
+    expect(result.blocking).toBe(true);
+  });
+
   test('exposes config properties', () => {
     const gate = new StageQualityGate({
       stage: 3,
@@ -354,7 +376,12 @@ describe('QualityGateEvaluator', () => {
         blockingOnFailure: false,
       });
       const result = evaluator.evaluateStage(1, {});
-      expect(result.passed).toBe(true); // no criteria = all pass
+      // REQ-385: an overridden gate with zero criteria must NOT vacuously
+      // pass (old: `passed: true` via empty-array `every`) — it fails closed
+      // with a loud noCriteriaRegistered row instead.
+      expect(result.passed).toBe(false);
+      expect(result.results).toHaveLength(1);
+      expect(result.results[0].criterionName).toBe('noCriteriaRegistered');
       expect(result.blocking).toBe(false);
     });
   });

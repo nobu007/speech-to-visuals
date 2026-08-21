@@ -2883,6 +2883,23 @@ bonus/violation の witness fixture は DEFECT-9 cap（measured quality なし �
 **次回開始番号**: TASK-0267
 
 
+## Phase 183: empty-criteria vacuous every() pass 撲滅（REQ-385・TC-369-01〜03・MW-049）
+
+**ステータス**: ✅完了（2026-08-22・TASK-0267 完了・実装 + specs を単一 commit に同梱）
+
+**背景**: Phase 182 (TASK-0266) が quality-monitor の `stages.every(...)` vacuous pass を撲滅した際、array 型 criteria を持つ公開評価 API 2 関数に同型 sibling が残存していた（missed-sibling-site class）。(1) `evaluateSuccessCriteria`（`src/framework/iteration-manager.ts`）は caller-supplied `DevelopmentCycle.successCriteria` が空だと `results.every` の vacuously true で `allMet: true` を無証拠主張し、pipeline caller（`framework-integrated-pipeline.ts`）が iteration status `'success'` + commit trigger に直接写像するため無根拠成功になる (2) `StageQualityGate.evaluate`（`src/quality/quality-gate.ts`）は `registerGate()` が無検証のため criteria ゼロ gate が `passed: true` で stage を無評価パス — 旧挙動は 2 test が明示 pin する stale GREEN（`no criteria = all pass` / `should pass with no criteria`）。
+
+- [x] [TASK-0267: empty-criteria vacuous every() pass 撲滅 — evaluateSuccessCriteria / StageQualityGate.evaluate fail-closed 化（REQ-385・TC-369-01〜03・MW-049）](TASK-0267.md) - 2h (DIRECT) 🔵 ✅2026-08-22（両関数に fail-closed + loud synthetic row（`(no success criteria defined)` / `noCriteriaRegistered` = gateNotFound precedent と同型）+ stale GREEN pin 2 件更新 + behavioral pin 追加 3 suites / 130 tests GREEN・広域 67 suites / 1910 tests GREEN（production caller `framework-integrated-pipeline` 回帰含む）+ tsc 両 config 0 + specs:mirror:check exit 0 + MW-049 3 独立 mutation RED 実測（1/3/1 failed）+ 監査 pin ≥48→≥49。**設計決定**: constructor / registerGate での非空検証 throw は作らず評価時点の fail-closed 1 層で担保）
+
+### 信頼性レベルサマリー（Phase 183 追加分量）
+
+- 全 1 タスク 🔵（実装・caller・既存 stale pin 全を live 読みで確認した実欠陥修正。MW-049 3 mutation 独立 RED 実測 + production caller 回帰 GREEN）
+
+### 次フェーズ開始番号
+
+**次回開始番号**: TASK-0268
+
+
 ## Spine: external references
 
 - [speech-to-visuals API エンドポイント仕様](/home/jinno/speech-to-visuals/specs/speech-to-visuals/api-endpoints.md)

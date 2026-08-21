@@ -115,7 +115,11 @@ describe('StageQualityGate', () => {
       expect(result.stage).toBe(3);
     });
 
-    it('should pass with no criteria', () => {
+    it('should fail closed with no criteria (REQ-385)', () => {
+      // Old behavior pinned `passed: true` — `results.every(...)` on an
+      // empty array is vacuously true, so a criteria-less gate passed its
+      // stage without evaluating anything (sibling of the REQ-384
+      // `stages.every` legs in quality-monitor).
       const gate = new StageQualityGate({
         stage: 1,
         name: 'Test',
@@ -123,8 +127,10 @@ describe('StageQualityGate', () => {
         blockingOnFailure: false,
       });
       const result = gate.evaluate({});
-      expect(result.passed).toBe(true);
-      expect(result.results).toHaveLength(0);
+      expect(result.passed).toBe(false);
+      expect(result.results).toHaveLength(1);
+      expect(result.results[0].criterionName).toBe('noCriteriaRegistered');
+      expect(result.results[0].passed).toBe(false);
     });
 
     it('should include fallbackAction in result', () => {

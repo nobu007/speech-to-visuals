@@ -122,6 +122,40 @@ describe('IterationManager', () => {
     });
   });
 
+  describe('evaluateSuccessCriteria (REQ-385: no vacuous allMet on empty criteria)', () => {
+    it('fails closed with a loud row when the cycle declares no criteria', () => {
+      // Old behavior: `results.every(...)` on an empty array is vacuously
+      // true, so a criteria-less cycle claimed allMet: true — and the
+      // pipeline caller maps allMet straight to iteration status 'success'.
+      const mgr = new IterationManager(
+        {
+          phase: 'EmptyPhase',
+          maxIterations: 3,
+          successCriteria: [],
+          failureRecovery: 'retry',
+          commitTrigger: 'on_success',
+          currentIteration: 0,
+          status: 'in_progress' as const,
+        },
+        path.join(tmpDir, 'ITERATION_LOG.md')
+      );
+      const result = mgr.evaluateSuccessCriteria({ accuracy: 90 });
+      expect(result.allMet).toBe(false);
+      expect(result.results).toHaveLength(1);
+      expect(result.results[0].criterion).toBe('(no success criteria defined)');
+      expect(result.results[0].met).toBe(false);
+      expect(result.results[0].reason).toContain('no successCriteria');
+    });
+
+    it('shipped DEVELOPMENT_CYCLES templates never hit the fail-closed branch', () => {
+      // The fail-closed branch is a guard for caller-supplied cycles; every
+      // template the factory serves must still carry real criteria.
+      for (const cycle of Object.values(DEVELOPMENT_CYCLES)) {
+        expect(cycle.successCriteria.length).toBeGreaterThan(0);
+      }
+    });
+  });
+
   describe('determineRecoveryStrategy', () => {
     it('returns retry when no history', () => {
       const mgr = createManager();

@@ -104,7 +104,33 @@ export class StageQualityGate {
   }
 
   evaluate(input: unknown): StageEvaluationResult {
-    const results: StageCriterionResult[] = safeArray(this.config.criteria).map(
+    // REQ-385: `results.every(...)` on an empty criteria array is vacuously
+    // true — the sibling of the REQ-384 `stages.every` legs in
+    // quality-monitor and of evaluateSuccessCriteria in iteration-manager.
+    // registerGate() validates nothing, so a gate registered with zero
+    // criteria would pass its stage without evaluating anything. Fail closed
+    // with a synthetic row, mirroring the evaluator's own gateNotFound
+    // handling for an unregistered stage.
+    const criteria = safeArray(this.config.criteria);
+    if (criteria.length === 0) {
+      return {
+        stage: this.config.stage,
+        passed: false,
+        results: [
+          {
+            criterionName: 'noCriteriaRegistered',
+            passed: false,
+            score: 0,
+            threshold: 0,
+            details: `Quality gate "${this.config.name}" for stage ${this.config.stage} has no criteria`,
+          },
+        ],
+        blocking: this.config.blockingOnFailure,
+        fallbackAction: this.config.fallbackAction,
+      };
+    }
+
+    const results: StageCriterionResult[] = criteria.map(
       (criterion) => {
         const r = criterion.evaluate(input);
         return {

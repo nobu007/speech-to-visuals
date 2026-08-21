@@ -316,7 +316,30 @@ export class IterationManager {
     allMet: boolean;
     results: { criterion: string; met: boolean; reason?: string }[];
   } {
-    const results = safeArray(this.cycle.successCriteria).map(criterion => {
+    // REQ-385: `results.every(...)` on an empty criteria array is vacuously
+    // true — the sibling of the REQ-384 `stages.every` legs in
+    // quality-monitor and of StageQualityGate.evaluate in quality-gate.
+    // `DevelopmentCycle` is caller-supplied (`new IterationManager(cycle)`)
+    // with no non-empty validation, so a cycle configured without
+    // successCriteria would report allMet: true with zero evidence — and
+    // its pipeline caller maps allMet straight to iteration status
+    // 'success' plus the commit trigger. Fail closed with a loud synthetic
+    // row instead.
+    const criteria = safeArray(this.cycle.successCriteria);
+    if (criteria.length === 0) {
+      return {
+        allMet: false,
+        results: [
+          {
+            criterion: '(no success criteria defined)',
+            met: false,
+            reason: 'Cycle declares no successCriteria; success cannot be claimed',
+          },
+        ],
+      };
+    }
+
+    const results = criteria.map(criterion => {
       const met = this.checkCriterion(criterion, metrics);
       return {
         criterion,
