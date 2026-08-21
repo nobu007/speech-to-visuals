@@ -345,6 +345,16 @@ judge が再実行なしに主張を検証できるようにする（AI Hub stee
 
 ---
 
+## MW-039 — per-model LLM response-time producer + METRIC_EXTRACTORS 静的 guard の teeth（REQ-365〜367・Phase 171・TASK-0257）
+
+- **claim**: Phase 170（REQ-364/MW-038）で finite-or-null 化した `avgFlashResponseTime`/`avgProResponseTime` に実測 producer を実装した — monitor は per-model 累積 counter（`{flash,pro}ResponseTime{TotalMs,Count}`・cache hit 除外・sanitizeFinite）を `recordLLMRequest` 経由で蓄積し、llm-service `execute()` が完了 5 経路（primary 成功・cache hit・primary 即時失敗・fallback 成功のみ・全滅は複合ラベル）を報告する。あわせて extractor への `?? 定数` silent-pass 再注入を **静的 guard**（`tests/guards/adaptive-gates-extractor-no-literal-fallback.test.ts`）で SHAPE ごと ban した（steering: 「静的 guard を追加しない限り、次の再注入は review を素通りする」）。MW-039 の mutation は (a) producer 累積の削除・(b) extractor への silent-pass 再注入（MW-038 (b) の再実証・ただし静的 guard 検出を含む）・(c) llm-service wiring の削除がそれぞれ独立に RED になる実 teeth を実証する。
+- **target**: `src/monitoring/real-time-performance-monitor.ts`（recordLLMRequest の bucket 累積・snapshot の avgModelResponseTimeMs）/ `src/quality/adaptive-quality-gates.ts`（METRIC_EXTRACTORS `avgFlashResponseTime` 行）/ `src/analysis/llm-service.ts`（reportToPerformanceMonitor 5 call site）
+- **mutation**: (a) recordLLMRequest の flash/pro bucket 加算を削除（totalRequests のみ count に戻す）・(b) `avgFlashResponseTime: s => s.llm.avgFlashResponseTime` → `s => s.llm.avgFlashResponseTime ?? 0.90`（silent-pass 再注入）・(c) llm-service の `this.reportToPerformanceMonitor(...)` 5 call を全削除
+- **command**: 各 mutation 適用後に `NODE_OPTIONS='--experimental-vm-modules --max-old-space-size=4096' npx jest --config jest.config.cjs --testPathPatterns 'real-time-performance-monitor.test|adaptive-quality-gates.test|llm-service-comprehensive|adaptive-gates-extractor-no-literal-fallback'`
+- **observed** (2026-08-21・Phase 171 実施時): (a) producer test 3 failed — `Expected: 3000 / 2000 / 1000` に対し **`Received: null`** で RED（measured-mean 契約の直接検出）。(b) 3 failed — **静的 guard** が `expect(block).not.toMatch(...)` で `Received string: "METRIC_EXTRACTORS: Readonly<..."` として RED + runtime blocker/LLM gate が silent-pass `Received: true` で RED + adaptive baseline 汚染 test 同時 RED（guard と runtime の二段検出）。(c) wiring test 1 failed — **`Received number of calls: 0`** で RED。各 revert で 8 suites / 238 tests GREEN 復元・影響 8 suites / 250 tests + 消費側回帰 15 suites / 324 tests GREEN・tsc 両 config 0 error。監査 pin **≥38 → ≥39** に引き上げ（MW-039 追加で 38 → 39 エントリ）。
+
+---
+
 ## 恒久 mutation test（ledger 対象外・常時 CI で走るもの）
 
 以下は「一時 mutant → RED 確認 → revert」ではなく mutant を恒久テスト化したもので、

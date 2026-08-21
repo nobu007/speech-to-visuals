@@ -65,6 +65,16 @@ jest.unstable_mockModule('@/analysis/llm-cache', () => {
   };
 });
 
+// REQ-366: llm-service forwards every completed LLM interaction to the
+// real-time performance monitor (the producer behind snapshot.llm
+// per-model response times, REQ-365). Mock the monitor module so the wiring
+// is asserted in isolation instead of mutating the real singleton.
+const mockRecordLLMRequest = jest.fn();
+jest.unstable_mockModule('@/monitoring/real-time-performance-monitor', () => ({
+  __esModule: true,
+  realTimeMonitor: { recordLLMRequest: mockRecordLLMRequest },
+}));
+
 // ESM: import the SUT AFTER the module mocks above are registered, so the
 // mocked @google/generative-ai and @/analysis/llm-cache intercept its imports.
 const { LLMService } = await import('../llm-service');
@@ -534,6 +544,96 @@ describe('LLMService', () => {
       expect(response.metadata.fallbackUsed).toBe(true);
       expect(response.metadata.model).toBe('gemini-2.5-pro');
     }, 15000);
+  });
+
+  // -------------------------------------------------------------------------
+  // REQ-366: performance-monitor reporting wiring (per-model timing producer)
+  // -------------------------------------------------------------------------
+  describe('execute reports completed LLM interactions to the performance monitor (REQ-366)', () => {
+    it('reports a successful primary-model call with the measured latency', async () => {
+      const service = new LLMService('test-key');
+      mockGenerateContent.mockResolvedValueOnce(createLLMResponse(JSON.stringify({ ok: true })));
+
+      const response = await service.execute({
+        prompt: 'test',
+        context: uniqueContext(),
+        options: { forceModel: 'gemini-2.5-flash' },
+      });
+
+      expect(response.success).toBe(true);
+      expect(mockRecordLLMRequest).toHaveBeenCalledTimes(1);
+      const [model, responseTime, fromCache] = mockRecordLLMRequest.mock.calls[0];
+      expect(model).toBe('gemini-2.5-flash');
+      expect(typeof responseTime).toBe('number');
+      expect(responseTime).toBeGreaterThanOrEqual(0);
+      expect(fromCache).toBe(false);
+    });
+
+    it('reports a cache hit under the "cache" label (counted, excluded from per-model timing)', async () => {
+      const service = new LLMService('test-key');
+      mockGenerateContent.mockResolvedValue(createLLMResponse(JSON.stringify({ ok: true })));
+      const sharedContext = uniqueContext();
+
+      await service.execute({ prompt: 'test', context: sharedContext });
+      const callsAfterFirst = mockRecordLLMRequest.mock.calls.length;
+
+      const second = await service.execute({ prompt: 'test', context: sharedContext });
+
+      expect(second.metadata.fromCache).toBe(true);
+      expect(mockRecordLLMRequest.mock.calls.length).toBe(callsAfterFirst + 1);
+      const [model, , fromCache] = mockRecordLLMRequest.mock.calls[callsAfterFirst];
+      expect(model).toBe('cache');
+      expect(fromCache).toBe(true);
+    });
+
+    it('reports an immediately-failed call (real latency consumed, still attributed to the model)', async () => {
+      const service = new LLMService('test-key');
+      mockGenerateContent.mockRejectedValueOnce(new Error('Something went wrong'));
+
+      const response = await service.execute({
+        prompt: 'test',
+        context: uniqueContext(),
+        options: { forceModel: 'gemini-2.5-flash', maxRetries: 1 },
+      });
+
+      expect(response.success).toBe(false);
+      expect(mockRecordLLMRequest).toHaveBeenCalledTimes(1);
+      const [model, responseTime, fromCache] = mockRecordLLMRequest.mock.calls[0];
+      expect(model).toBe('gemini-2.5-flash');
+      expect(typeof responseTime).toBe('number');
+      expect(fromCache).toBe(false);
+    });
+
+    it('reports a fallback success attributed to the model that served the request', async () => {
+      const service = new LLMService('test-key');
+      mockGenerateContent
+        .mockRejectedValueOnce(createRateLimitError())
+        .mockResolvedValueOnce(createLLMResponse(JSON.stringify({ ok: true })));
+
+      const response = await service.execute({
+        prompt: 'test',
+        context: uniqueContext(),
+        options: { forceModel: 'gemini-2.5-pro', maxRetries: 1, timeout: 5000 },
+      });
+
+      expect(response.success).toBe(true);
+      expect(response.metadata.model).toBe('gemini-2.5-flash');
+      // Intermediate rate-limit retries are NOT completed interactions —
+      // exactly one report, for the fallback model that completed the call.
+      expect(mockRecordLLMRequest).toHaveBeenCalledTimes(1);
+      const [model, , fromCache] = mockRecordLLMRequest.mock.calls[0];
+      expect(model).toBe('gemini-2.5-flash');
+      expect(fromCache).toBe(false);
+    }, 15000);
+
+    it('does NOT report the not-enabled path (no LLM interaction happened)', async () => {
+      const service = new LLMService(); // no API key → not enabled
+
+      const response = await service.execute({ prompt: 'test', context: uniqueContext() });
+
+      expect(response.success).toBe(false);
+      expect(mockRecordLLMRequest).not.toHaveBeenCalled();
+    });
   });
 
   // -------------------------------------------------------------------------

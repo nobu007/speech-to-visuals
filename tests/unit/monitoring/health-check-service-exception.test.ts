@@ -200,6 +200,32 @@ describe('HealthCheckService – exception fallback (REQ-134)', () => {
       const result = await healthCheckService.performHealthCheck();
       expect(result.checks.errorRecovery.status).toBe('degraded');
     });
+
+    it('fallback metrics honor the finite-or-null contract — no fabricated 0 readings (REQ-368)', async () => {
+      // REQ-368 (MISSED-SIBLING-SITE of REQ-359/364): when getSnapshot()
+      // throws, the catch-path minimal metrics previously fabricated 0s for
+      // the finite-or-null contract fields — reading as "0 MB used / 0 ms
+      // responses / perfect quality" to every consumer of result.metrics.
+      // They must be EXPLICIT null, same marker the real snapshot uses for
+      // "no reading".
+      const result = await healthCheckService.performHealthCheck();
+
+      // system memory fields (REQ-359 contract)
+      expect(result.metrics.system.memoryUsageMB).toBeNull();
+      expect(result.metrics.system.memoryUsagePercent).toBeNull();
+      expect(result.metrics.system.heapUsedMB).toBeNull();
+      expect(result.metrics.system.heapTotalMB).toBeNull();
+      // per-model LLM response times (REQ-364/365 contract)
+      expect(result.metrics.llm.avgFlashResponseTime).toBeNull();
+      expect(result.metrics.llm.avgProResponseTime).toBeNull();
+      // producer-less quality trio (REQ-364 contract)
+      expect(result.metrics.quality.transcriptionAccuracy).toBeNull();
+      expect(result.metrics.quality.layoutOverlapRate).toBeNull();
+      expect(result.metrics.quality.avgSceneQuality).toBeNull();
+      // non-contract display accumulators stay finite 0 ("nothing recorded")
+      expect(result.metrics.llm.flashUsagePercent).toBe(0);
+      expect(result.metrics.system.cpuUsagePercent).toBe(0);
+    });
   });
 
   // =========================================================================

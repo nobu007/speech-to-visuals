@@ -250,6 +250,74 @@ describe('RealTimePerformanceMonitor', () => {
     });
   });
 
+  describe('recordLLMRequest per-model timing producer (REQ-365)', () => {
+    it('avgFlash/avgProResponseTime are the measured mean of non-cached requests per model', () => {
+      monitor.recordLLMRequest('gemini-2.5-flash', 2000, false);
+      monitor.recordLLMRequest('gemini-2.5-flash', 4000, false);
+      monitor.recordLLMRequest('gemini-2.5-pro', 6000, false);
+
+      const snapshot = monitor.getSnapshot();
+      expect(snapshot.llm.avgFlashResponseTime).toBe(3000);
+      expect(snapshot.llm.avgProResponseTime).toBe(6000);
+    });
+
+    it('stays null until the FIRST non-cached request of that model completes', () => {
+      // Pro traffic only: flash has no reading — null, never a fabricated
+      // 0 ms "instant" that would pass the LLM Response Time gate (REQ-364).
+      monitor.recordLLMRequest('gemini-2.5-pro', 6000, false);
+
+      const snapshot = monitor.getSnapshot();
+      expect(snapshot.llm.avgFlashResponseTime).toBeNull();
+      expect(snapshot.llm.avgProResponseTime).toBe(6000);
+    });
+
+    it('excludes cache hits from the per-model mean (a cache lookup never invokes the model)', () => {
+      monitor.recordLLMRequest('gemini-2.5-flash', 2000, false);
+      monitor.recordLLMRequest('gemini-2.5-flash', 100, true);
+
+      // NOT (2000 + 100) / 2 = 1050 — folding the ~0 ms cache lookup in
+      // would bias the lower-is-better gate toward an "instant" it never
+      // measured. The cache hit still counts in totals/cacheHitRate.
+      const snapshot = monitor.getSnapshot();
+      expect(snapshot.llm.avgFlashResponseTime).toBe(2000);
+      expect(snapshot.llm.totalRequests).toBe(2);
+      expect(snapshot.llm.cacheHitRate).toBe(0.5);
+    });
+
+    it('attributes no per-model timing to labels naming neither or both models', () => {
+      // 'cache' names no model; the composite 'pro+flash' label names BOTH —
+      // charging its latency to either bucket would fabricate the other's
+      // reading. Both still count in the request totals.
+      monitor.recordLLMRequest('cache', 5, true);
+      monitor.recordLLMRequest('gemini-2.5-pro+gemini-2.5-flash', 9000, false);
+
+      const snapshot = monitor.getSnapshot();
+      expect(snapshot.llm.avgFlashResponseTime).toBeNull();
+      expect(snapshot.llm.avgProResponseTime).toBeNull();
+      expect(snapshot.llm.totalRequests).toBe(2);
+    });
+
+    it('sanitizes a non-finite responseTime instead of poisoning the accumulator', () => {
+      // Same ingestion-chokepoint class as recordRequest's
+      // totalProcessingTime: NaN must not leak into the running sum behind
+      // the published average.
+      monitor.recordLLMRequest('gemini-2.5-flash', Number.NaN, false);
+      monitor.recordLLMRequest('gemini-2.5-flash', 2000, false);
+
+      const snapshot = monitor.getSnapshot();
+      expect(snapshot.llm.avgFlashResponseTime).toBe(1000);
+    });
+
+    it('reset() clears the per-model accumulators back to the null contract', () => {
+      monitor.recordLLMRequest('gemini-2.5-flash', 2000, false);
+      monitor.reset();
+
+      const snapshot = monitor.getSnapshot();
+      expect(snapshot.llm.avgFlashResponseTime).toBeNull();
+      expect(snapshot.llm.avgProResponseTime).toBeNull();
+    });
+  });
+
   describe('recordError', () => {
     it('tracks errors and recovery', () => {
       monitor.recordError('transcription', true);

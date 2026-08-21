@@ -76,15 +76,19 @@ export interface PerformanceSnapshot {
     flashUsagePercent: number;
     proUsagePercent: number;
     /**
-     * Average per-model response times carry the REQ-364 finite-or-null
-     * contract: the monitor counts LLM requests/cache hits but never times
-     * per-model responses (no producer exists), so these are EXPLICIT null =
-     * "no reading". Never a fabricated 0: 0 ms would read as "instant" to the
-     * lower-is-better `LLM Response Time` gate and silently pass it, and an
-     * adaptable gate would shrink its threshold toward a baseline that was
-     * never measured. The percentage/cost fields stay `number` — they are
-     * display-only accumulators with no gate, where 0 is the honest
-     * "nothing recorded yet".
+     * Average per-model response times carry the REQ-364/365 finite-or-null
+     * contract: the MEASURED mean response time over the non-cached requests
+     * recorded via `recordLLMRequest` (wired from llm-service, REQ-366), or
+     * EXPLICIT null while no request of that model has completed = "no
+     * reading". Never a fabricated constant: a fabricated 0 ms would read as
+     * "instant" to the lower-is-better `LLM Response Time` gate and silently
+     * pass it, and an adaptable gate would shrink its threshold toward a
+     * baseline that was never measured. Cache hits are excluded from the
+     * mean — a cache lookup never invokes the model, and folding its ~0 ms
+     * into the average would bias the gate toward an "instant" it never
+     * measured (the fabrication class in miniature). The percentage/cost
+     * fields stay `number` — they are display-only accumulators with no gate,
+     * where 0 is the honest "nothing recorded yet".
      */
     avgFlashResponseTime: number | null;
     avgProResponseTime: number | null;
@@ -167,6 +171,13 @@ class RealTimePerformanceMonitor extends EventEmitter {
     totalProcessingTime: 0,
     llmRequests: 0,
     llmCacheHits: 0,
+    // REQ-365: per-model response-time accumulators — the producers behind
+    // snapshot.llm.avgFlashResponseTime / avgProResponseTime. Sums stay
+    // finite because recordLLMRequest sanitizes at ingestion.
+    flashResponseTimeTotalMs: 0,
+    flashResponseTimeCount: 0,
+    proResponseTimeTotalMs: 0,
+    proResponseTimeCount: 0,
     totalErrors: 0,
     recoveryAttempts: 0,
     recoverySuccesses: 0
@@ -447,12 +458,49 @@ class RealTimePerformanceMonitor extends EventEmitter {
   }
 
   /**
-   * Record LLM request
+   * Classify a model label for per-model response-time attribution
+   * (REQ-365). `null` = no attribution: labels naming NEITHER model
+   * ('cache'/'none') never invoked one, and a composite label naming BOTH
+   * (e.g. 'gemini-2.5-pro+gemini-2.5-flash' — both models tried, request
+   * failed) cannot honestly charge its latency to either bucket.
+   */
+  private static classifyModelBucket(model: string): 'flash' | 'pro' | null {
+    const hasFlash = model.includes('flash');
+    const hasPro = model.includes('pro');
+    if (hasFlash === hasPro) {
+      return null; // neither substring, or both (composite)
+    }
+    return hasFlash ? 'flash' : 'pro';
+  }
+
+  /**
+   * Record LLM request. Also the per-model timing producer (REQ-365): each
+   * NON-CACHED request attributes its measured response time to the flash or
+   * pro accumulator, which getSnapshot publishes as the measured
+   * avgFlash/avgProResponseTime (null until the first request of that model).
    */
   public recordLLMRequest(model: string, responseTime: number, fromCache: boolean): void {
+    // Ingestion chokepoint for the per-model accumulators (same leak class
+    // as recordRequest's totalProcessingTime): a non-finite responseTime is
+    // sticky through + and /, so it must be coerced to 0 here rather than
+    // poisoning avgFlash/avgProResponseTime with NaN/±Infinity.
+    responseTime = sanitizeFinite(responseTime);
     this.counters.llmRequests++;
     if (fromCache) {
       this.counters.llmCacheHits++;
+    } else {
+      // Cache hits are excluded from per-model timing: a cache lookup never
+      // invokes the model, so folding its ~0 ms into the mean would bias the
+      // lower-is-better LLM Response Time gate toward a flattering
+      // "instant" it never measured (the REQ-364 class in miniature).
+      const bucket = RealTimePerformanceMonitor.classifyModelBucket(model);
+      if (bucket === 'flash') {
+        this.counters.flashResponseTimeTotalMs += responseTime;
+        this.counters.flashResponseTimeCount++;
+      } else if (bucket === 'pro') {
+        this.counters.proResponseTimeTotalMs += responseTime;
+        this.counters.proResponseTimeCount++;
+      }
     }
 
     this.recordMetric('llmResponseTime', responseTime, 'ms', { model, cached: fromCache.toString() });
@@ -537,10 +585,18 @@ class RealTimePerformanceMonitor extends EventEmitter {
         totalRequests: this.counters.llmRequests,
         flashUsagePercent: 0, // Populated externally
         proUsagePercent: 0,   // Populated externally
-        // REQ-364: no per-model timing producer exists — null (no reading),
-        // not a fabricated 0 ms that would pass the LLM Response Time gate.
-        avgFlashResponseTime: null,
-        avgProResponseTime: null,
+        // REQ-365: measured mean over this model's non-cached recorded
+        // requests (producer: recordLLMRequest, wired from llm-service in
+        // REQ-366) — or null while none has completed (no reading), never a
+        // fabricated 0 ms that would pass the LLM Response Time gate.
+        avgFlashResponseTime: this.avgModelResponseTimeMs(
+          this.counters.flashResponseTimeTotalMs,
+          this.counters.flashResponseTimeCount,
+        ),
+        avgProResponseTime: this.avgModelResponseTimeMs(
+          this.counters.proResponseTimeTotalMs,
+          this.counters.proResponseTimeCount,
+        ),
         cacheHitRate: roundTo(cacheHitRate, 3),
         estimatedCostSavings: 0 // Populated externally
       },
@@ -567,6 +623,16 @@ class RealTimePerformanceMonitor extends EventEmitter {
         avgSceneQuality: null
       }
     };
+  }
+
+  /**
+   * REQ-365 finite-or-null mean for a per-model response-time accumulator:
+   * the measured average once at least one request of that model completed,
+   * EXPLICIT null before that (the REQ-364 "no reading" marker — not 0,
+   * which would read as an instant response to the LLM Response Time gate).
+   */
+  private avgModelResponseTimeMs(totalMs: number, count: number): number | null {
+    return count > 0 ? Math.round(totalMs / count) : null;
   }
 
   /**
@@ -722,6 +788,10 @@ class RealTimePerformanceMonitor extends EventEmitter {
       totalProcessingTime: 0,
       llmRequests: 0,
       llmCacheHits: 0,
+      flashResponseTimeTotalMs: 0,
+      flashResponseTimeCount: 0,
+      proResponseTimeTotalMs: 0,
+      proResponseTimeCount: 0,
       totalErrors: 0,
       recoveryAttempts: 0,
       recoverySuccesses: 0

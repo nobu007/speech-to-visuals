@@ -6000,6 +6000,16 @@
 
 
 
+### Phase 171: per-model LLM response-time producer + extractor 静的 guard（REQ-365〜368）
+
+- [x] **TC-358-01**: REQ-365 producer 契約 — `recordLLMRequest` が non-cached 完了 request を per-model bucket（flash/pro）に累積し `getSnapshot().llm.avg{Flash,Pro}ResponseTime` が `count > 0 ? Math.round(totalMs/count) : null` を返すこと: measured mean（flash 2000+4000→3000・pro 6000）・その model の初 request まで null・cache hit 除外（2000ms cache 1 件 + flash 2000ms 実呼び出し 1 件 → 平均 1050 ではなく 2000・totals は 2・cacheHitRate 0.5）・複合/無ラベル（`'cache'`・`'gemini-2.5-pro+gemini-2.5-flash'`）は total に数えるが平均は null・NaN は sanitize（NaN+2000→1000）・`reset()` で null に戻るの 6 test が GREEN であること（REQ-365）🔵
+- [x] **TC-358-02**: REQ-366 wiring — `llm-service.execute()` の完了経路 5 型（primary 成功 = 1 call・`fromCache=false`/cache hit = `('cache', elapsed, true)`/primary 即時失敗も報告/fallback 成功は fallback model に 1 call のみ・中間 primary 失敗は報告しない/LLM not-enabled は 0 call）が mock `recordLLMRequest` で検証され GREEN であること（REQ-366）🔵
+- [x] **TC-358-03**: REQ-367 静的 guard — `tests/guards/adaptive-gates-extractor-no-literal-fallback.test.ts` が METRIC_EXTRACTORS block（18 key 存在 pin・`: s =>` arrow 数 18 pin・block 長>500 の anti-vacuity）を sweep し `\?\? <数字>`・`\|\| <数字>` fallback を ban すること。MW-039 mutation (b)（`?? 0.90` 再注入）でこの guard と runtime blocker-gate test の **両方** が RED になる二段検出であること（REQ-367）🔵
+- [x] **TC-358-04**: REQ-368 catch-fallback 契約 — `getSnapshot()` throw 時の `health-check-service` minimal metrics が 9 契約 field（system memory 4・per-model LLM 2・quality trio 3）で null を返し、display accumulator（`flashUsagePercent`・`cpuUsagePercent`）のみ有限 0 であること（REQ-368）🔵
+- [x] **TC-358-05**: 触れた全 suite と型チェックが GREEN であること — 影響 8 suites / 250 tests（real-time-performance-monitor・adaptive-quality-gates 2・health-check-service 2・llm-service-comprehensive・adaptive-gates-extractor-no-literal-fallback・mutation-witness-ledger）+ 消費側回帰 15 suites / 324 tests GREEN・`tsc -p tsconfig.app.json --noEmit` 0 error・`tsc -p tsconfig.test.json --noEmit` 0 error・census（`!` ratchet）両 tree exact-0 不変・`npm run specs:mirror:check` exit 0 であること（REQ-365〜368）🔵
+- [x] **TC-358-06**: mutation-verified で契約が実 teeth を持つこと — 3 mutation が独立に RED になること: (a) monitor 累積削除 → producer test 3 failed `Expected: 3000/2000/1000, Received: null`・(b) extractor `?? 0.90` 再注入 → 静的 guard + runtime silent-pass + adaptive baseline poisoning の 3 failed・(c) llm-service wiring 削除 → `Received number of calls: 0`。revert で 8 suites / 238 tests GREEN 復元。MW-039 エントリが台帳に追加され監査 pin が **≥38 → ≥39** に引き上げられること（REQ-365〜367）🔵
+  - **再検証コマンド**: `NODE_OPTIONS='--experimental-vm-modules --max-old-space-size=4096' npx jest --config jest.config.cjs --testPathPatterns 'real-time-performance-monitor|adaptive-quality-gates|llm-service-comprehensive|health-check-service-exception|adaptive-gates-extractor|mutation-witness-ledger'` + `node_modules/.bin/tsc -p tsconfig.app.json --noEmit`（0 error）
+
 ### Phase 111+ 受け入れ基準サマリー
 
 | 要件 | テストケース数 | 信頼性 |

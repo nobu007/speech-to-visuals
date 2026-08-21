@@ -32,6 +32,7 @@ import { calculateModelCost, estimateCost, type CostBreakdown, type CostEstimate
 import { BudgetAlertSystem, type BudgetAlert } from './budget-alert';
 import { CacheWarmupManager, type WarmupStats, type HitRateReport } from '@/optimization/cache-warmup';
 import { isDiagramType } from '@stv/core/types/diagram';
+import { realTimeMonitor } from '@/monitoring/real-time-performance-monitor';
 
 /**
  * Phase 33: Streaming progress callback
@@ -264,6 +265,9 @@ export class LLMService {
     if (cached) {
       // REQ-202: Track cache hit for warmup effectiveness reporting
       this.cacheWarmupManager.recordQuery(true);
+      // REQ-366: report the cache hit (model 'cache' → counted in the
+      // monitor's llm totals/cacheHitRate, excluded from per-model timing).
+      this.reportToPerformanceMonitor('cache', Date.now() - startTime, true);
       return {
         success: true,
         data: cached as T,
@@ -327,6 +331,10 @@ export class LLMService {
 
         // Track by model (capped — see recordModelResponseTime)
         this.recordModelResponseTime(primaryModel, responseTime);
+
+        // REQ-366: report the completed primary-model call to the monitor
+        // (per-model timing producer — non-cached, attributed to primaryModel).
+        this.reportToPerformanceMonitor(primaryModel, responseTime, false);
 
         // Parse result
         let parsedData: T;
@@ -393,6 +401,11 @@ export class LLMService {
         logger.error(`LLMService: ${primaryModel} failed:`, errMessage);
         this.modelMetrics.failureCount++;
 
+        // REQ-366: a failed call still consumed real model latency — report
+        // it so the lower-is-better response-time average (and its gate)
+        // reflects failures, not only successes.
+        this.reportToPerformanceMonitor(primaryModel, Date.now() - startTime, false);
+
         return {
           success: false,
           error: errMessage || 'LLM request failed',
@@ -433,6 +446,10 @@ export class LLMService {
 
         // Track by model (capped — see recordModelResponseTime)
         this.recordModelResponseTime(fallbackModel, responseTime);
+
+        // REQ-366: report the completed fallback-model call (attributed to
+        // fallbackModel — the model that actually served the request).
+        this.reportToPerformanceMonitor(fallbackModel, responseTime, false);
 
         // Parse result
         let parsedData: T;
@@ -485,6 +502,11 @@ export class LLMService {
     this.modelMetrics.failureCount++;
     const lastErrorMessage = lastError instanceof Error ? lastError.message : (lastError ? String(lastError) : 'Unknown error');
     logger.error('LLMService: All retry attempts exhausted. Last error:', lastErrorMessage);
+
+    // REQ-366: report under the composite label 'primary+fallback' — the
+    // monitor counts the request in its totals but (by design) attributes no
+    // per-model timing, since both models were tried and neither completed.
+    this.reportToPerformanceMonitor(`${primaryModel}+${fallbackModel}`, Date.now() - startTime, false);
 
     return {
       success: false,
@@ -719,6 +741,21 @@ export class LLMService {
         ? this.modelMetrics.flashResponseTimes
         : this.modelMetrics.proResponseTimes;
     times.push(timeMs);
+  }
+
+  /**
+   * REQ-366: forward every completed LLM interaction to the real-time
+   * performance monitor. This is the producer that turns
+   * `snapshot.llm.avgFlashResponseTime` / `avgProResponseTime` from REQ-364's
+   * finite-or-null "no reading" markers into MEASURED values (the monitor
+   * accumulates per-model non-cached response times, REQ-365) and feeds its
+   * cacheHitRate from real traffic. Called from every return path of
+   * execute() that actually touched the LLM (cache hit or model call); the
+   * not-enabled path is deliberately NOT reported — no LLM interaction
+   * happened, and counting it would fabricate request volume.
+   */
+  private reportToPerformanceMonitor(model: string, responseTime: number, fromCache: boolean): void {
+    realTimeMonitor.recordLLMRequest(model, responseTime, fromCache);
   }
 
   /**

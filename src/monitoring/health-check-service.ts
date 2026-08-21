@@ -133,15 +133,20 @@ class HealthCheckService {
       metrics = realTimeMonitor.getSnapshot();
     } catch (error) {
       logger.error('[HealthCheck] Failed to get performance snapshot for metrics:', error);
-      // Fallback: construct minimal metrics so health check still succeeds
+      // Fallback: construct minimal metrics so health check still succeeds.
+      // REQ-368 (MISSED-SIBLING-SITE of REQ-359/364): the finite-or-null
+      // contract fields are EXPLICIT null here — this fallback previously
+      // fabricated 0s, which reads as "0 MB used / 0 ms responses / perfect
+      // quality" to every consumer, the exact fabrication the contract bans.
+      // Counters without a null contract stay 0 ("nothing recorded yet").
       metrics = {
         timestamp: Date.now(),
         uptime: 0,
-        system: { cpuUsagePercent: 0, memoryUsageMB: 0, memoryUsagePercent: 0, heapUsedMB: 0, heapTotalMB: 0 },
+        system: { cpuUsagePercent: 0, memoryUsageMB: null, memoryUsagePercent: null, heapUsedMB: null, heapTotalMB: null },
         pipeline: { totalRequests: 0, successRate: 0, avgProcessingTime: 0, p95ProcessingTime: 0, p99ProcessingTime: 0, activeRequests: 0 },
-        llm: { totalRequests: 0, cacheHitRate: 0, flashUsagePercent: 0, proUsagePercent: 0, avgFlashResponseTime: 0, avgProResponseTime: 0, estimatedCostSavings: 0 },
+        llm: { totalRequests: 0, cacheHitRate: 0, flashUsagePercent: 0, proUsagePercent: 0, avgFlashResponseTime: null, avgProResponseTime: null, estimatedCostSavings: 0 },
         errors: { totalErrors: 0, errorRate: 0, recoverySuccessRate: 0, recentErrors: [] },
-        quality: { transcriptionAccuracy: 0, layoutOverlapRate: 0, avgSceneQuality: 0 },
+        quality: { transcriptionAccuracy: null, layoutOverlapRate: null, avgSceneQuality: null },
       };
     }
 

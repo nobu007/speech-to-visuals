@@ -107,8 +107,8 @@
 
 ## タスク番号管理
 
-**使用済みタスク番号**: TASK-0001 ~ TASK-0256（Phase 131: TASK-0217、Phase 132: TASK-0218〜0222、Phase 140: TASK-0223〜0225、Phase 141: TASK-0226〜0228、Phase 142: TASK-0229、Phase 143: TASK-0230、Phase 144: TASK-0231、Phase 145: TASK-0232、Phase 146: TASK-0233、Phase 147: TASK-0234、Phase 148: TASK-0235、Phase 149: TASK-0236、Phase 150: TASK-0237、Phase 151: TASK-0238、Phase 152: TASK-0239、Phase 153: TASK-0240、Phase 154: TASK-0241、Phase 155: TASK-0242、Phase 156: TASK-0243、Phase 157〜159: TASK-0244〜0246、Phase 161: TASK-0247、Phase 162: TASK-0248、Phase 163: TASK-0249、Phase 164: TASK-0250、Phase 165: TASK-0251、Phase 166: TASK-0252、Phase 167: TASK-0253、Phase 168: TASK-0254、Phase 169: TASK-0255、Phase 170: TASK-0256)
-**次回開始番号**: TASK-0257
+**使用済みタスク番号**: TASK-0001 ~ TASK-0256（Phase 131: TASK-0217、Phase 132: TASK-0218〜0222、Phase 140: TASK-0223〜0225、Phase 141: TASK-0226〜0228、Phase 142: TASK-0229、Phase 143: TASK-0230、Phase 144: TASK-0231、Phase 145: TASK-0232、Phase 146: TASK-0233、Phase 147: TASK-0234、Phase 148: TASK-0235、Phase 149: TASK-0236、Phase 150: TASK-0237、Phase 151: TASK-0238、Phase 152: TASK-0239、Phase 153: TASK-0240、Phase 154: TASK-0241、Phase 155: TASK-0242、Phase 156: TASK-0243、Phase 157〜159: TASK-0244〜0246、Phase 161: TASK-0247、Phase 162: TASK-0248、Phase 163: TASK-0249、Phase 164: TASK-0250、Phase 165: TASK-0251、Phase 166: TASK-0252、Phase 167: TASK-0253、Phase 168: TASK-0254、Phase 169: TASK-0255、Phase 170: TASK-0256、Phase 171: TASK-0257)
+**次回開始番号**: TASK-0258
 
 > **REQ 番号帯（Phase 140 決定）**: REQ-313〜322 は acceptance-criteria の TC 帯（TC-313〜321 実在・TC-322 は未 merge PR #9 提案中）との番号衝突回避のため予約（未使用）。機能要件は REQ-323 から、TC は TC-323 から採番する（REQ-326/TC-323 が適用例）。
 
@@ -2634,9 +2634,39 @@ adaptable gate の baseline に捏造値が入ると閾値適応そのものが�
 
 - 全 1 タスク 🔵（触 10 suites / 235 tests GREEN + tsc 両 config 0 + MW-038 2 独立 mutation RED 実測）
 
+## Phase 171: fail-loud の行き先 — per-model LLM response-time producer 実装 + METRIC_EXTRACTORS 静的 guard（REQ-365〜368・MW-039）
+
+**ステータス**: ✅完了（2026-08-21・TASK-0257 完了・実装 + specs を単一 commit に同梱・**Phase 170 make-run feedback の steering 2 指示を直接実装**）
+
+**背景**: Phase 170 への make-run feedback は REQ-364 を VALUABLE 判定し (1)「fail-loud の行き先」— null のままでは LLM Response Time gate が monitor 起動後 1 リクエスト目まで METRIC UNAVAILABLE・deploymentReady=false が常態化。monitor は既に `recordLLMRequest` で LLM request を count しているので **request start/end timing producer が自然な次 TASK**。(2) `METRIC_EXTRACTORS` への `?? 定数` silent-pass 再注入は MW-038 runtime test でのみ検出されるため **静的 guard が必要** — 次の再注入は review を素通りする。advanced/01_use_base_processor は Python/cross-repo 系のため「最小 verifiable task」の手法のみ適用。
+
+**実装**:
+
+- REQ-365: monitor に per-model 累積 counter（`{flash,pro}ResponseTime{TotalMs,Count}`・sanitizeFinite・reset 対応）+ `classifyModelBucket` helper（flash/pro substring 相互排他・複合 `'pro+flash'`/`'cache'` は attribution なし）。snapshot は `count > 0 ? Math.round(totalMs/count) : null`。**cache hit は平均から除外**（model を起動しない ~0ms は lower-is-better gate への微型捏造）
+- REQ-366: llm-service `execute()` の完了 5 経路が `realTimeMonitor.recordLLMRequest` に報告（primary 成功・cache hit・primary 即時失敗・fallback 成功のみ 1 call・全滅は複合ラベル）。**not-enabled は報告しない**。依存方向 analysis→monitoring（循環なし）
+- REQ-367: `tests/guards/adaptive-gates-extractor-no-literal-fallback.test.ts` — METRIC_EXTRACTORS block 内 `\?\? <数字>`/`\|\| <数字>` を ban。anti-vacuity: block 長>500・`: s =>` arrow 数 18 pin・18 key 存在 pin（block 縮小で恒真化を防止）
+- REQ-368: health-check-service catch-fallback（getSnapshot throw 時）が契約 9 field に捏造 0 を再注入していた **MISSED-SIBLING-SITE** → 明示 null（display accumulator のみ有限 0）
+- **設計決定**: quality trio（transcriptionAccuracy/layoutOverlapRate/avgSceneQuality）は producer を作らず fail-closed のまま — METRIC UNAVAILABLE が計装を促す REQ-364 の意図を維持（要件文に明記）
+- MW-039: 3 mutation（monitor 累積削除 → `Received: null`×3・extractor `?? 0.90` 再注入 → 静的 guard + runtime silent-pass + baseline poisoning の 3 failed・wiring 削除 → `Received number of calls: 0`）の独立 RED 実測 → revert 8 suites / 238 tests GREEN 復元・監査 pin ≥38 → ≥39
+
+**タスク**:
+
+- [x] [TASK-0257: fail-loud の行き先 — per-model LLM response-time producer 実装 + METRIC_EXTRACTORS 静的 guard（REQ-365〜368・MW-039）](TASK-0257.md) - 2h (DIRECT) 🔵 ✅2026-08-21（producer 6 + wiring 5 + 静的 guard 22 assertions + fallback 1 tests 追加・影響 8 suites / 250 tests + 消費側 15 suites / 324 tests GREEN・tsc 両 config 0・MW-039 3 独立 mutation RED 実測 + pin ≥38→≥39 + REQ/TC/TASK/MW/overview を同一 commit 同梱）
+
+```
+fail-loud 契約は「行き先」まで面倒を見る — null 化だけでは gate が恒久 UNAVAILABLE になり deploymentReady=false が常態化する。実測可能な metric から順に producer を生やす
+runtime mutation witness は「test が該当 gate を踏んだ時」しか発火しない — silent-pass 形状は静的 guard で SHAPE ごと ban する方が次の再注入を確実に捕える
+catch-fallback の minimal metrics は契約 field に 0 を置きがちな sibling-site — producer 直しの後に全数 grep で追跡する（REQ-368 = REQ-359/364 の見落とし兄弟）
+cache hit を per-model 平均に混ぜない — 「測っていない速さ」で lower-is-better gate を GREEN 側へ傾けるのは捏造と同型
+```
+
+### 信頼性レベルサマリー（Phase 171 追分量）
+
+- 全 1 タスク 🔵（影響 8 suites / 250 tests + 消費側回帰 15 suites / 324 tests + guards 77 suites / 3266 tests GREEN + tsc 両 config 0 + MW-039 3 独立 mutation RED 実測）
+
 ### 次フェーズ開始番号
 
-**次回開始番号**: TASK-0257
+**次回開始番号**: TASK-0258
 
 
 ## Spine: external references
