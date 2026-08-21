@@ -2832,6 +2832,23 @@ bonus/violation の witness fixture は DEFECT-9 cap（measured quality なし �
 **次回開始番号**: TASK-0264
 
 
+## Phase 180: dual QualityMonitor scale 契約の明文化 + 機械担保（REQ-382・TC-366-01・MW-046）
+
+**ステータス**: ✅完了（2026-08-22・TASK-0264 完了・実装 + specs を単一 commit に同梱）
+
+**背景**: 同名 2 monitor（`src/quality/quality-monitor.ts` = 0-1 / `src/pipeline/quality-monitor.ts` = 0-100）が意図的に別 scale を保持。production での cross-wired import は現状ゼロ（latent）だが、0-1 側 interface に scale doc が一切なく、未来の cross-wiring は silent 100x error（SceneGraph ms/s ×1000 と同型の無文書単位 class が score 軸に存在）。
+
+- [x] [TASK-0264: dual QualityMonitor scale 契約の明文化 + 4-leg 機械担保 — quality-monitor-dual-scale.test.ts（REQ-382・TC-366-01・MW-046）](TASK-0264.md) - 2h (DIRECT) 🟡 ✅2026-08-22（0-1 側 4 score に scale doc 付与 + guard 7 tests / 4 legs 新設 + MW-046 entry/appendix row dogfood + 監査 pin ≥45→≥46 + 3 mutation 独立 RED 実測。**scope 決定**: scale 統合は design-heavy として行わず契約文書化 + cross-wiring 検出で担保）
+
+### 信頼性レベルサマリー（Phase 180 追分量）
+
+- 全 1 タスク 🟡（Open L3 candidate「Dual QualityMonitor scale — LATENT」の契約化。guard 7 tests GREEN + ledger 2 suites / 116 tests GREEN + tsc 両 config 0 + specs:mirror:check exit 0 + MW-046 3 独立 mutation RED 実測）
+
+### 次フェーズ開始番号
+
+**次回開始番号**: TASK-0265
+
+
 ## Spine: external references
 
 - [speech-to-visuals API エンドポイント仕様](/home/jinno/speech-to-visuals/specs/speech-to-visuals/api-endpoints.md)

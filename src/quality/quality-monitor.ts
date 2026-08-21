@@ -56,10 +56,17 @@ export interface QualityMetrics {
 export interface QualityAssessment {
   timestamp: Date;
   iteration: number;
-  overallScore: number;
-  performanceScore: number;
-  accuracyScore: number;
-  reliabilityScore: number;
+  /**
+   * All four scores are 0-1 fractions (weighted sums of 0-1 assessors).
+   * The sibling `src/pipeline/quality-monitor.ts` `QualityReport.overallScore`
+   * is 0-100 — the two same-named monitors deliberately keep separate scales
+   * (REQ-382: no consumer may read one monitor's score against the other's
+   * thresholds). Machine-pinned by tests/guards/quality-monitor-dual-scale.test.ts.
+   */
+  overallScore: number; // 0-1
+  performanceScore: number; // 0-1
+  accuracyScore: number; // 0-1
+  reliabilityScore: number; // 0-1
   recommendations: string[];
   concerns: string[];
   improvements: string[];

@@ -409,6 +409,16 @@ judge が再実行なしに主張を検証できるようにする（AI Hub stee
 
 ---
 
+## MW-046 — dual QualityMonitor scale 契約（0-1 vs 0-100）の teeth（REQ-382・Phase 180・TASK-0264・quality-monitor-dual-scale guard 新設）
+
+- **claim**: 同名 2 monitor — `src/quality/quality-monitor.ts` `QualityAssessment.overallScore`（0-1・deployment gate 0.7/0.9）と `src/pipeline/quality-monitor.ts` `QualityReport.overallScore`（0-100・status tier 90/75/60/40）— は意図的に異なる scale を保持する。2026-08-22 時点で両方を import する src ファイルはゼロ（cross-wiring は LATENT）だが、0-1 側の interface には scale 記載が一切なく（undocumented-unit class の score 軸版）、将来の cross-consumer は 100x の silent error を生む。新設 guard `tests/guards/quality-monitor-dual-scale.test.ts`（7 tests）が (1) 0-1 側 behavioral pin（rich success fixture で 4 score すべて ∈ [0,1]）(2) 0-100 側 behavioral pin（measured-good metrics で overallScore > 1 = scale 弁別子・100 'excellent'・no-history は 0/'critical' fail-closed）(3) 両宣言の scale doc（`// 0-1` / `// 0-100`）source-anchor (4) cross-wiring invariant（非 test src ファイルが両 monitor を同時 import することの禁止 — barrel `@/quality` re-export 経由も解決。anti-vacuity で fractional ≥1・percent ≥3 file の分類実績を pin）の 4 面を検証する。0-1 側 interface に scale doc comment を追加（挙動変更なし）。
+- **target**: `src/quality/quality-monitor.ts:66`（QualityAssessment.overallScore の `// 0-1` doc・本 Phase で新設）+ `tests/guards/quality-monitor-dual-scale.test.ts`
+- **mutation**: (a) src/quality/quality-monitor.ts の `assessment.overallScore += assessment.performanceScore * 0.3;` を `* 30` に（0-1 重みの 100x rescale）・(b) 同ファイル `overallScore: number; // 0-1` から `// 0-1` doc を除去（scale 記載の消去）・(c) src/pipeline/main-pipeline.ts（`@/quality` barrel で fractional monitor を import 済み）に `import { getQualityMonitor } from './quality-monitor';` を注入（両 monitor の同時 import = cross-wiring vector の再現）
+- **command**: `NODE_OPTIONS='--experimental-vm-modules --max-old-space-size=4096' npx jest --config jest.config.cjs --testPathPatterns 'quality-monitor-dual-scale'`
+- **observed** (2026-08-22・Phase 180 実施時): ベースライン（guard 新設 + scale doc 追加後）7/7 GREEN・`console.info` で 0-1 側 overall=0.872 を実出力確認。(a) `Tests: 1 failed, 6 passed, 7 total` — RED は leg 1「all four QualityAssessment scores are fractions in [0,1]」（`Expected: <= 1 / Received: 30.572`）。(b) `Tests: 1 failed, 6 passed, 7 total` — RED は leg 3「src/quality QualityAssessment.overallScore is documented `// 0-1`」（`expect(received).toMatch(expected)`）。(c) `Tests: 1 failed, 6 passed, 7 total` — RED は leg 4「every non-test src file imports at most one of the two monitors」（`Expected: not "fractional+percent"`）。各 revert（perl 逆置換・grep で mutant 消滅確認）で 7/7 GREEN 復元。tsc 両 config exit 0・mutant 適用中は revert に `git checkout --` を使わない（未 commit の正規編集が消える — Phase 178 GOTCHA 再掲）。
+
+---
+
 ## 恒久 mutation test（ledger 対象外・常時 CI で走るもの）
 
 以下は「一時 mutant → RED 確認 → revert」ではなく mutant を恒久テスト化したもので、
@@ -438,5 +448,6 @@ make-run steering feedback「future ratchet tasks don't reinvent the table shape
 | MW-042 | recordMetrics DEFAULT `null`→`0` / orchestrator 捏造再注入 / failure path `0` 再注入（3 mutation） | (a) 1 failed (b) 6 failed (c) 1 failed | (a) `Expected: null, Received: 0` (b) 6 site （両捏造方向 2 + vacuous 2 + integration laundering 1 + measured 3） (c) `Expected: undefined, Received: 0` | revert で 7 suites / 216 tests GREEN・回帰 130 suites / 2848 tests GREEN・tsc 0 |
 | MW-043 | catch fallback `successRate: null`→`0` / `totalHits+totalMisses===0` guard 削除 / catch fallback `errorRate: null`→`0`（3 mutation） | (a) 1 failed (b) 1 failed (c) 1 failed | (a) `Expected: null, Received: 0`（gate-fed fallback） (b) `Expected: 'degraded', Received: 'unhealthy'`（hitRate 0% 復帰） (c) `Expected: null, Received: 0`（error/recovery gate） | revert で 2 suites / 68 tests GREEN・回帰 22 suites / 660 tests GREEN・tsc 0 |
 | MW-045 | appendix heading 縮約 / MW-044 template 行削除 / MW-043 行 restoration cell 除去（3 mutation） | (a) 2 failed (b) 1 failed (c) 2 failed | (a) 見出し・末尾位置 leg と demonstrator floor leg の RED (b) `MW-044 (post-appendix entry) carries its template row` の throw (c) `Received length: 4` ×2 leg | revert（perl 逆置換）で 19/19 GREEN 復元 |
+| MW-046 | 0-1 側 performance 重み `* 0.3`→`* 30` / `// 0-1` doc 除去 / main-pipeline に pipeline monitor import 注入（3 mutation） | (a) 1 failed (b) 1 failed (c) 1 failed | (a) `Expected: <= 1, Received: 30.572` (b) `expect(received).toMatch(expected)`（source-anchor leg） (c) `Expected: not "fractional+percent"`（cross-wiring leg） | 各 perl 逆置換 revert で 7/7 GREEN 復元・tsc 両 config 0 |
 
 > **template 列の正規化ルール**: (1) RED-count は `${mutation 適用下の failed test 数}`。 (2) RED-test-name は `Received: ...` または `Expected: ...` の値を part of verdict として引用。複数 site の場合は件数 + site 列挙。 (3) restoration は `${各 revert でグリーン復元した suite/test 数}` + `tsc 0` を最低記述。 (4) 行は `| MW-NNN |` 形式で grep `^\\| MW-0` のヒット対象（恒久 TC の場合は `n/a` 注記）。
