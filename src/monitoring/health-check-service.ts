@@ -138,14 +138,25 @@ class HealthCheckService {
       // contract fields are EXPLICIT null here — this fallback previously
       // fabricated 0s, which reads as "0 MB used / 0 ms responses / perfect
       // quality" to every consumer, the exact fabrication the contract bans.
-      // Counters without a null contract stay 0 ("nothing recorded yet").
+      // REQ-378 (Phase 176): extended the contract to the 5 remaining
+      // gate-fed fields (successRate / avgProcessingTime / activeRequests /
+      // cacheHitRate / errorRate / recoverySuccessRate). Each was previously
+      // fabricated 0 in this fallback, which silently routed the
+      // `>= 0.95 healthy` / `< 60000 ms healthy` / `> 0.4 healthy` /
+      // `< WARNING && > 0.80 healthy` gates to fabricated verdicts for an
+      // UNKNOWN observation window. EXPLICIT null here lets the existing
+      // isFiniteMetric guards (MW-022〜030) fail-loud as METRIC UNAVAILABLE
+      // instead of silently passing on absent measurements. Counters / display
+      // accumulators without a gate (totalRequests / totalErrors / p95/p99 /
+      // cpuUsagePercent / flash/proUsagePercent / estimatedCostSavings /
+      // uptime) stay 0 — "nothing recorded yet" is the honest value.
       metrics = {
         timestamp: Date.now(),
         uptime: 0,
         system: { cpuUsagePercent: 0, memoryUsageMB: null, memoryUsagePercent: null, heapUsedMB: null, heapTotalMB: null },
-        pipeline: { totalRequests: 0, successRate: 0, avgProcessingTime: 0, p95ProcessingTime: 0, p99ProcessingTime: 0, activeRequests: 0 },
-        llm: { totalRequests: 0, cacheHitRate: 0, flashUsagePercent: 0, proUsagePercent: 0, avgFlashResponseTime: null, avgProResponseTime: null, estimatedCostSavings: 0 },
-        errors: { totalErrors: 0, errorRate: 0, recoverySuccessRate: 0, recentErrors: [] },
+        pipeline: { totalRequests: 0, successRate: null, avgProcessingTime: null, p95ProcessingTime: 0, p99ProcessingTime: 0, activeRequests: null },
+        llm: { totalRequests: 0, cacheHitRate: null, flashUsagePercent: 0, proUsagePercent: 0, avgFlashResponseTime: null, avgProResponseTime: null, estimatedCostSavings: 0 },
+        errors: { totalErrors: 0, errorRate: null, recoverySuccessRate: null, recentErrors: [] },
         quality: { transcriptionAccuracy: null, layoutOverlapRate: null, avgSceneQuality: null },
       };
     }
@@ -301,7 +312,28 @@ class HealthCheckService {
 
     const totalHits = stats.totalHits ?? Math.round(stats.hitRate * stats.totalEntries);
     const totalMisses = stats.totalMisses ?? Math.round((1 - stats.hitRate) * stats.totalEntries);
-    const hitRate = totalHits / (totalHits + totalMisses) || 0;
+    // REQ-378 (Phase 176): the `|| 0` silent-PASS closed here. When neither
+    // hits nor misses have been recorded yet (legitimate "no events" state),
+    // the previous `0 / 0 || 0` collapsed to a fabricated 0% and routed to
+    // `unhealthy "Cache is ineffective (0% hit rate)"` — the same shape
+    // REQ-364/374 closed for quality/LLM-timing fields. With finite
+    // `totalEntries` already guaranteed by the guard above, "no events"
+    // (totalHits + totalMisses === 0) is an unmeasured observation window,
+    // not a 0% hit rate, and must surface as degraded "monitoring
+    // unavailable" instead of fabricated unhealthy.
+    if (totalHits + totalMisses === 0) {
+      logger?.warn?.(
+        '[HealthCheck] Cache health check unavailable: no events recorded yet ' +
+          `(totalHits=${totalHits}, totalMisses=${totalMisses}, totalEntries=${stats.totalEntries})`
+      );
+      return {
+        status: 'degraded',
+        message: 'Cache monitoring unavailable: no events recorded yet',
+        latency: Date.now() - startTime,
+        lastChecked: Date.now(),
+      };
+    }
+    const hitRate = totalHits / (totalHits + totalMisses);
 
     let status: 'healthy' | 'degraded' | 'unhealthy';
     let message: string;
@@ -367,18 +399,27 @@ class HealthCheckService {
     // UNKNOWN observation window. Mirror `checkMemoryHealth`'s (REQ-347) and
     // `checkCacheHealth`'s (REQ-348) fail-loud contract so the upstream
     // dashboard sees the real reason instead of a fabricated unhealthy.
-    if (!isFiniteMetric(successRate) || !isFiniteMetric(avgProcessingTime)) {
+    // REQ-378 (Phase 176): extended the guard to `activeRequests` as well —
+    // the fallback now returns EXPLICIT null for `activeRequests` (per the
+    // widened PerformanceSnapshot contract), so without this guard the
+    // `details.activeRequests` line below would propagate null into the
+    // verdict payload (the gate-fed comparison itself happens in
+    // `generateRecommendations`, which already has its own isFiniteMetric
+    // guard from MW-029).
+    if (!isFiniteMetric(successRate) || !isFiniteMetric(avgProcessingTime) || !isFiniteMetric(activeRequests)) {
       const successRateType =
         successRate === undefined ? 'undefined' : typeof successRate;
       const avgProcessingTimeType =
         avgProcessingTime === undefined ? 'undefined' : typeof avgProcessingTime;
+      const activeRequestsType =
+        activeRequests === undefined ? 'undefined' : typeof activeRequests;
       logger?.warn?.(
         `[HealthCheck] Pipeline health check unavailable: backend omitted fields ` +
-          `(successRate=${successRateType}, avgProcessingTime=${avgProcessingTimeType})`
+          `(successRate=${successRateType}, avgProcessingTime=${avgProcessingTimeType}, activeRequests=${activeRequestsType})`
       );
       return {
         status: 'degraded',
-        message: 'Pipeline monitoring unavailable: backend omitted successRate/avgProcessingTime',
+        message: 'Pipeline monitoring unavailable: backend omitted successRate/avgProcessingTime/activeRequests',
         latency: Date.now() - startTime,
         lastChecked: Date.now(),
       };
@@ -408,7 +449,10 @@ class HealthCheckService {
         successRate: roundTo(successRate, 3),
         avgProcessingTime: Math.round(avgProcessingTime),
         p95ProcessingTime: snapshot.pipeline.p95ProcessingTime,
-        activeRequests
+        // Post-guard (REQ-378 widened contract), activeRequests is
+        // guaranteed finite; surface the measured value rather than the
+        // possibly-null raw field.
+        activeRequests: Math.round(activeRequests as number),
       }
     };
   }

@@ -324,7 +324,13 @@ describe('HealthCheckService (REQ-122)', () => {
       expect(result.checks.cache.status).toBe('unhealthy');
     });
 
-    test('should handle zero hits and misses gracefully', async () => {
+    // REQ-378 (Phase 176): zero hits/misses is an UNMEASURED observation
+    // window ("no events recorded yet"), not a 0% hit rate. The previous
+    // `0/0 || 0 → 0%` collapsed to fabricated unhealthy "Cache is
+    // ineffective (0% hit rate)" for the same shape REQ-364/374 closed for
+    // quality/LLM-timing fields. Now surfaces as degraded so consumers
+    // see the real reason instead of a fabricated critical.
+    test('should report degraded when no events have been recorded yet (REQ-378)', async () => {
       globalCache.getStats.mockReturnValue({
         ...defaultCacheStats,
         totalHits: 0,
@@ -332,7 +338,10 @@ describe('HealthCheckService (REQ-122)', () => {
       });
 
       const result = await healthCheckService.performHealthCheck();
-      expect(result.checks.cache.status).toBe('unhealthy');
+      expect(result.checks.cache.status).toBe('degraded');
+      expect(result.checks.cache.message).toBe(
+        'Cache monitoring unavailable: no events recorded yet',
+      );
     });
 
     // MW-023 (REQ-348, Phase 157): backend may return a non-finite hitRate
@@ -431,8 +440,11 @@ describe('HealthCheckService (REQ-122)', () => {
 
       const result = await healthCheckService.performHealthCheck();
       expect(result.checks.pipeline.status).toBe('degraded');
+      // REQ-378 (Phase 176): message widened to include `activeRequests`
+      // (the gate-fed contract widened to also cover activeRequests, so its
+      // omission now routes through the same degraded path).
       expect(result.checks.pipeline.message).toBe(
-        'Pipeline monitoring unavailable: backend omitted successRate/avgProcessingTime'
+        'Pipeline monitoring unavailable: backend omitted successRate/avgProcessingTime/activeRequests'
       );
     });
 
@@ -450,7 +462,7 @@ describe('HealthCheckService (REQ-122)', () => {
       const result = await healthCheckService.performHealthCheck();
       expect(result.checks.pipeline.status).toBe('degraded');
       expect(result.checks.pipeline.message).toBe(
-        'Pipeline monitoring unavailable: backend omitted successRate/avgProcessingTime'
+        'Pipeline monitoring unavailable: backend omitted successRate/avgProcessingTime/activeRequests'
       );
     });
   });
@@ -955,6 +967,120 @@ describe('HealthCheckService (REQ-122)', () => {
       const result = await healthCheckService.performHealthCheck();
       expect(result).toBeDefined();
       expect(result.checks).toBeDefined();
+    });
+  });
+
+  // =========================================================================
+  // REQ-378 (Phase 176): count-or-null contract on the catch fallback —
+  // the 6 gate-fed fields (successRate / avgProcessingTime / activeRequests /
+  // cacheHitRate / errorRate / recoverySuccessRate) must be EXPLICIT null
+  // when `realTimeMonitor.getSnapshot()` throws, NOT fabricated 0. A
+  // fabricated 0 here would silently route the gate-fed thresholds to a
+  // fabricated verdict for an UNKNOWN observation window (the same shape
+  // REQ-364/374 closed for quality/LLM-timing fields).
+  // =========================================================================
+
+  describe('REQ-378 fallback null-or-finite contract', () => {
+    test('fallback exposes null for the 6 gate-fed fields when getSnapshot throws (REQ-378)', async () => {
+      realTimeMonitor.getSnapshot.mockImplementation(() => {
+        throw new Error('snapshot unavailable');
+      });
+
+      const result = await healthCheckService.performHealthCheck();
+
+      // The 6 gate-fed fields must be EXPLICIT null in the fallback shape.
+      // A fabricated 0 here would silently route the
+      //   successRate > 0.95 / avgProcessingTime < 60000 / cacheHitRate > 0.4
+      //   activeRequests > 10 / errorRate < WARNING / recoveryRate > 0.80
+      // gates to fabricated verdicts for an UNKNOWN observation window.
+      expect(result.metrics.pipeline.successRate).toBeNull();
+      expect(result.metrics.pipeline.avgProcessingTime).toBeNull();
+      expect(result.metrics.pipeline.activeRequests).toBeNull();
+      expect(result.metrics.llm.cacheHitRate).toBeNull();
+      expect(result.metrics.errors.errorRate).toBeNull();
+      expect(result.metrics.errors.recoverySuccessRate).toBeNull();
+
+      // Counters / display accumulators without a gate stay 0 — the
+      // honest "nothing recorded yet" value.
+      expect(result.metrics.pipeline.totalRequests).toBe(0);
+      expect(result.metrics.llm.totalRequests).toBe(0);
+      expect(result.metrics.errors.totalErrors).toBe(0);
+      expect(result.metrics.llm.estimatedCostSavings).toBe(0);
+      expect(result.metrics.uptime).toBe(0);
+
+      // The REQ-368 (already-closed) memory / quality / llm-timing null
+      // contract must remain in place across the REQ-378 widening.
+      expect(result.metrics.system.memoryUsageMB).toBeNull();
+      expect(result.metrics.system.heapUsedMB).toBeNull();
+      expect(result.metrics.llm.avgFlashResponseTime).toBeNull();
+      expect(result.metrics.quality.transcriptionAccuracy).toBeNull();
+      expect(result.metrics.quality.layoutOverlapRate).toBeNull();
+    });
+
+    test('fallback null contract surfaces as degraded in every gate-fed check (REQ-378)', async () => {
+      // REQ-378: the 6 gate-fed fields are null in the fallback. Rather
+      // than throwing in `getSnapshot()` (which would also short-circuit
+      // each `checkXxxHealth`'s own try/catch into a generic "metrics
+      // unavailable" before the isFiniteMetric guard fires), mock the
+      // snapshot to RETURN the fallback shape directly. This isolates the
+      // null contract: every gate-fed check sees null, the isFiniteMetric
+      // guard fires, and the "monitoring unavailable" message is emitted.
+      realTimeMonitor.getSnapshot.mockReturnValue({
+        timestamp: Date.now(),
+        uptime: 0,
+        pipeline: {
+          totalRequests: 0,
+          successRate: null,
+          avgProcessingTime: null,
+          p95ProcessingTime: 0,
+          p99ProcessingTime: 0,
+          activeRequests: null,
+        },
+        llm: {
+          totalRequests: 0,
+          flashUsagePercent: 0,
+          proUsagePercent: 0,
+          avgFlashResponseTime: null,
+          avgProResponseTime: null,
+          cacheHitRate: null,
+          estimatedCostSavings: 0,
+        },
+        system: {
+          cpuUsagePercent: 0,
+          memoryUsageMB: null,
+          memoryUsagePercent: null,
+          heapUsedMB: null,
+          heapTotalMB: null,
+        },
+        errors: {
+          totalErrors: 0,
+          errorRate: null,
+          recoverySuccessRate: null,
+          recentErrors: [],
+        },
+        quality: {
+          transcriptionAccuracy: null,
+          layoutOverlapRate: null,
+          avgSceneQuality: null,
+        },
+      });
+
+      const result = await healthCheckService.performHealthCheck();
+
+      // Each gate-fed check has an isFiniteMetric guard (MW-022〜030) that
+      // returns degraded when the value is null. The null contract
+      // therefore cascades into 3 "monitoring unavailable" statuses —
+      // none of them fabricating unhealthy from the absent measurements.
+      expect(result.checks.pipeline.status).toBe('degraded');
+      expect(result.checks.pipeline.message).toContain('Pipeline monitoring unavailable');
+      expect(result.checks.llm.status).toBe('degraded');
+      expect(result.checks.llm.message).toContain('LLM integration unavailable');
+      expect(result.checks.errorRecovery.status).toBe('degraded');
+      expect(result.checks.errorRecovery.message).toContain('Error recovery unavailable');
+
+      // The overall status is the worst of the children. With all 3
+      // gate-fed checks degraded, overall must NOT be 'healthy'.
+      expect(result.status).not.toBe('healthy');
     });
   });
 });

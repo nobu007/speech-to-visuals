@@ -65,11 +65,22 @@ export interface PerformanceSnapshot {
   uptime: number;
   pipeline: {
     totalRequests: number;
-    successRate: number;
-    avgProcessingTime: number;
+    /**
+     * REQ-378 (Phase 176): gate-fed fields carry the finite-or-null contract.
+     * A measured value is a finite number; EXPLICIT null = unmeasured (the
+     * `performHealthCheck` catch fallback, or any code path that has no
+     * reading yet). Never a fabricated 0: a 0 successRate or 0 ms avg time
+     * would read as "broken" to the `>= 0.95 healthy / < 60000 ms healthy`
+     * gate and silently emit fabricated verdicts for an UNKNOWN observation
+     * window. `p95ProcessingTime` / `p99ProcessingTime` / `totalRequests`
+     * stay `number` — display-only or counter, where 0 is the honest
+     * "nothing recorded yet".
+     */
+    successRate: number | null;
+    avgProcessingTime: number | null;
     p95ProcessingTime: number;
     p99ProcessingTime: number;
-    activeRequests: number;
+    activeRequests: number | null;
   };
   llm: {
     totalRequests: number;
@@ -92,7 +103,15 @@ export interface PerformanceSnapshot {
      */
     avgFlashResponseTime: number | null;
     avgProResponseTime: number | null;
-    cacheHitRate: number;
+    /**
+     * REQ-378 (Phase 176): gate-fed field. Measured finite number, or
+     * EXPLICIT null when unmeasured. A fabricated 0 here would route the
+     * `cacheHitRate > 0.4 healthy / > 0.2 degraded / else unhealthy` gate
+     * to a fabricated `unhealthy "Cache is ineffective (0% hit rate)"`
+     * verdict for an UNKNOWN observation window (the same shape REQ-364/374
+     * closed for quality/LLM-timing fields).
+     */
+    cacheHitRate: number | null;
     estimatedCostSavings: number;
   };
   system: {
@@ -113,9 +132,17 @@ export interface PerformanceSnapshot {
   };
   errors: {
     totalErrors: number;
-    errorRate: number;
+    /**
+     * REQ-378 (Phase 176): gate-fed fields. Measured finite number, or
+     * EXPLICIT null when unmeasured. A fabricated 0 here would route the
+     * `errorRate < WARNING && recoveryRate > 0.80` chain to fabricated
+     * "healthy / degraded" verdicts and emit fabricated recommendations
+     * for an UNKNOWN observation window. `totalErrors` stays `number` —
+     * display counter, where 0 is the honest "no errors yet".
+     */
+    errorRate: number | null;
     recentErrors: string[];
-    recoverySuccessRate: number;
+    recoverySuccessRate: number | null;
   };
   quality: {
     /**

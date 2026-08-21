@@ -10,7 +10,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-08-21（Phase 175 AI Hub make-run steering feedback 統合要件化 — REQ-378〜381 追加・TC-362〜365 追加・pre-fold audit 行（round 50・pre-fold count=47）architecture.md に追加・make-run 出力値判定「前イテレーション VALUABLE」継続プロンプト 4 件を次サイクル要件として具体化）
+**最終更新**: 2026-08-21（Phase 176 REQ-378 履行 — count-or-null 契約を health-check-service の fallback に拡張：6 つの gate-fed field（successRate/avgProcessingTime/activeRequests/cacheHitRate/errorRate/recoverySuccessRate）の DEFAULT 0 を明示 null に置換・PerformanceSnapshot 型を `number | null` に widen・`hitRate = ... || 0` silent-PASS を `totalHits+totalMisses === 0 → degraded "no events recorded yet"` へ置換・MW-043 mutation-verified）
 **プロジェクト**: Speech-to-Visuals - 音声→図解動画自動生成システム
 
 ## 技術スタック
