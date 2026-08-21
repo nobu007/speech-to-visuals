@@ -6038,6 +6038,18 @@
   - **再検証コマンド**: `NODE_OPTIONS='--experimental-vm-modules --max-old-space-size=4096' npx jest --config jest.config.cjs --testPathPatterns '(tests/unit/pipeline|src/pipeline|tests/pipeline|tests/quality|src/quality|tests/monitoring|src/monitoring)'` + `node_modules/.bin/tsc -p tsconfig.app.json --noEmit` && `node_modules/.bin/tsc -p tsconfig.test.json --noEmit`
 - [x] **TC-361-06**: mutation-verified で契約が実 teeth を持つこと — 3 mutation が独立に RED になること: (a) recordMetrics DEFAULT `null` → 捏造 `0` 再注入 → 1 failed `Expected: null, Received: 0`（default 契約 test）・(b) orchestrator 実測記録 → `score < 0.7 ? 1 : 0` + `edgeCompleteness: score` 捏造再注入 → 6 failed（両捏造方向 2 + vacuous record 2 + integration edgeCompleteness laundering 1 ほか）・(c) simple-pipeline failure path への `layoutOverlap: 0` 再注入 → 1 failed `Expected: undefined, Received: 0`。revert で GREEN 復元。MW-042 エントリが台帳に追加され監査 pin が **≥41 → ≥42** に引き上げられること（REQ-375〜377）🔵
 
+### Phase 175: AI Hub make-run steering feedback 統合 — count-or-null 一般化・suite-count parity leg・pre-fold audit・mutant ledger 再利用可能化（REQ-378〜381）
+
+> **注記**: Phase 175 の TC は **提案ベースの要件化**（REQ-378/380/381 は 🟡・REQ-379 は 🔵）であり、新規実装時に履行され TC がレビューを経て GREEN 化する。各 TC は「履行後の検証コマンドの RED/GREEN 期待値」まで pin する。次サイクル実行 TASK（例: TASK-0261・0262）で実装着手。
+
+- [ ] **TC-362-01**: REQ-378 count-or-null 一般化 audit — `health-check-service.ts` 6 check（`checkMemoryHealth`/`checkCacheHealth`/`checkPipelineHealth`/`checkLLMHealth`/`checkErrorRecoveryHealth`/`checkLiveness`）と `regression-detector.compareToBaseline` の percent 分母が finite-or-null 化され、`recommendations` 生成経路の silent-PASS（`?? 0` 形）が 0 site になっていること（pin: `grep -rn '\?\? 0' src/monitoring/health-check-service.ts src/quality/regression-detector.ts` が `^//.*\?\? 0` か `^\s*expect.*\?\? 0` のみ）。finite-or-null 化は既存 `isFiniteMetric<T>` (Phase 160 chokepoint) と `sanitizeFinite` (Phase 170 chokepoint) を再利用し、新ヘルパー導入禁止（MW エントリ・pre-fold 監査 pin と連動）。旧 layoutOverlap class の MW 式 mutation が独立 RED になること（REQ-378）🟡 *提案ベース*
+
+- [ ] **TC-363-01**: REQ-379 suite-count == registry-entry-count parity leg — `tests/guards/mutation-witness-ledger-shape.test.ts` を新設し、 `it.each(LEDGER.map(e => [e.id, e.mutant, e.redCount, e.redTestName, e.restoration]))` の第 1 引数 array.length == `LEDGER.length`（>= PINNED 直前 = >=42）と `frozen-literal-registry.test.ts` の `PINNED` 件数同期を担保すること。**widen-doesn't-weaken 実証**: (i) 直近 LEDGER エントリ 1 件削除で mutation-witness-ledger-shape 関連 RED、(ii) PINNED を 1 件削減で frozen-literal-registry RED、(iii) `it.each` を空配列にで同 test RED、3 file で独立 RED になること（REQ-379）🔵 *不変量 pin*
+
+- [ ] **TC-364-01**: REQ-380 pre-fold registry entry-count audit — `specs/speech-to-visuals/architecture.md` の `## freeze-guard レジストリ運用方針（round 50: grid packing family 追加）` 直下に **pre-fold 期待エントリ数（pre-fold count）** + **post-fold 検証結果**（`fingerprint diff: IDENTICAL` or fail reason）の 2 カラムテーブルが毎回記録されていること。pin: `grep -E '^\\| pre-fold count:' specs/speech-to-visuals/architecture.md` のヒット数が **前 fold から増分のみ**（削減不可 = 監査 trail 単調増加）。Phase 175 時点（round 50）の pre-fold count = 47 を初期値として記録（REQ-380）🟡 *提案ベース*
+
+- [ ] **TC-365-01**: REQ-381 4-row mutant ledger template 再利用可能付録 — `specs/speech-to-visuals/mutation-witness-ledger.md` の末尾に **「## 4-row mutant ledger template（再利用可能付録）」** セクションが追加され、 **ID** / **mutant** / **RED-count** / **RED-test-name** / **restoration** の 5 列で構成されること。新規 MW エントリ追加時に template 1 行が自動 append され（手動記載禁止）、既存 MW-001〜042 を **正規化（free-form narrative 保持）** で template 互換にリファクタ可能であること。`tests/guards/mutation-witness-ledger-shape.test.ts` が `grep -cE '^\\| MW-0' specs/speech-to-visuals/mutation-witness-ledger.md` >= `LEDGER.length` と `it.each` 件数同期を担保すること（REQ-381）🟡 *提案ベース*
+
 ### Phase 111+ 受け入れ基準サマリー
 
 | 要件 | テストケース数 | 信頼性 |

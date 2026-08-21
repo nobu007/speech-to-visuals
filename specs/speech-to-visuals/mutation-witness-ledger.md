@@ -399,3 +399,18 @@ CI 実行 = 再検証なので台帳対象外（出典は各テストファイ�
 1. 新規に「mutation-verified」を specs に記載する場合は、同時に本台帳へ MW エントリ（上記フィールド一式）を追加し、監査テストの PINNED 件数を増やす。
 2. 既存エントリの再実行を行った場合は observed/date を更新し、可能なら [EVIDENCE] 行を差し替える（commit hash はその時点の HEAD）。
 3. 台帳の主張と specs 本文の主張が矛盾した場合は、**再実行結果を正**として specs 本文を修正する。
+
+## 4-row mutant ledger template（再利用可能付録）
+
+make-run steering feedback「future ratchet tasks don't reinvent the table shape」対応として、MW エントリを以下の 5 列 template に正規化する。template は新設 `tests/guards/mutation-witness-ledger-shape.test.ts` で `grep -cE '^\\| MW-0' specs/speech-to-visuals/mutation-witness-ledger.md` >= `LEDGER.length` を担保（TC-365-01・REQ-381）。既存 MW-001〜042 エントリの free-form narrative（本文）は保持し、各エントリ末尾に template 行（` | MW-NNN | <mutant> | <redCount> | <received> | <restoration> |`）を追加していく可逆正規化を許容する。
+
+| ID | mutant | RED-count | RED-test-name（Received 抜粋） | restoration |
+|----|--------|-----------|-------------------------------|-------------|
+| MW-001 | statusCodeClass 境界 `<500` 除去 | — | n/a（恒久 TC-205-04） | revert/n/a（恒久 test 化） |
+| MW-038 | `transcriptionAccuracy/layoutOverlapRate/avgSceneQuality` finite-or-null 契約（3 mutation） | (a) 1 failed / 8 passed (b) 3 failed / 49 passed | (a) `Received: 0.9` (b) `Received: true` (blocker silent-pass) | revert で 3 suites / 63 tests GREEN・tsc 0 |
+| MW-039 | recordLLMRequest bucket 累積削除 / `?? 定数` 再注入 / `reportToPerformanceMonitor` 5 call 削除 | (a) 3 failed (b) 3 failed (c) 1 failed | (a) `Received: null` (b) `Received: true` (c) `Received number of calls: 0` | revert で 8 suites / 238 tests GREEN・tsc 0 |
+| MW-040 | QualityMonitor trio/pair 捏造再注入（4 mutation） | (a) 1 failed (b) 2 failed (c) 1 failed (d) 4 failed | (a) `Expected: 0.9, Received: 0` (b) `Expected: 0.7, Received: 0.85` (c) `Expected: 1, Received: 0` (d) `Received: 0.85 × 3, 0.3` | revert で 3 suites / 107 tests GREEN・回帰 156 suites / 4477 tests GREEN・tsc 0 |
+| MW-041 | RTPM `layoutOverlapRate` 全焼 / 捏造 0 再注入 / wiring 削除（3 mutation） | (a) 4 failed (b) 5 failed (c) 2 failed | (a) `Received: null` (b) 5 site （fresh-monitor/degenerate/measured 2/NaN/reset） (c) `Received number of calls: 0` | revert で 7 suites / 205 tests GREEN・回帰 22 suites / 418 tests GREEN・tsc 0 |
+| MW-042 | recordMetrics DEFAULT `null`→`0` / orchestrator 捏造再注入 / failure path `0` 再注入（3 mutation） | (a) 1 failed (b) 6 failed (c) 1 failed | (a) `Expected: null, Received: 0` (b) 6 site （両捏造方向 2 + vacuous 2 + integration laundering 1 + measured 3） (c) `Expected: undefined, Received: 0` | revert で 7 suites / 216 tests GREEN・回帰 130 suites / 2848 tests GREEN・tsc 0 |
+
+> **template 列の正規化ルール**: (1) RED-count は `${mutation 適用下の failed test 数}`。 (2) RED-test-name は `Received: ...` または `Expected: ...` の値を part of verdict として引用。複数 site の場合は件数 + site 列挙。 (3) restoration は `${各 revert でグリーン復元した suite/test 数}` + `tsc 0` を最低記述。 (4) 行は `| MW-NNN |` 形式で grep `^\\| MW-0` のヒット対象（恒久 TC の場合は `n/a` 注記）。

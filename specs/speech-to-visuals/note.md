@@ -10,7 +10,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-08-19（第218回検証・Phase 137 stv-core コア分割後の要件同期 — PR #7 で src/types・src/config・src/lib・src/utils が外部パッケージ `@stv/core` に移管されたことに追随し技術スタック・ディレクトリ構造を更新・REQ-310~312 要件化・要件文書 dead citation 27件解消・interview-record A137 参照）
+**最終更新**: 2026-08-21（Phase 175 AI Hub make-run steering feedback 統合要件化 — REQ-378〜381 追加・TC-362〜365 追加・pre-fold audit 行（round 50・pre-fold count=47）architecture.md に追加・make-run 出力値判定「前イテレーション VALUABLE」継続プロンプト 4 件を次サイクル要件として具体化）
 **プロジェクト**: Speech-to-Visuals - 音声→図解動画自動生成システム
 
 ## 技術スタック
@@ -148,6 +148,7 @@ src/
 - [x] 第210回検証: Phase 131+ パターン横展開提案（REQ-298~301・AI Hub steering feedback A〜D・diagram-type-switch-parity 他同値クラス展開 / storageParser validators JSON.parse vs JSON.stringify 非対称監査 / async-setState positive-case fixture / timestamp guard mutation-verified CI ピン留め）
 - [x] 第211回検証: Phase 131+ 提案具体化（REQ-298/299/300 追加・feedback A/B/C 統合・feedback D「timestamp guard」は REQ-301 codec option 占有のため除外し別経路で段階実装・interview-record A129 参照）
 - [x] 第218回検証: Phase 137 stv-core コア分割後の要件同期（REQ-310~312 — @stv/core 単一ソース/重複実装禁止・GitHub タグ pin 固定・tests/guards 境界 structural pin・requirements.md dead citation 17件 + acceptance-criteria.md 10件解消・Phase 111+ サマリー表 stale 合計是正・interview-record A137 参照）
+- [ ] **第218回+AI Hub make-run: Phase 175 AI Hub make-run steering feedback 統合要件化（REQ-378〜381 要件化完了・TC-362〜365 追加）** — make-run 出力値判定「前イテレーション VALUABLE」「4 commits of concrete bug fixes」からの継続プロンプト 4 件（count-or-null 契約の一般化方針昇格・suite-count == registry-entry-count parity leg 不変量化・pre-fold registry entry-count audit・4-row mutant ledger template 付録昇格）を次サイクル要件として具象化。要件化は完了（spec prose 反映）、実装履行は次 TASK（例: TASK-0261/0262）着手予定。TC-362〜365 は提案ベース（🟡）+ 1 件不変量 pin（🔵 TC-363）で履行を待つ状態。architecture.md に pre-fold audit 行（round 50、pre-fold count = 47）を追加し、frozen-literal-registry の PINNED ≥42 直前の fold 候補 4 family を文書化。mutation-witness-ledger.md の 更新ルール に 4-row template への正規化 step を追加予定
 
 ## 注意事項
 

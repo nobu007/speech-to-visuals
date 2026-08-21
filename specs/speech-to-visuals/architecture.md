@@ -799,6 +799,14 @@ spec整合性の自動検証システム:
 - **分割再検討の閾値**: family ファイルが 1 個 300 行超、または「エントリが独自の走査セマンティクス（新規 roots 探索・述語ウォーク）を必要とする」に到達した場合。アグリゲータ行数は今後トリガーにならない（1 family = 2 行しか増えない）
 - **履歴（round 27 再検討記録）**: round 16 が設けた 800 行閾値を round 27（810 行）で超過し**単一ファイル維持を再確認**、次トリガーを 1200 行に設定 — round 34 時点 1111 行（残り 89 行）で round 35 追加時に到達する見込みだったため、本 round で上記の静的分割を実施した
 
+#### pre-fold registry entry-count audit（Phase 175〜・REQ-380 履行基盤） 🔵
+
+make-run steering feedback「371 → next-target delta is auditable without re-reading the composite source」対応として、fold コミット単位で **pre-fold 期待エントリ数** と **post-fold 検証結果（fingerprint diff）** の 2 カラムを残す。コミット前に必ず `pre-fold count` 行を追加することで、コミットツリー単体から「fold で何 entry 増えたか」が再読なしで判別可能になる。pin: `grep -cE '^\\| pre-fold count:' specs/speech-to-visuals/architecture.md` のヒット数が **前 fold から増分のみ**（削減不可 = 監査 trail 単調増加・TC-364-01）。
+
+| round | pre-fold count | post-fold 検証結果 | 備考 |
+|-------|----------------|-------------------|------|
+| round 50 | 47 | fingerprint diff: IDENTICAL (round 49 → round 50) | grid packing 家族追加・FP 再 grouping ulp delta を bound + witness でピン（registry 47 エントリ・アグリゲータ 124 行 + family 42 個・計 2158 行）。次 fold 候補: v1 dagre パラメータ family / edge-crossings-minimizer orientation+collinear 正典昇格 family / node-dimension resolveNodeWidth/Height 重複導出 family / adaptive-quality-gates extractor family（frozen-literal-registry PINNED ≥42 直前） |
+
 ## Acceptance criteria
 
 - [x] ディレクトリ構造のファイル数が実際の `src/` レイアウトと一致する（386ファイル）
