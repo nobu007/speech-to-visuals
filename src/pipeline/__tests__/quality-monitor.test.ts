@@ -45,7 +45,8 @@ describe('QualityMonitor', () => {
       expect(latest).not.toBeNull();
       expect(latest!.processingTime).toBe(1000);
       expect(latest!.memoryUsage).toBe(0);
-      expect(latest!.layoutOverlap).toBe(0);
+      // REQ-375: unmeasured layout quality defaults to null, not a vacuous 0.
+      expect(latest!.layoutOverlap).toBeNull();
       expect(latest!.errorCount).toBe(0);
       expect(latest!.warningCount).toBe(0);
       expect(latest!.fallbackTriggered).toBe(false);

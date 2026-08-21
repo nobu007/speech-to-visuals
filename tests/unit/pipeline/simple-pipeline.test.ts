@@ -666,12 +666,26 @@ describe('SimplePipeline — Phase 27 quality metrics delegate to canonical esti
         .mockRejectedValue(new Error('transcription failed'));
 
       const rtpmSpy = recordPipelineQualitySpy();
+      const metricsSpy = recordMetricsSpy();
       rtpmSpy.mockClear();
+      metricsSpy.mockClear();
       await pipeline.process({ audioFile: audioFileFixture() });
 
       // The failure path reports its fail-loud zeros to QualityMonitor but
       // must NOT fabricate a "measured 0 overlaps" reading for the RTPM gate.
       expect(rtpmSpy).not.toHaveBeenCalled();
+
+      // REQ-375: the failure-path QualityMonitor record omits layoutOverlap
+      // entirely, so the recordMetrics DEFAULT (null) applies — the run died
+      // before measuring any layout. The previous asserted `layoutOverlap: 0`
+      // here claimed a perfect overlap-free layout (and earned the +5
+      // zero-overlap bonus) for a run that never scanned one.
+      const failurePayload = metricsSpy.mock.calls
+        .map((args: unknown[]) => args[0] as Record<string, unknown>)
+        .find((metrics: Record<string, unknown>) => metrics.errorCount === 1);
+      if (!failurePayload) throw new Error('failure-path recordMetrics call not found');
+      expect(failurePayload.layoutOverlap).toBeUndefined();
+      expect(getQualityMonitor().getLatestMetrics()?.layoutOverlap).toBeNull();
     });
   });
 });

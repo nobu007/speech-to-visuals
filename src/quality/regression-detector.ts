@@ -288,11 +288,13 @@ export class RegressionDetector {
     ];
 
     for (const metric of metricsToCheck) {
-      const baselineValue = this.baseline.metrics[metric] as number;
-      const currentValue = currentMetrics[metric] as number;
+      const baselineValue = this.baseline.metrics[metric] as number | null | undefined;
+      const currentValue = currentMetrics[metric] as number | null | undefined;
 
-      // Skip undefined metrics
-      if (baselineValue === undefined || currentValue === undefined) continue;
+      // Skip undefined metrics, and null (REQ-375: unmeasured layoutOverlap —
+      // a null slipping through would surface as a NaN-% change line)
+      if (baselineValue === null || baselineValue === undefined) continue;
+      if (currentValue === null || currentValue === undefined) continue;
       if (baselineValue === 0) continue; // Cannot compute meaningful % change from zero baseline
 
       // Calculate percentage change (canonical abs-denominator — see metrics-utils)

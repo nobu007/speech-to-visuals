@@ -35,7 +35,19 @@ export interface QualityMetrics {
   sceneSegmentationF1?: number; // 0-1
   entityExtractionF1?: number; // 0-1
   relationshipAccuracy?: number; // 0-1
-  layoutOverlap: number; // count (0 is perfect)
+  /**
+   * MEASURED overlapping-node-pair count across the run's layouts (0 is
+   * perfect), or `null` when the run measured no layout (REQ-375). `null`
+   * is the recordMetrics DEFAULT for every caller that has no measurement:
+   * an unmeasured run asserting `0` claimed "perfect layout" — the +5
+   * zero-overlap bonus and the eq-0 gate read the same field, so a DEFAULT 0
+   * passed the zero-tolerance gate vacuously (the REQ-364 class on this
+   * monitor). Producers: SimplePipeline success path,
+   * FrameworkIntegratedPipeline.extractQualityMetrics (both via the
+   * canonical `countLayoutOverlaps` scan) and PipelineOrchestrator's
+   * layout-stage measurement (`countOverlapPairs`).
+   */
+  layoutOverlap: number | null; // count (0 is perfect) — null = unmeasured
 
   // Output Quality
   edgeCompleteness?: number; // 0-1
@@ -211,7 +223,13 @@ export class QualityMonitor {
       iteration: this.currentIteration,
       processingTime: 0,
       memoryUsage: 0,
-      layoutOverlap: 0,
+      // REQ-375: unmeasured layout quality is null, NOT a vacuous 0. The
+      // eq-0 zero-tolerance violation check and the calculateOverallScore +5
+      // bonus both read this field; a DEFAULT 0 let every record from a run
+      // that never measured layout (gemini-analyzer's per-diagram record,
+      // non-layout stage records, the SimplePipeline failure path) claim a
+      // perfect, overlap-free layout it never scanned for.
+      layoutOverlap: null,
       errorCount: 0,
       warningCount: 0,
       fallbackTriggered: false,
@@ -332,8 +350,10 @@ export class QualityMonitor {
       });
     }
 
-    // Layout overlap (critical)
-    if (metrics.layoutOverlap > this.thresholds.layoutOverlap) {
+    // Layout overlap (critical). REQ-375: null (unmeasured) is skipped — an
+    // unmeasured run neither fails nor passes the eq-0 zero-tolerance gate;
+    // the +5-bonus skip in calculateOverallScore is what keeps that honest.
+    if (metrics.layoutOverlap !== null && metrics.layoutOverlap > this.thresholds.layoutOverlap) {
       violations.push({
         metric: 'layoutOverlap',
         actual: metrics.layoutOverlap,
@@ -395,7 +415,10 @@ export class QualityMonitor {
       }
     }
 
-    // Bonus for excellent metrics
+    // Bonus for excellent metrics. REQ-375: the zero-overlap bonus requires a
+    // MEASURED 0 — `null` (unmeasured) fails the strict equality, so a record
+    // from a run that never scanned its layouts can no longer collect the
+    // perfect-layout bonus on top of the DEFAULT it never earned.
     if (metrics.edgeCompleteness && metrics.edgeCompleteness >= 0.9) {
       score += 5;
     }
@@ -606,9 +629,12 @@ export class QualityMonitor {
 
     const baseline = this.metricsHistory.slice(0, Math.min(5, this.metricsHistory.length - 1));
     const avgBaseline = (metric: keyof QualityMetrics): number => {
+      // REQ-375: `null` (unmeasured layoutOverlap) is excluded like
+      // undefined — isNaN(null) is false, so without the typeof guard a null
+      // would be averaged in as 0.
       const values = baseline
-        .map(m => m[metric] as number)
-        .filter(v => v !== undefined && !isNaN(v));
+        .map(m => m[metric] as number | null | undefined)
+        .filter((v): v is number => typeof v === 'number' && !isNaN(v));
       return values.length > 0
         ? values.reduce((a, b) => a + b, 0) / values.length
         : 0;
@@ -627,10 +653,10 @@ export class QualityMonitor {
     ];
 
     for (const metric of metricsToCheck) {
-      const current = latest[metric] as number;
+      const current = latest[metric] as number | null | undefined;
       const baseline_val = avgBaseline(metric);
 
-      if (current === undefined || baseline_val === 0) continue;
+      if (current === null || current === undefined || baseline_val === 0) continue;
 
       const change = percentChange(current, baseline_val);
       const lowerIsBetter = LOWER_IS_BETTER_QUALITY_METRICS.has(metric);

@@ -77,7 +77,7 @@ describe('QualityMonitor', () => {
       expect(latest).not.toBeNull();
       expect(latest!.processingTime).toBe(10000);
       expect(latest!.memoryUsage).toBe(0); // default
-      expect(latest!.layoutOverlap).toBe(0); // default
+      expect(latest!.layoutOverlap).toBeNull(); // REQ-375 default: unmeasured, not a vacuous 0
       expect(latest!.errorCount).toBe(0); // default
       expect(latest!.warningCount).toBe(0); // default
       expect(latest!.fallbackTriggered).toBe(false); // default

@@ -69,7 +69,11 @@ describe('QualityMonitor (pipeline)', () => {
 
       const latest = requireDefined(monitor.getLatestMetrics(), 'latest metrics');
       expect(latest.memoryUsage).toBe(0);
-      expect(latest.layoutOverlap).toBe(0);
+      // REQ-375: unmeasured layout quality defaults to null, NOT a vacuous 0 —
+      // the DEFAULT used to claim a perfect, overlap-free layout for records
+      // from runs that never scanned one (gemini-analyzer's per-diagram
+      // record, non-layout stage records, the SimplePipeline failure path).
+      expect(latest.layoutOverlap).toBeNull();
       expect(latest.fallbackTriggered).toBe(false);
     });
 
@@ -81,6 +85,54 @@ describe('QualityMonitor (pipeline)', () => {
       // Should have trimmed to around 100
       const latest = requireDefined(monitor.getLatestMetrics(), 'latest metrics');
       expect(latest.processingTime).toBe(109);
+    });
+  });
+
+  describe('layoutOverlap measured-or-null contract (REQ-375)', () => {
+    /**
+     * Fixture engineered so the zero-overlap +5 bonus is the ONLY delta
+     * between the two records and stays below the 100 clamp:
+     * processingTime 40000 > renderTime 30000 (info −5), memoryUsage 1024 >
+     * 512 (warning −10), errorCount 0 (+5), transcriptionAccuracy 0.95
+     * (measured quality above threshold — keeps the DEFECT-9 no-measured-
+     * quality cap out of the comparison).
+     *   null  → 100 − 5 − 10 + 5        = 90
+     *   0     → 100 − 5 − 10 + 5 + 5    = 95
+     */
+    const BASE = {
+      processingTime: 40_000,
+      memoryUsage: 1024,
+      errorCount: 0,
+      warningCount: 0,
+      fallbackTriggered: false,
+      transcriptionAccuracy: 0.95,
+    };
+
+    it('an unmeasured (null) record earns NO zero-overlap bonus', () => {
+      monitor.recordMetrics({ ...BASE, layoutOverlap: null });
+      const report = monitor.generateReport();
+      expect(report.overallScore).toBe(90);
+      // and the eq-0 gate did not fire on the unmeasured record either
+      expect(report.violations.find(v => v.metric === 'layoutOverlap')).toBeUndefined();
+    });
+
+    it('a MEASURED 0 still earns the +5 zero-overlap bonus', () => {
+      monitor.recordMetrics({ ...BASE, layoutOverlap: 0 });
+      const report = monitor.generateReport();
+      expect(report.overallScore).toBe(95);
+      expect(report.violations.find(v => v.metric === 'layoutOverlap')).toBeUndefined();
+    });
+
+    it('a MEASURED count above 0 fires the critical eq-0 violation', () => {
+      monitor.recordMetrics({ ...BASE, layoutOverlap: 2 });
+      const report = monitor.generateReport();
+      const violation = requireDefined(
+        report.violations.find(v => v.metric === 'layoutOverlap'),
+        'layoutOverlap violation',
+      );
+      expect(violation.severity).toBe('critical');
+      expect(violation.actual).toBe(2);
+      expect(violation.expected).toBe(0);
     });
   });
 

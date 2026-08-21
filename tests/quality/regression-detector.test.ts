@@ -469,6 +469,38 @@ describe('RegressionDetector', () => {
       expect(report.regressions.find(x => x.metric === 'layoutOverlap')).toBeUndefined();
     });
 
+    // REQ-375: layoutOverlap is now count-or-null (null = unmeasured). A null
+    // on either side of the comparison must skip the metric — without the
+    // guard, null flowed into the percentage math as NaN and either silently
+    // fell out of every bucket or poisoned the finite check below.
+    test('skips layoutOverlap when the current record is unmeasured (null)', async () => {
+      mockGetLatestMetrics
+        .mockReturnValueOnce(makeMetrics({ layoutOverlap: 10 }))
+        .mockReturnValueOnce(makeMetrics({ layoutOverlap: null }));
+      const d = RegressionDetector.getInstance(currentTestPath);
+      injectMockQualityMonitor(d);
+      await d.establishBaseline();
+      const report = await d.detectRegressions();
+
+      expect(report.regressions.find(x => x.metric === 'layoutOverlap')).toBeUndefined();
+      expect(report.improvements.find(x => x.metric === 'layoutOverlap')).toBeUndefined();
+    });
+
+    test('skips layoutOverlap when the baseline record is unmeasured (null)', async () => {
+      mockGetLatestMetrics
+        .mockReturnValueOnce(makeMetrics({ layoutOverlap: null }))
+        .mockReturnValueOnce(makeMetrics({ layoutOverlap: 7 }));
+      const d = RegressionDetector.getInstance(currentTestPath);
+      injectMockQualityMonitor(d);
+      await d.establishBaseline();
+      const report = await d.detectRegressions();
+
+      expect(report.regressions.find(x => x.metric === 'layoutOverlap')).toBeUndefined();
+      expect(
+        report.regressions.every(x => Number.isFinite(x.changePercent)),
+      ).toBe(true);
+    });
+
     test('does not detect improvement below threshold (2% change)', async () => {
       mockGetLatestMetrics
         .mockReturnValueOnce(makeMetrics({ processingTime: 1000 }))

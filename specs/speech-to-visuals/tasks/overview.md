@@ -2732,6 +2732,37 @@ ESM の frozen namespace でも singleton instance の method は spy 可能 —
 
 **次回開始番号**: TASK-0260
 
+## Phase 174: pipeline QualityMonitor layoutOverlap の未測定 DEFAULT 0 撲滅 — count-or-null 契約 + orchestrator 実測 producer（REQ-375〜377・MW-042）
+
+**ステータス**: ✅完了（2026-08-21・TASK-0260 完了・実装 + specs を単一 commit に同梱・**TASK-0259 が REQ-373 で名指しした recordMetrics DEFAULT 債務の解消**）
+
+**背景**: Phase 173 が RTPM 側 `layoutOverlapRate` に実測 producer を生やした時、spec は「recordMetrics の他 caller（gemini-analyzer・pipeline-orchestrator partial records・SimplePipeline failure path）は DEFAULT `layoutOverlap: 0` を未測定のまま渡す」と次タスクの債務として名指ししていた。pipeline 側 QualityMonitor（0-100 scale）のこの DEFAULT は (i) `calculateOverallScore` の zero-overlap +5 bonus を無測定 run に与え (ii) eq-0 zero-tolerance gate を無測定で恒久 GREEN にする（REQ-364 class の最後の live instance）。さらに orchestrator layout stage は `score < 0.7 ? 1 : 0` の count 捏造 + `edgeCompleteness: score` laundering の二重構造だった。
+
+**実装**:
+
+- REQ-375: `QualityMetrics.layoutOverlap` を `number | null`（count・null = unmeasured）とし `recordMetrics` DEFAULT を null に。**設計決定**: RTPM `layoutOverlapRate`（Phase 173・count）と同量・同契約に揃える（片方だけ null 対応だと eq-0 blocker が未測定側だけ通過する）。消費側 null 集約 6 site（checkThresholds・calculateOverallScore・compareToBaseline ×2・regression-detector・improvement-detector）+ simple-pipeline failure path の key 除去
+- REQ-376: orchestrator に private `measureLayoutOverlaps`（canonical `countOverlapPairs(nodes, 0)` で run 全 layout を scan・`measuredLayouts` は ≥1 node の layout 数）を追加し、layout stage の record を `layoutOverlap: overlapCount`（実測）に置換。`edgeCompleteness` は record から除去（producer = GeminiAnalyzer edge-ratio に一元化）。全 empty layout run は記録なし（DEFAULT null が効く）
+- REQ-377 / MW-042: 3 mutation（DEFAULT 捏造 0 再注入 1 failed・orchestrator 捏造再注入 6 failed・failure path 0 再注入 1 failed）の独立 RED 実測 → revert GREEN 復元・監査 pin ≥41 → ≥42。**scope 決定**: orchestrator への RTPM wiring は追加しない（Phase 173 が live 3 site 済み・dormant export に ESM mock 負荷だけ増える）
+
+**タスク**:
+
+- [x] [TASK-0260: pipeline QualityMonitor layoutOverlap の未測定 DEFAULT 0 撲滅 — count-or-null 契約 + orchestrator 実測 producer（REQ-375〜377・MW-042）](TASK-0260.md) - 2h (DIRECT) 🔵 ✅2026-08-21（契約 test 3 + white-box 9 + sibling 修正・影響 7 suites / 216 tests + 回帰 130 suites / 2848 tests GREEN・tsc 両 config 0・MW-042 3 独立 mutation RED 実測 + pin ≥41→≥42 + REQ/TC/TASK/MW/overview を同一 commit 同梱）
+
+```
+「0 is perfect」系 metric の DEFAULT は null にする — DEFAULT 0 は「測定していない run」に perfect 主張 + bonus を与え eq-0 gate を無測定で GREEN にする（RTPM 側と同契約に揃えると blocker が片側だけ抜ける穴が閉じる）
+score→count 変換の inline branch は両方向が誤り — 低 score × clean layout は phantom violation・高 score × 実 overlap は perfect 偽装。count は canonical scan の実測でのみ record する
+bonus/violation の witness fixture は DEFECT-9 cap（measured quality なし → ceiling 59）を意識して設計する — transcriptionAccuracy を与えないと score が clamp されて bonus の delta が見えない
+同名 test file が 2 ヶ所（src/pipeline/__tests__ と tests/unit/pipeline）に同居している — 一方だけ直すと回帰 run まで発覚が遅れる（MISSED-SIBLING-SITE の test 版）
+```
+
+### 信頼性レベルサマリー（Phase 174 追分量）
+
+- 全 1 タスク 🔵（影響 7 suites / 216 tests + 回帰 130 suites / 2848 tests GREEN + tsc 両 config 0 + MW-042 3 独立 mutation RED 実測）
+
+### 次フェーズ開始番号
+
+**次回開始番号**: TASK-0261
+
 
 ## Spine: external references
 

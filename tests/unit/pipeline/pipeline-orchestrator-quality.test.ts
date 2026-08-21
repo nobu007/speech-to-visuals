@@ -108,15 +108,21 @@ describe('PipelineOrchestrator QualityMonitor Integration (REQ-088)', () => {
     const orchestrator = new PipelineOrchestrator();
     const result = await orchestrator.execute(makeValidPipelineInput());
 
-    // Find the layout quality recording
+    // Find the layout quality recording. REQ-375: the layout-stage record
+    // carries the MEASURED overlap count (layoutOverlap) — not the laundered
+    // edgeCompleteness copy of the composite layout score it used to carry.
     const layoutCall = recordMetricsSpy.mock.calls.find(
-      (call: QualityCall) => call[0].edgeCompleteness !== undefined,
+      (call: QualityCall) => call[0].layoutOverlap !== undefined,
     );
 
     // Layout quality should be recorded if layoutQualityScore was computed
     if (result.metrics?.layoutQualityScore !== undefined) {
       expect(layoutCall).toBeDefined();
-      expect(requireQualityCall(layoutCall, 'layout')[0].edgeCompleteness).toBeGreaterThanOrEqual(0);
+      const recorded = requireQualityCall(layoutCall, 'layout')[0].layoutOverlap;
+      expect(recorded).not.toBeNull();
+      expect(recorded as number).toBeGreaterThanOrEqual(0);
+      // the composite score must no longer be laundered through this record
+      expect(requireQualityCall(layoutCall, 'layout')[0].edgeCompleteness).toBeUndefined();
     }
   });
 

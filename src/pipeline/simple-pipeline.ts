@@ -690,12 +690,14 @@ export class SimplePipeline {
         inputFileName: input.audioFile.name,
       });
 
-      // Phase 27: Record failure metrics
+      // Phase 27: Record failure metrics. REQ-375: NO layoutOverlap here — a
+      // failed run never measured its layouts, and the recordMetrics DEFAULT
+      // (null) now says exactly that. The previous asserted `0` claimed a
+      // perfect, overlap-free layout for a run that died before/at layout.
       const qualityMonitor = getQualityMonitor();
       qualityMonitor.recordMetrics({
         processingTime: failureProcessingTime,
         memoryUsage: getHeapUsed() / (1024 * 1024),
-        layoutOverlap: 0,
         errorCount: 1,
         warningCount: 0,
         fallbackTriggered: true,

@@ -187,8 +187,12 @@ export class ImprovementDetector {
       });
     }
 
-    // Check layout overlap (critical metric)
-    if (latestMetrics.layoutOverlap > DEFAULT_LAYOUT_OVERLAP_THRESHOLD) {
+    // Check layout overlap (critical metric). REQ-375: null = the run never
+    // measured its layouts — no critical opportunity either way (null > 0 is
+    // false), but the guard keeps that skip an explicit contract instead of
+    // an accident of coercion.
+    if (latestMetrics.layoutOverlap !== null &&
+        latestMetrics.layoutOverlap > DEFAULT_LAYOUT_OVERLAP_THRESHOLD) {
       opportunities.push({
         area: 'Layout Quality',
         priority: 'critical',

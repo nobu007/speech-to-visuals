@@ -375,6 +375,16 @@ judge が再実行なしに主張を検証できるようにする（AI Hub stee
 
 ---
 
+## MW-042 — pipeline QualityMonitor layoutOverlap count-or-null 契約・orchestrator 実測 producer の teeth（REQ-375〜377・Phase 174・TASK-0260）
+
+- **claim**: pipeline 側 QualityMonitor（0-100 scale）の `layoutOverlap` を count-or-null（null = unmeasured）契約化し、TASK-0259 が REQ-373 設計決定で名指しした債務「recordMetrics の他 caller は DEFAULT `layoutOverlap: 0` を未測定のまま渡す」を解消した。旧 DEFAULT 0 は `calculateOverallScore` の zero-overlap +5 bonus を無測定 run に与え eq-0 zero-tolerance gate を無測定で恒久 GREEN にする（REQ-364 class の最後の live instance）。あわせて orchestrator layout stage の捏造二重構造（`score < 0.7 ? 1 : 0` の count 捏造 + `edgeCompleteness: score` laundering）を canonical `countOverlapPairs` 実測に置換した。MW-042 の mutation は (a) DEFAULT 捏造 0 再注入・(b) orchestrator 捏造再注入・(c) failure path 0 再注入がそれぞれ独立に RED になる実 teeth を実証する。**設計決定**: RTPM `layoutOverlapRate`（Phase 173・count）と同量・同契約に揃える（片方だけ null 対応だと eq-0 blocker が 2 経路のうち未測定側だけ通過する）・orchestrator への RTPM wiring は追加しない（live 3 site は Phase 173 済み・dormant export に ESM mock 負荷だけ増える）。
+- **target**: `src/pipeline/quality-monitor.ts`（QualityMetrics.layoutOverlap / recordMetrics DEFAULT / checkThresholds / calculateOverallScore / compareToBaseline）/ `src/pipeline/pipeline-orchestrator.ts`（measureLayoutOverlaps / recordStageQuality layout case）/ `src/pipeline/simple-pipeline.ts`（failure path）/ `src/pipeline/improvement-detector.ts` / `src/quality/regression-detector.ts`
+- **mutation**: (a) recordMetrics DEFAULT `layoutOverlap: null,` → 捏造 `0,`・(b) layout case の `if (measuredLayout && measuredLayout.measuredLayouts > 0) { … layoutOverlap: measuredLayout.overlapCount }` → `if (score !== undefined) { … layoutOverlap: score < 0.7 ? 1 : 0, edgeCompleteness: score }`・(c) failure path recordMetrics に `layoutOverlap: 0,` 再注入
+- **command**: 各 mutation 適用後に (a) `--testPathPatterns 'tests/unit/pipeline/pipeline-quality-monitor'`・(b) `--testPathPatterns 'pipeline-orchestrator-layout-measurement|pipeline-orchestrator-quality'`・(c) `--testPathPatterns 'tests/unit/pipeline/simple-pipeline'`（共通 prefix: `NODE_OPTIONS='--experimental-vm-modules --max-old-space-size=4096' npx jest --config jest.config.cjs`）
+- **observed** (2026-08-21・Phase 174 実施時): (a) 1 failed — default 契約 test が **`Expected: null, Received: 0`** で RED（vacuous 0 再注入の直接検出・bonus 側は明示 null が spread で勝つため default 面が検出面）。(b) 6 failed — white-box 4（measured 0 with low score **`Expected: {layoutOverlap: 0}, Received: {layoutOverlap: 1, edgeCompleteness: 0.5}`**・measured 3 with high score の逆方向・vacuous record 2）+ integration 2（edgeCompleteness laundering `Received: 0.5599…`・layoutOverlap 検出）で RED。(c) 1 failed — failure-path test が **`Expected: undefined, Received: 0`** で RED。各 revert（perl 逆置換・grep で実装残存確認）で 7 suites / 216 tests GREEN 復元・回帰 130 suites / 2848 tests（pipeline/quality/monitoring 全域）GREEN・tsc 両 config 0 error。**GOTCHA**: 同名 test file が `src/pipeline/__tests__/quality-monitor.test.ts` と `tests/unit/pipeline/pipeline-quality-monitor.test.ts` に同居 — 片方だけ直すと広域回帰まで発覚が遅れる（MISSED-SIBLING-SITE の test 版・影響 7 suites の初回 run で捕捉）。監査 pin **≥41 → ≥42** に引き上げ（MW-042 追加で 41 → 42 エントリ）。
+
+---
+
 ## 恒久 mutation test（ledger 対象外・常時 CI で走るもの）
 
 以下は「一時 mutant → RED 確認 → revert」ではなく mutant を恒久テスト化したもので、

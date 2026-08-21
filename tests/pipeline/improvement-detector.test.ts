@@ -138,6 +138,17 @@ describe('ImprovementDetector', () => {
   });
 
   describe('generateReport - layout overlap opportunity', () => {
+    it('raises NO layout opportunity for an unmeasured (null) overlap count (REQ-375)', () => {
+      const monitor = createMockMonitor(makeMetrics({ layoutOverlap: null }));
+      const detector = new ImprovementDetector(monitor as never);
+      const report = detector.generateReport();
+
+      // null = unmeasured. Under the old DEFAULT-0 contract every unmeasured
+      // record read as a perfect layout; the inverse trap — treating null as
+      // a violation — would flag every gemini-analyzer record as critical.
+      expect(report.opportunities.find(o => o.area === 'Layout Quality')).toBeUndefined();
+    });
+
     it('detects layout overlap as critical', () => {
       const monitor = createMockMonitor(makeMetrics({ layoutOverlap: 3 }));
       const detector = new ImprovementDetector(monitor as never);

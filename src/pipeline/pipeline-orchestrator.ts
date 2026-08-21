@@ -34,6 +34,7 @@ import type { ConfigSchema } from '@stv/core/config/schema';
 import SmartParameterTuner from '@/optimization/smart-parameter-tuner';
 import { scoreLayout } from '@/visualization/layout-quality-composite';
 import { runAutoOptimization } from '@/visualization/layout-auto-optimizer';
+import { countOverlapPairs } from '@/visualization/layout-utils';
 import { sizeAllLabels, LabelSizingResult } from '@/visualization/smart-label-sizer';
 import { executeLayoutsInParallel, executeScenePreparationInParallel } from './parallel-layout-executor';
 import { timeStage, StageTimingRecord, aggregateTimingReport, StageTimingReport } from './stage-timing-metrics';
@@ -414,8 +415,15 @@ export class PipelineOrchestrator {
       const labelMetrics = this.applyLabelSizing(layoutResults);
       qualityMetrics = { ...qualityMetrics, ...labelMetrics };
 
-      // Record layout quality score (REQ-088)
-      this.recordStageQuality('layout', qualityMetrics, qualityScores);
+      // Record layout quality score (REQ-088). REQ-375: the overlap count is
+      // MEASURED off the final layouts (post-optimization, post-label-sizing
+      // — label sizing never moves nodes) via the canonical pairwise scan.
+      this.recordStageQuality(
+        'layout',
+        qualityMetrics,
+        qualityScores,
+        this.measureLayoutOverlaps(layoutResults),
+      );
 
       // Check if run should abort
       if (this.errorRecoveryOrchestrator.shouldAbort()) {
@@ -1048,14 +1056,59 @@ export class PipelineOrchestrator {
   // ---------- Quality Optimization (REQ-084) ----------
 
   /**
+   * MEASURED layout-overlap count across the run's final (post-optimization,
+   * post-label-sizing) layouts (REQ-375). Delegates to the canonical
+   * pairwise scan `countOverlapPairs` (predicate `nodesOverlap`, spacing 0)
+   * — the same source of truth `countLayoutOverlaps`,
+   * `FrameworkIntegratedPipeline.detectLayoutOverlaps` and the layout
+   * quality gate use — so this count can never drift from the engines' own
+   * overlap definition.
+   *
+   * `measuredLayouts` counts layouts with ≥1 positioned node (mirroring
+   * `optimizeLayoutQuality`'s `scoredCount`): a run whose layouts were all
+   * empty measured nothing and records nothing, rather than a vacuous 0.
+   */
+  private measureLayoutOverlaps(
+    layoutResults: unknown[],
+  ): { measuredLayouts: number; overlapCount: number } {
+    let measuredLayouts = 0;
+    let overlapCount = 0;
+
+    for (const result of layoutResults) {
+      const item = result as Record<string, unknown>;
+      const layout = item?.layout as Record<string, unknown> | undefined;
+      if (!layout) continue;
+
+      const nodes = (layout.nodes ?? []) as PositionedNode[];
+      if (nodes.length === 0) continue;
+      measuredLayouts++;
+
+      overlapCount += countOverlapPairs(nodes, 0);
+    }
+
+    return { measuredLayouts, overlapCount };
+  }
+
+  /**
    * Record a stage's quality score via QualityMonitor (REQ-088).
    * Extracts stage-specific quality from stage output and records it.
    * Silently continues if QualityMonitor is unavailable.
+   *
+   * `measuredLayout` (layout stage only, REQ-375): the measured overlap
+   * count from {@link measureLayoutOverlaps}, recorded as the run's
+   * `layoutOverlap` INSTEAD of deriving one from the layout quality score —
+   * the previous `score < 0.7 ? 1 : 0` fabricated an overlap count from an
+   * unrelated 0-1 quality score (a low-quality-but-clean layout reported a
+   * phantom "1 overlap"; a real overlap under a ≥0.7 score reported a
+   * perfect 0). `edgeCompleteness` is no longer laundered here either: its
+   * producer is the analysis-time edge-ratio record (GeminiAnalyzer), and
+   * the layout composite score is not that metric.
    */
   private recordStageQuality(
     stage: 'transcription' | 'analysis' | 'layout' | 'rendering',
     stageOutput: unknown,
     qualityScores: StageQualityScores,
+    measuredLayout?: { measuredLayouts: number; overlapCount: number },
   ): void {
     if (!this.qualityMonitor) return;
 
@@ -1089,12 +1142,12 @@ export class PipelineOrchestrator {
           break;
         }
         case 'layout': {
-          // Use the already-computed layout quality score
+          // Use the already-computed layout quality score as the STAGE score
           score = (output?.layoutQualityScore as number) ?? undefined;
-          if (score !== undefined) {
+          // The overlap COUNT is the measured scan, never the score branch.
+          if (measuredLayout && measuredLayout.measuredLayouts > 0) {
             this.qualityMonitor.recordMetrics({
-              layoutOverlap: score < 0.7 ? 1 : 0,
-              edgeCompleteness: score,
+              layoutOverlap: measuredLayout.overlapCount,
             });
           }
           break;
