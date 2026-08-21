@@ -2849,6 +2849,23 @@ bonus/violation の witness fixture は DEFECT-9 cap（measured quality なし �
 **次回開始番号**: TASK-0265
 
 
+## Phase 181: evaluateIterationQuality 未計測 leg 捏造修正（REQ-383・TC-367-01〜03・MW-047）
+
+**ステータス**: ✅完了（2026-08-22・TASK-0265 完了・実装 + specs を単一 commit に同梱）
+
+**背景**: `src/quality/quality-monitor.ts` `evaluateIterationQuality`（Iteration Quality Score 5 leg）の 3 leg が実測性を欠いていた。唯一の production caller（MainPipeline）の `PipelineResult.metrics` は `totalRetryAttempts` のみ populate するため全実 run で (1) processingTime leg が optional `metrics?.totalProcessingTime` 未生産により 0.5 固定（必須 `result.processingTime` に実測があるのに無視）(2) 未計測 memoryUsage leg の 0.5 が Score 上限を 90% に固定 + 「💾 memory optimization」推奨を恒久発生 (3) `documentation: 1.0 // Assuming proper documentation` が分母を膨張、の 3 欠陥（REQ-375 の対称形 = 未計測 mid による問題主張）。
+
+- [x] [TASK-0265: evaluateIterationQuality 未計測 leg 捏造修正 — top-level processingTime・measured-only memoryUsage・documentation leg 除去（REQ-383・TC-367-01〜03・MW-047）](TASK-0265.md) - 2h (DIRECT) 🔵 ✅2026-08-22（processingTime leg を必須 field 読みに切替 + memoryUsage leg を計測時のみ keyset 挿入・💾 推奨 gate + documentation leg 除去 + behavioral pin 5 tests 追加 36/36 GREEN + 広域 49 suites / 1340 tests GREEN + tsc 両 config 0 + specs:mirror:check exit 0 + MW-047 3 独立 mutation RED 実測（4/4/2 failed）+ 監査 pin ≥46→≥47。**scope 決定**: `metrics.memoryUsage` producer は Phase 171「fail-closed が計装を促す」方針で作成しない。**追加修正**: Phase 178 vendoring の missed-sibling — `src/pipeline/__tests__/percent-change-single-source.test.ts` が HEAD で既に RED（旧 `@stv/core/lib/metrics-utils` anchor 残留）を per-site canonical map 化で解消・pipeline 広域 2165/2165 GREEN）
+
+### 信頼性レベルサマリー（Phase 181 追分量）
+
+- 全 1 タスク 🔵（実装・型・caller 全を live 読みで確認した実欠陥修正。影響 12 suites / 316 tests + 広域 49 suites / 1340 tests GREEN + tsc 両 config 0 + MW-047 3 独立 mutation RED 実測）
+
+### 次フェーズ開始番号
+
+**次回開始番号**: TASK-0266
+
+
 ## Spine: external references
 
 - [speech-to-visuals API エンドポイント仕様](/home/jinno/speech-to-visuals/specs/speech-to-visuals/api-endpoints.md)

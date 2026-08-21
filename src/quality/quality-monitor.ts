@@ -816,19 +816,40 @@ export class QualityMonitor {
     assessment: QualityAssessment
   ): Promise<void> {
 
-    const iterationMetrics = {
-      processingTime: typeof result.metrics?.totalProcessingTime === 'number' && Number.isFinite(result.metrics.totalProcessingTime)
-        ? (result.metrics.totalProcessingTime < 30000 ? 1.0 : 0.5)
-        : 0.5,
-      memoryUsage: typeof result.metrics?.memoryUsage === 'number' && Number.isFinite(result.metrics.memoryUsage)
-        ? (result.metrics.memoryUsage < 256 * 1024 * 1024 ? 1.0 : 0.5)
-        : 0.5,
+    // REQ-383: the timing leg reads the REQUIRED top-level `processingTime`,
+    // not the optional extended copy. MainPipeline never populates
+    // `metrics.totalProcessingTime` (its PipelineResult.metrics carries only
+    // totalRetryAttempts), so the old read scored every real run at the 0.5
+    // fallback while the always-set `result.processingTime` held the actual
+    // measurement one field over.
+    const processingTimeScore = Number.isFinite(result.processingTime)
+      ? (result.processingTime < 30000 ? 1.0 : 0.5)
+      : 0.5;
+
+    // REQ-383: `metrics.memoryUsage` (bytes — ExtendedPipelineMetrics contract)
+    // is OPTIONAL and currently unproduced by MainPipeline. An unmeasured leg
+    // must not claim a score: it is EXCLUDED from the keyset-derived average
+    // and its recommendation never fires. The old unconditional 0.5 fallback
+    // capped every production run's Iteration Quality Score at 90% and pushed
+    // a memory-optimization recommendation for a metric nobody measured.
+    const memoryUsageBytes = result.metrics?.memoryUsage;
+    const memoryUsageMeasured =
+      typeof memoryUsageBytes === 'number' && Number.isFinite(memoryUsageBytes);
+
+    const iterationMetrics: Record<string, number> = {
+      processingTime: processingTimeScore,
       errorHandling: result.stages.length > 0
         ? result.stages.filter(s => s.success).length / result.stages.length
         : 0,
       outputQuality: result.outputPath ? 1.0 : 0.0,
-      documentation: 1.0 // Assuming proper documentation
+      // documentation: REMOVED (REQ-383) — the previous leg hardcoded
+      // `1.0 // Assuming proper documentation`, a fabricated always-pass that
+      // diluted every real leg's weight in the average.
     };
+    if (memoryUsageMeasured) {
+      iterationMetrics.memoryUsage =
+        memoryUsageBytes < 256 * 1024 * 1024 ? 1.0 : 0.5;
+    }
 
     // Same keyset-derived denominator rule as averageCompliance above.
     const iterationValues = Object.values(iterationMetrics);
@@ -843,7 +864,7 @@ export class QualityMonitor {
       if (iterationMetrics.processingTime < 1.0) {
         assessment.recommendations.push('🚀 Optimize processing speed for better performance');
       }
-      if (iterationMetrics.memoryUsage < 1.0) {
+      if (memoryUsageMeasured && iterationMetrics.memoryUsage < 1.0) {
         assessment.recommendations.push('💾 Implement memory optimization strategies');
       }
       if (iterationMetrics.errorHandling < 0.9) {

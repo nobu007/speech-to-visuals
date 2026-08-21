@@ -80,22 +80,36 @@ describe('percentChange — pure-consumer delegation', () => {
  */
 describe('percentChange — no consumer re-inlines the formula', () => {
   const REPO_ROOT = path.resolve(fileURLToPath(new URL('.', import.meta.url)), '..', '..', '..');
-  const SITES = [
-    'src/quality/regression-detector.ts',
-    'src/pipeline/performance-regression-detector.ts',
-    'src/pipeline/cost-efficiency-metrics.ts',
-    'src/pipeline/quality-monitor.ts',
-  ];
+  // Phase 178 (REQ-378 recovery / MW-044): src/quality/regression-detector.ts
+  // switched from the pinned @stv/core `percentChange` export (absent from
+  // v1.0.7 — the broken-import R5 grounding failure) to the in-repo vendored
+  // helper `src/quality/lib/change-percent-or-null.ts` (same formula plus the
+  // baseline===0/non-finite → null contract). Its canonical import is the
+  // vendored path, not metrics-utils; the other three sites keep importing
+  // the @stv/core helper.
+  const CANONICAL_IMPORT: Record<string, string> = {
+    'src/quality/regression-detector.ts': "from './lib/change-percent-or-null'",
+    'src/pipeline/performance-regression-detector.ts': "from '@stv/core/lib/metrics-utils'",
+    'src/pipeline/cost-efficiency-metrics.ts': "from '@stv/core/lib/metrics-utils'",
+    'src/pipeline/quality-monitor.ts': "from '@stv/core/lib/metrics-utils'",
+  };
+  const CANONICAL_SYMBOL: Record<string, RegExp> = {
+    'src/quality/regression-detector.ts': /changePercentOrNull/,
+    'src/pipeline/performance-regression-detector.ts': /percentChange/,
+    'src/pipeline/cost-efficiency-metrics.ts': /percentChange/,
+    'src/pipeline/quality-monitor.ts': /percentChange/,
+  };
+  const SITES = Object.keys(CANONICAL_IMPORT);
 
   for (const rel of SITES) {
     it(`${rel} imports percentChange and does not re-inline the formula`, () => {
       const src = fs.readFileSync(path.join(REPO_ROOT, rel), 'utf-8');
       // NOTE: this Jest build's `expect(value, message)` takes 1 arg only, so
       // messages are plain comments rather than the 2nd expect argument.
-      // 1. must import the canonical helper
-      expect(src).toContain("from '@stv/core/lib/metrics-utils'");
-      // 2. must reference percentChange (not just import it unused)
-      expect(src).toMatch(/percentChange/);
+      // 1. must import its canonical helper (vendored or @stv/core)
+      expect(src).toContain(CANONICAL_IMPORT[rel]);
+      // 2. must reference the canonical symbol (not just import it unused)
+      expect(src).toMatch(CANONICAL_SYMBOL[rel]);
       // 3. must NOT re-inline the abs-denominator form `/ Math.abs(...) ) * 100`
       expect(src).not.toMatch(/\/\s*Math\.abs\([^)]*\)\s*\)\s*\*\s*100/);
       // 4. must NOT re-inline a raw-denominator form `/ baseline…) * 100`

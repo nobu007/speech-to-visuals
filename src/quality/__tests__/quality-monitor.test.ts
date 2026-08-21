@@ -330,6 +330,72 @@ describe('QualityMonitor', () => {
     });
   });
 
+  // --- REQ-383: iteration-quality legs read measured fields only ---
+
+  describe('evaluateIterationQuality (REQ-383: measured legs only)', () => {
+    it('production-shape result (no metrics.memoryUsage) scores 100% and never recommends memory optimization', async () => {
+      // MainPipeline's PipelineResult.metrics carries only totalRetryAttempts
+      // — memoryUsage is never produced. The unmeasured leg must be EXCLUDED
+      // from the average (not scored 0.5) and must not emit its
+      // recommendation for a metric nobody measured.
+      const result = makeResult({ metrics: { totalRetryAttempts: 0 } });
+
+      const assessment = await monitor.assessPipelineQuality(result);
+
+      const scoreMsg = assessment.improvements.find(i => i.includes('Iteration Quality Score'));
+      expect(scoreMsg).toContain('100.0%');
+      expect(assessment.recommendations.some(r => r.includes('💾'))).toBe(false);
+    });
+
+    it('the required top-level processingTime is authoritative when the optional metrics copy disagrees', async () => {
+      // metrics.totalProcessingTime (never produced by MainPipeline) says
+      // 99999; the REQUIRED result.processingTime says 10000. The leg must
+      // read the required field: fast → 1.0 → no processing-speed
+      // recommendation and an unmarred 100.0%.
+      const result = makeResult({ metrics: { totalProcessingTime: 99999 } });
+
+      const assessment = await monitor.assessPipelineQuality(result);
+
+      const scoreMsg = assessment.improvements.find(i => i.includes('Iteration Quality Score'));
+      expect(scoreMsg).toContain('100.0%');
+      expect(assessment.recommendations.some(r => r.includes('🚀'))).toBe(false);
+    });
+
+    it('averages measured legs only — a failed-stages run scores 66.7%, not diluted by a fabricated documentation leg', async () => {
+      // stages: [] → errorHandling 0; processingTime 10000 → 1.0; outputPath
+      // → 1.0. (1.0 + 0 + 1.0) / 3 = 66.7%. Re-adding the removed hardcoded
+      // `documentation: 1.0` leg would dilute the failure to 75.0%.
+      const result = makeResult({ stages: [], metrics: { totalRetryAttempts: 0 } });
+
+      const assessment = await monitor.assessPipelineQuality(result);
+
+      const scoreMsg = assessment.improvements.find(i => i.includes('Iteration Quality Score'));
+      expect(scoreMsg).toContain('66.7%');
+    });
+
+    it('measured over-threshold memoryUsage (bytes contract) recommends memory optimization', async () => {
+      // ExtendedPipelineMetrics.memoryUsage is documented in BYTES: 512MB =
+      // 536870912 bytes exceeds the 256MB gate → 0.5 leg → recommendation.
+      const result = makeResult({
+        metrics: { totalRetryAttempts: 0, memoryUsage: 512 * 1024 * 1024 },
+      });
+
+      const assessment = await monitor.assessPipelineQuality(result);
+
+      expect(assessment.recommendations.some(r => r.includes('💾'))).toBe(true);
+    });
+
+    it('non-finite measured memoryUsage is excluded from the average, not scored', async () => {
+      const result = makeResult({ metrics: { totalRetryAttempts: 0, memoryUsage: NaN } });
+
+      const assessment = await monitor.assessPipelineQuality(result);
+
+      const scoreMsg = assessment.improvements.find(i => i.includes('Iteration Quality Score'));
+      expect(scoreMsg).toContain('100.0%');
+      expect(assessment.recommendations.some(r => r.includes('💾'))).toBe(false);
+    });
+  });
+
   // --- Scene generation scoring edge cases ---
 
   describe('scene generation scoring', () => {
