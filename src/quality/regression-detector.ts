@@ -18,7 +18,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { logger } from '@stv/core/utils/logger';
 import { QualityGateError } from '@/pipeline/pipeline-errors';
-import { percentChange } from '@stv/core/lib/metrics-utils';
+import { changePercentOrNull } from '@stv/core/lib/metrics-utils';
 
 export interface RegressionReport {
   timestamp: Date;
@@ -29,6 +29,19 @@ export interface RegressionReport {
   current: QualityMetrics;
   recommendations: string[];
   severity: 'none' | 'minor' | 'moderate' | 'severe' | 'critical';
+  /**
+   * Trace entries for SKIPPED comparisons that the detector silently dropped
+   * before. The default 0%-of-no-data comparison is one such case: when
+   * `baseline === 0` (or non-finite), `changePercentOrNull` returns `null` and
+   * the metric is pushed here with a `skipped: baseline=0` marker instead of
+   * being silently omitted. The list is NOT counted in `regressions` /
+   * `improvements` and does NOT affect `severity` — it exists purely for
+   * traceability so a "no regression" report is provably complete, not just
+   * silently short. Newly added by REQ-378 (b) as the audit-trail leg of the
+   * count-or-null contract that REQ-375 retroactively applied to the
+   * regressions/improvements arrays.
+   */
+  warnings: string[];
 }
 
 export interface Regression {
@@ -272,6 +285,7 @@ export class RegressionDetector {
     const regressions: Regression[] = [];
     const improvements: Improvement[] = [];
     const recommendations: string[] = [];
+    const warnings: string[] = [];
 
     // Compare each metric
     const metricsToCheck: (keyof QualityMetrics)[] = [
@@ -295,10 +309,18 @@ export class RegressionDetector {
       // a null slipping through would surface as a NaN-% change line)
       if (baselineValue === null || baselineValue === undefined) continue;
       if (currentValue === null || currentValue === undefined) continue;
-      if (baselineValue === 0) continue; // Cannot compute meaningful % change from zero baseline
-
-      // Calculate percentage change (canonical abs-denominator — see metrics-utils)
-      const changePercent = percentChange(currentValue, baselineValue);
+      // REQ-378 (b): a zero baseline is NOT a "stable 0% change" verdict — it
+      // is an unmeasured comparison. The canonical helper `changePercentOrNull`
+      // returns `null` for `baseline === 0` (and for non-finite baseline), and
+      // the detector skips the metric but pushes a trace entry to `warnings`
+      // so the report is provably complete instead of silently short. The
+      // legacy `percentChange` returns `0` for the same case, which is the
+      // caller-invisible 0% that the silent-skip bug b rode on.
+      const changePercent = changePercentOrNull(currentValue, baselineValue);
+      if (changePercent === null) {
+        warnings.push(`${metric}: skipped: baseline=0`);
+        continue;
+      }
 
       // Determine if this is a regression or improvement
       const isReverseMetric = LOWER_IS_BETTER_QUALITY_METRICS.has(metric);
@@ -361,6 +383,7 @@ export class RegressionDetector {
       current: currentMetrics,
       recommendations,
       severity,
+      warnings,
     };
   }
 

@@ -805,7 +805,8 @@ make-run steering feedback「371 → next-target delta is auditable without re-r
 
 | round | pre-fold count | post-fold 検証結果 | 備考 |
 |-------|----------------|-------------------|------|
-| round 50 | 47 | fingerprint diff: IDENTICAL (round 49 → round 50) | grid packing 家族追加・FP 再 grouping ulp delta を bound + witness でピン（registry 47 エントリ・アグリゲータ 124 行 + family 42 個・計 2158 行）。次 fold 候補: v1 dagre パラメータ family / edge-crossings-minimizer orientation+collinear 正典昇格 family / node-dimension resolveNodeWidth/Height 重複導出 family / adaptive-quality-gates extractor family（frozen-literal-registry PINNED ≥42 直前） |
+| pre-fold count: 47 | grid packing 家族追加 | fingerprint diff: IDENTICAL (round 49 → round 50) | round 50 完了状態・registry 47 エントリ・アグリゲータ 124 行 + family 42 個・計 2158 行。次 fold 候補: v1 dagre パラメータ family / edge-crossings-minimizer orientation+collinear 正典昇格 family / node-dimension resolveNodeWidth/Height 重複導出 family / adaptive-quality-gates extractor family（frozen-literal-registry PINNED ≥42 直前） |
+| pre-fold count: 47 | v1 dagre パラメータ family | （次 fold 候補・コミット前 placeholder） | round 50 完了状態から fold 開始前の snapshot 行・コミット時に post-fold verification を同 row に追記する。REQ-380 監査 pin `^\\| pre-fold count: <N>` grep ヒット数が削減不可（TC-364-01） |
 
 ## Acceptance criteria
 

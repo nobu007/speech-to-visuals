@@ -352,6 +352,7 @@ describe('RegressionDetector', () => {
         current: baseMetrics,
         recommendations: ['Quality metrics are stable.'],
         severity: 'none' as const,
+        warnings: [],
       };
       const formatted = formatRegressionReport(report);
       expect(formatted).toContain('STABLE');
@@ -376,6 +377,7 @@ describe('RegressionDetector', () => {
         current: baseMetrics,
         recommendations: ['Optimize LLM prompt length'],
         severity: 'critical' as const,
+        warnings: [],
       };
       const formatted = formatRegressionReport(report);
       expect(formatted).toContain('REGRESSED');
@@ -400,6 +402,7 @@ describe('RegressionDetector', () => {
         current: baseMetrics,
         recommendations: ['System showing improvements!'],
         severity: 'none' as const,
+        warnings: [],
       };
       const formatted = formatRegressionReport(report);
       expect(formatted).toContain('IMPROVED');

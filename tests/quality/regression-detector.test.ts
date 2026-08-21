@@ -457,6 +457,25 @@ describe('RegressionDetector', () => {
       expect(report.regressions.every(x => Number.isFinite(x.changePercent))).toBe(true);
     });
 
+    // REQ-378 (b): a zero baseline is no longer a SILENT skip. The detector
+    // pushes a `warnings` entry with the metric name and the `skipped:
+    // baseline=0` marker so the report is provably complete. `regressions`
+    // count is unchanged (silent skip and tracer are observationally identical
+    // from the regression/improvement lens) but the warning line is the
+    // canonical count-or-null audit trail.
+    test('records warning entry when baseline is zero (skipped: baseline=0)', async () => {
+      mockGetLatestMetrics
+        .mockReturnValueOnce(makeMetrics({ layoutOverlap: 0 }))
+        .mockReturnValueOnce(makeMetrics({ layoutOverlap: 5 }));
+      const d = RegressionDetector.getInstance(currentTestPath);
+      injectMockQualityMonitor(d);
+      await d.establishBaseline();
+      const report = await d.detectRegressions();
+
+      expect(report.warnings).toContain('layoutOverlap: skipped: baseline=0');
+      expect(report.regressions.find(x => x.metric === 'layoutOverlap')).toBeUndefined();
+    });
+
     test('skips metrics where both values are zero', async () => {
       mockGetLatestMetrics
         .mockReturnValueOnce(makeMetrics({ layoutOverlap: 0, errorCount: 0 }))
@@ -467,6 +486,34 @@ describe('RegressionDetector', () => {
       const report = await d.detectRegressions();
 
       expect(report.regressions.find(x => x.metric === 'layoutOverlap')).toBeUndefined();
+      // Both-zero still skips with a warning — the canonical skip path is
+      // agnostic to whether the comparison value is also zero.
+      expect(report.warnings).toContain('layoutOverlap: skipped: baseline=0');
+    });
+
+    // REQ-378 (b) cross-check: a baseline-and-current EQUAL non-zero pair
+    // flows through the normal path and does NOT emit a warning.
+    test('does not warn when baseline is non-zero and values match', async () => {
+      mockGetLatestMetrics
+        .mockReturnValueOnce(makeMetrics({
+          processingTime: 1000,
+          layoutOverlap: 1,
+          errorCount: 1,
+          warningCount: 1,
+        }))
+        .mockReturnValueOnce(makeMetrics({
+          processingTime: 1000,
+          layoutOverlap: 1,
+          errorCount: 1,
+          warningCount: 1,
+        }));
+      const d = RegressionDetector.getInstance(currentTestPath);
+      injectMockQualityMonitor(d);
+      await d.establishBaseline();
+      const report = await d.detectRegressions();
+
+      expect(report.warnings).toEqual([]);
+      expect(report.regressions.find(x => x.metric === 'processingTime')).toBeUndefined();
     });
 
     // REQ-375: layoutOverlap is now count-or-null (null = unmeasured). A null
@@ -551,6 +598,7 @@ describe('formatRegressionReport', () => {
       current: makeMetrics(),
       recommendations: ['Optimize prompts'],
       severity: 'severe' as const,
+      warnings: [],
     };
 
     const out = formatRegressionReport(report);
@@ -568,6 +616,7 @@ describe('formatRegressionReport', () => {
       current: makeMetrics(),
       recommendations: ['Stable'],
       severity: 'none' as const,
+      warnings: [],
     };
 
     const out = formatRegressionReport(report);
