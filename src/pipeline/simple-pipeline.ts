@@ -16,6 +16,7 @@ import { applyConfigToCollaborators } from './config-sync';
 import { calculatePipelineQualityScore } from './quality-score';
 import { continuousLearner } from '@/framework/continuous-learner';
 import { getQualityMonitor, formatQualityReport } from './quality-monitor';
+import { realTimeMonitor } from '@/monitoring/real-time-performance-monitor';
 import {
   estimateTranscriptionAccuracy,
   estimateSegmentationQuality,
@@ -561,12 +562,22 @@ export class SimplePipeline {
         duration: scenes.reduce((total, scene) => total + scene.durationMs, 0),
       };
       const qualityMonitor = getQualityMonitor();
+      const layoutOverlap = countLayoutOverlaps(qualitySignals);
+      // REQ-373: report the MEASURED overlap count to the real-time monitor —
+      // the producer behind snapshot.quality.layoutOverlapRate (REQ-372).
+      // Wired here at the measurement site (not inside QualityMonitor
+      // .recordMetrics) because recordMetrics' other callers pass its DEFAULT
+      // `layoutOverlap: 0` for runs that measured nothing (gemini-analyzer's
+      // per-diagram record, the orchestrator's partial records, this
+      // pipeline's own failure path) — bridging there would feed unmeasured
+      // zeros straight into the eq-0 zero-tolerance blocker gate.
+      realTimeMonitor.recordPipelineQuality(scenes.length, layoutOverlap);
       qualityMonitor.recordMetrics({
         processingTime,
         memoryUsage: getHeapUsed() / (1024 * 1024),
         transcriptionAccuracy: estimateTranscriptionAccuracy(qualitySignals),
         sceneSegmentationF1: estimateSegmentationQuality(qualitySignals),
-        layoutOverlap: countLayoutOverlaps(qualitySignals),
+        layoutOverlap,
         errorCount: 0,
         warningCount: 0,
         fallbackTriggered: false,

@@ -43,6 +43,7 @@ import {
   estimateSegmentationQuality,
   countLayoutOverlaps,
 } from './quality-estimators';
+import { realTimeMonitor } from '@/monitoring/real-time-performance-monitor';
 // Phase 34: Persistent iteration logging system
 import { globalIterationLogger } from '@/framework/iteration-logger';
 import { getHeapUsed } from '@stv/core/utils/memory-usage';
@@ -385,10 +386,17 @@ export class MainPipeline {
     result: PipelineResult,
     renderTime: number,
   ): FrameworkQualityMetrics {
+    const layoutOverlap = sanitizeFinite(countLayoutOverlaps(result), 0);
+    // REQ-373: report the MEASURED overlap count to the real-time monitor —
+    // the producer behind snapshot.quality.layoutOverlapRate (REQ-372).
+    // buildQualityMetrics runs only on the success path (the catch block
+    // throws before it), and `measuredScenes: 0` still publishes null on the
+    // monitor side, so an unmeasured run can never pass the eq-0 gate.
+    realTimeMonitor.recordPipelineQuality(result.scenes?.length ?? 0, layoutOverlap);
     return {
       transcriptionAccuracy: sanitizeFinite(estimateTranscriptionAccuracy(result), 0),
       sceneSegmentationF1: sanitizeFinite(estimateSegmentationQuality(result), 0),
-      layoutOverlap: sanitizeFinite(countLayoutOverlaps(result), 0),
+      layoutOverlap,
       renderTime,
       memoryUsage: getHeapUsed(),
       timestamp: new Date(),

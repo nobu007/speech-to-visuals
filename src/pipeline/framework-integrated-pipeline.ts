@@ -19,6 +19,7 @@ import { PipelineInput, PipelineResult, PipelineConfig } from './types';
 import { getHeapUsed } from '@stv/core/utils/memory-usage';
 import { logger } from '@stv/core/utils/logger';
 import * as qualityEstimators from './quality-estimators';
+import { realTimeMonitor } from '@/monitoring/real-time-performance-monitor';
 import { CappedArray } from '@stv/core/lib/capped-array';
 import {
   IterationManager,
@@ -288,6 +289,13 @@ export class FrameworkIntegratedPipeline {
     const entityExtractionF1 = this.estimateEntityExtractionQuality(result);
     const relationAccuracy = this.estimateRelationAccuracy(result);
     const layoutOverlap = this.detectLayoutOverlaps(result);
+    // REQ-373: report the MEASURED overlap count to the real-time monitor —
+    // the producer behind snapshot.quality.layoutOverlapRate (REQ-372), at
+    // the single site where the canonical scan runs over this pipeline's
+    // results (covers every extractQualityMetrics caller). A 0-scene result
+    // still publishes null on the monitor side, so the eq-0 gate can never
+    // pass on an unmeasured run.
+    realTimeMonitor.recordPipelineQuality(result.scenes?.length ?? 0, layoutOverlap);
     const nodeOverflow = this.detectNodeOverflow(result);
     const danglingLayoutEdges = this.detectDanglingLayoutEdges(result);
     const labelReadability = this.estimateLabelReadability(result);

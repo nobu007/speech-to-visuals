@@ -139,11 +139,15 @@ describe('getSnapshot system memory fields — finite-or-null contract (REQ-359)
      * UNAVAILABLE) — the metric-DEFAULT-coupled-to-GATE-threshold class
      * (memory L3 ledger, hunt-order #1).
      */
-    test('quality trio is null — no fabricated 0.90/0/0.85 gate-satisfying constants', () => {
+    test('quality trio is null on a fresh monitor — no fabricated 0.90/0/0.85 gate-satisfying constants', () => {
       mockGetMemoryUsage.mockReturnValue({ heapUsed: 100, heapTotal: 200 });
 
       const snapshot = new RealTimePerformanceMonitorClass().getSnapshot();
 
+      // transcriptionAccuracy/avgSceneQuality have NO producer (ground-truth
+      // transcription and scene-quality measurement are out of scope, REQ-368
+      // design decision); layoutOverlapRate HAS one since REQ-372 but a fresh
+      // monitor has received no report yet — all three are null.
       expect(snapshot.quality.transcriptionAccuracy).toBeNull();
       expect(snapshot.quality.layoutOverlapRate).toBeNull();
       expect(snapshot.quality.avgSceneQuality).toBeNull();
@@ -169,6 +173,88 @@ describe('getSnapshot system memory fields — finite-or-null contract (REQ-359)
       expect(snapshot.llm.flashUsagePercent).toBe(0);
       expect(snapshot.llm.proUsagePercent).toBe(0);
       expect(snapshot.llm.estimatedCostSavings).toBe(0);
+    });
+  });
+
+  describe('recordPipelineQuality — layoutOverlapRate measured producer (REQ-372)', () => {
+    /**
+     * REQ-372: `snapshot.quality.layoutOverlapRate` is the MEASURED canonical
+     * overlap count of the latest pipeline report (`countLayoutOverlaps` over
+     * the run's actual scene layouts), wired from the three measurement sites
+     * (SimplePipeline success path, MainPipeline.buildQualityMetrics,
+     * FrameworkIntegratedPipeline.extractQualityMetrics — REQ-373). The
+     * finite-or-null contract: finite count once a report with ≥1 measured
+     * scene exists; null before any report and for a degenerate (0-scene)
+     * report — a run that produced no layout measured nothing, and a vacuous
+     * 0 would pass the eq-0 zero-tolerance blocker gate without a
+     * measurement (the REQ-364 fabrication class). transcriptionAccuracy /
+     * avgSceneQuality stay null (no real measurement exists; the estimator
+     * proxies would re-create the permanently-green gate).
+     */
+    function freshMonitor(): any {
+      mockGetMemoryUsage.mockReturnValue({ heapUsed: 100, heapTotal: 200 });
+      return new RealTimePerformanceMonitorClass();
+    }
+
+    test('a report over 3 scenes with 2 overlapping pairs publishes the measured count 2', () => {
+      const monitor = freshMonitor();
+      monitor.recordPipelineQuality(3, 2);
+
+      expect(monitor.getSnapshot().quality.layoutOverlapRate).toBe(2);
+    });
+
+    test('a report over scenes with 0 overlaps publishes the measured 0 (eq-0 gate passes on a REAL reading)', () => {
+      const monitor = freshMonitor();
+      monitor.recordPipelineQuality(5, 0);
+
+      expect(monitor.getSnapshot().quality.layoutOverlapRate).toBe(0);
+    });
+
+    test('the last report wins — a newer run replaces the previous reading', () => {
+      const monitor = freshMonitor();
+      monitor.recordPipelineQuality(3, 2);
+      monitor.recordPipelineQuality(5, 0);
+
+      expect(monitor.getSnapshot().quality.layoutOverlapRate).toBe(0);
+    });
+
+    test('a degenerate report (scan ran over 0 scenes) publishes null, not a vacuous 0', () => {
+      const monitor = freshMonitor();
+      monitor.recordPipelineQuality(0, 0);
+
+      // A run with no scenes measured nothing: null fails the eq-0 blocker
+      // gate LOUD (METRIC UNAVAILABLE) instead of passing it vacuously.
+      expect(monitor.getSnapshot().quality.layoutOverlapRate).toBeNull();
+    });
+
+    test('non-finite ingestion is sanitized, never leaks NaN into the snapshot', () => {
+      const monitor = freshMonitor();
+      monitor.recordPipelineQuality(Number.NaN, 2);
+
+      // NaN scene count → sanitized 0 → degenerate report → null (not NaN).
+      expect(monitor.getSnapshot().quality.layoutOverlapRate).toBeNull();
+
+      monitor.recordPipelineQuality(2, Number.NaN);
+
+      // NaN count over a real scan basis → sanitized 0, a finite reading.
+      expect(monitor.getSnapshot().quality.layoutOverlapRate).toBe(0);
+    });
+
+    test('reset() clears the report — back to the no-reading null', () => {
+      const monitor = freshMonitor();
+      monitor.recordPipelineQuality(3, 1);
+      monitor.reset();
+
+      expect(monitor.getSnapshot().quality.layoutOverlapRate).toBeNull();
+    });
+
+    test('the producer touches ONLY layoutOverlapRate — the other two quality fields stay null', () => {
+      const monitor = freshMonitor();
+      monitor.recordPipelineQuality(3, 0);
+
+      const quality = monitor.getSnapshot().quality;
+      expect(quality.transcriptionAccuracy).toBeNull();
+      expect(quality.avgSceneQuality).toBeNull();
     });
   });
 });

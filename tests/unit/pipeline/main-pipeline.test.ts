@@ -7,6 +7,7 @@
 
 import { createHash } from 'crypto';
 import { MainPipeline } from '@/pipeline/main-pipeline';
+import { realTimeMonitor } from '@/monitoring/real-time-performance-monitor';
 import { PipelineConfig, PipelineInput, PipelineResult } from '@/pipeline/types';
 import type { SceneGraph } from '@stv/core/types/diagram';
 
@@ -673,6 +674,53 @@ describe('MainPipeline', () => {
       expect(metrics.renderTime).toBe(4242);
       expect(Number.isFinite(metrics.memoryUsage)).toBe(true);
       expect(metrics.timestamp).toBeInstanceOf(Date);
+    });
+
+    // ── REQ-373: buildQualityMetrics REPORTS the measured overlap count to
+    // the real-time monitor — the producer behind
+    // snapshot.quality.layoutOverlapRate (REQ-372). Wired at the measurement
+    // site (the countLayoutOverlaps scan over the run's actual scenes), so
+    // the eq-0 zero-tolerance blocker gate verdicts on a REAL reading.
+    it('reports (measuredScenes, measured overlap count) to the real-time monitor (REQ-373)', () => {
+      const rtpmSpy = jest.spyOn(realTimeMonitor, 'recordPipelineQuality');
+      const pipeline = new MainPipeline();
+      (pipeline as unknown as PrivatePipelineAccess).buildQualityMetrics(
+        result({
+          scenes: [
+            scene({
+              layout: {
+                // a and b overlap; c is isolated → exactly 1 overlapping pair
+                nodes: [
+                  { id: 'a', x: 0, y: 0, width: 100, height: 50 },
+                  { id: 'b', x: 50, y: 25, width: 100, height: 50 },
+                  { id: 'c', x: 500, y: 500, width: 100, height: 50 },
+                ],
+                edges: [],
+              },
+            }),
+          ],
+        }),
+        1000,
+      );
+
+      // 1 scene scanned, 1 overlapping pair found.
+      expect(rtpmSpy).toHaveBeenCalledWith(1, 1);
+      rtpmSpy.mockRestore();
+    });
+
+    it('a 0-scene result reports a degenerate reading — the monitor publishes null, not a vacuous 0', () => {
+      const rtpmSpy = jest.spyOn(realTimeMonitor, 'recordPipelineQuality');
+      const pipeline = new MainPipeline();
+      (pipeline as unknown as PrivatePipelineAccess).buildQualityMetrics(
+        result({ scenes: [] }),
+        1000,
+      );
+
+      // measuredScenes 0: the scan ran over nothing, so the monitor-side
+      // derivation (REQ-372) keeps layoutOverlapRate null — the report is
+      // still made (last report wins), but it cannot pass the eq-0 gate.
+      expect(rtpmSpy).toHaveBeenCalledWith(0, 0);
+      rtpmSpy.mockRestore();
     });
   });
 });

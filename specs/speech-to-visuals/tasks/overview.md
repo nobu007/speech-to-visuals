@@ -107,8 +107,8 @@
 
 ## タスク番号管理
 
-**使用済みタスク番号**: TASK-0001 ~ TASK-0257（Phase 131: TASK-0217、Phase 132: TASK-0218〜0222、Phase 140: TASK-0223〜0225、Phase 141: TASK-0226〜0228、Phase 142: TASK-0229、Phase 143: TASK-0230、Phase 144: TASK-0231、Phase 145: TASK-0232、Phase 146: TASK-0233、Phase 147: TASK-0234、Phase 148: TASK-0235、Phase 149: TASK-0236、Phase 150: TASK-0237、Phase 151: TASK-0238、Phase 152: TASK-0239、Phase 153: TASK-0240、Phase 154: TASK-0241、Phase 155: TASK-0242、Phase 156: TASK-0243、Phase 157〜159: TASK-0244〜0246、Phase 161: TASK-0247、Phase 162: TASK-0248、Phase 163: TASK-0249、Phase 164: TASK-0250、Phase 165: TASK-0251、Phase 166: TASK-0252、Phase 167: TASK-0253、Phase 168: TASK-0254、Phase 169: TASK-0255、Phase 170: TASK-0256、Phase 171: TASK-0257、Phase 172: TASK-0258）
-**次回開始番号**: TASK-0259
+**使用済みタスク番号**: TASK-0001 ~ TASK-0258（Phase 131: TASK-0217、Phase 132: TASK-0218〜0222、Phase 140: TASK-0223〜0225、Phase 141: TASK-0226〜0228、Phase 142: TASK-0229、Phase 143: TASK-0230、Phase 144: TASK-0231、Phase 145: TASK-0232、Phase 146: TASK-0233、Phase 147: TASK-0234、Phase 148: TASK-0235、Phase 149: TASK-0236、Phase 150: TASK-0237、Phase 151: TASK-0238、Phase 152: TASK-0239、Phase 153: TASK-0240、Phase 154: TASK-0241、Phase 155: TASK-0242、Phase 156: TASK-0243、Phase 157〜159: TASK-0244〜0246、Phase 161: TASK-0247、Phase 162: TASK-0248、Phase 163: TASK-0249、Phase 164: TASK-0250、Phase 165: TASK-0251、Phase 166: TASK-0252、Phase 167: TASK-0253、Phase 168: TASK-0254、Phase 169: TASK-0255、Phase 170: TASK-0256、Phase 171: TASK-0257、Phase 172: TASK-0258、Phase 173: TASK-0259）
+**次回開始番号**: TASK-0260
 
 > **REQ 番号帯（Phase 140 決定）**: REQ-313〜322 は acceptance-criteria の TC 帯（TC-313〜321 実在・TC-322 は未 merge PR #9 提案中）との番号衝突回避のため予約（未使用）。機能要件は REQ-323 から、TC は TC-323 から採番する（REQ-326/TC-323 が適用例）。
 
@@ -2699,6 +2699,38 @@ join(' ') 系の「非空判定」は空白のみ文字列で恒真 — 捏造 l
 ### 次フェーズ開始番号
 
 **次回開始番号**: TASK-0259
+
+## Phase 173: RTPM layout-overlap 実測 producer — `layoutOverlapRate` の fail-closed 解消（REQ-372〜374・MW-041）
+
+**ステータス**: ✅完了（2026-08-21・TASK-0259 完了・実装 + specs を単一 commit に同梱・**REQ-368 設計決定の fail-closed トリガーを `layoutOverlapRate` について発火**）
+
+**背景**: Phase 170/171 は RTPM の捏造 metric を finite-or-null 契約 + producer（LLM 系）で閉じたが、quality trio は REQ-368 設計決定で「producer なし fail-closed のまま」としていた。make-run steering の meta-intent「fail-loud の行き先」を quality 系に適用した結果、**`layoutOverlapRate` のみ例外扱いが正しい**ことが判明: overlap は品質パイプライン由来ではなく repo 内に canonical 実測 scan（`countLayoutOverlaps`）が既存のため最小 verifiable 範囲に収まる。残る `transcriptionAccuracy`/`avgSceneQuality` は正解ラベル・実測が scope 外のため引き続き fail-closed。
+
+**実装**:
+
+- REQ-372: `recordPipelineQuality(measuredScenes, layoutOverlapCount)` producer — `measuredScenes > 0 ? count : null`（degenerate report は null・vacuous 0 は eq-0 blocker を無測定 pass させる REQ-364 class）・`sanitizeFinite` ingestion・last-wins・`reset()` 消去。**設計決定**: 値は **count であって rate ではない**（QualityMonitor `layoutOverlap` と同量・rate 化は所有者のいない分母を要求する）
+- REQ-373: **測定サイト直結** wiring 3 site（SimplePipeline success path・MainPipeline `buildQualityMetrics`・FrameworkIntegratedPipeline `extractQualityMetrics`）。**設計決定**: `QualityMonitor.recordMetrics` 内に bridge を置かない — 他 caller（gemini-analyzer・pipeline-orchestrator・failure path）は DEFAULT `layoutOverlap: 0` を未測定のまま渡し、bridge すると未測定 0 が eq-0 blocker に再流入する。failure path は report しない
+- REQ-374: adaptive gate が measured count 2 で blocker RED・`deploymentReady=false` になる pin（Phase 170 の null→UNAVAILABLE test と対）
+- MW-041: 3 mutation（producer 全焼 4 failed・捏造 0 再注入 5 failed・wiring 削除 2 failed）の独立 RED 実測 → revert GREEN 復元・監査 pin ≥40 → ≥41
+
+**タスク**:
+
+- [x] [TASK-0259: RTPM layout-overlap 実測 producer — `layoutOverlapRate` の fail-closed 解消（REQ-372〜374・MW-041）](TASK-0259.md) - 2h (DIRECT) 🔵 ✅2026-08-21（producer test 7 + wiring test 3+2+2 + gate test 1 追加・影響 9 suites / 324 tests + 回帰 38 suites / 764 tests GREEN・tsc 両 config 0・MW-041 3 独立 mutation RED 実測 + pin ≥40→≥41 + REQ/TC/TASK/MW/overview を同一 commit 同梱）
+
+```
+producer-less gate の fail-closed は「測定系が既に repo 内にある」field についてだけ解消する — 正解ラベルが要る metric に proxy producer を生やすと恒久 green が一段深い所で再現される
+bridge は集約点（recordMetrics）ではなく測定サイトに置く — 集約点の他 caller が未測定 DEFAULT 値を渡す場合、bridge はそれを gate に再流入させる（REQ-364 class の再発）
+pipeline が monitor を transitive import すると ESM mock の提供 export 義務が広がる — `unstable_mockModule` は transitive consumer の読む名前も全て export しないと module-link が SyntaxError になる
+ESM の frozen namespace でも singleton instance の method は spy 可能 — `jest.spyOn(realTimeMonitor, 'recordPipelineQuality')` で wiring を観測できる（module mock より実体に近い）
+```
+
+### 信頼性レベルサマリー（Phase 173 追分量）
+
+- 全 1 タスク 🔵（影響 9 suites / 324 tests + pipeline import 系 16 suites / 346 tests + integration/monitoring 22 suites / 418 tests GREEN + tsc 両 config 0 + MW-041 3 独立 mutation RED 実測）
+
+### 次フェーズ開始番号
+
+**次回開始番号**: TASK-0260
 
 
 ## Spine: external references

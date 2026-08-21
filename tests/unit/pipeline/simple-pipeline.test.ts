@@ -7,6 +7,7 @@
 
 import { SimplePipeline, simplePipeline } from '@/pipeline/simple-pipeline';
 import { getQualityMonitor } from '@/pipeline/quality-monitor';
+import { realTimeMonitor } from '@/monitoring/real-time-performance-monitor';
 import type { SceneGraph } from '@stv/core/types/diagram';
 
 // ---------------------------------------------------------------------------
@@ -506,12 +507,23 @@ describe('SimplePipeline — Phase 27 quality metrics delegate to canonical esti
     return jest.spyOn(monitor, 'recordMetrics');
   }
 
-  /** Drive process() through a full success path; returns the recordMetrics spy. */
+  /**
+   * Spy on the real-time monitor singleton's recordPipelineQuality (calls
+   * through) — the REQ-373 producer wiring target.
+   */
+  function recordPipelineQualitySpy(): jest.MockInstance<void, [number, number]> {
+    return jest.spyOn(realTimeMonitor, 'recordPipelineQuality');
+  }
+
+  /** Drive process() through a full success path; returns the two spies. */
   async function runSuccessPath(fixture: {
     segmentTexts: string[];
     segmentMs: number;
     layoutNodes: Array<Record<string, unknown>>;
-  }): Promise<jest.MockInstance<void, unknown[]>> {
+  }): Promise<{
+    recordMetrics: jest.MockInstance<void, unknown[]>;
+    recordPipelineQuality: jest.MockInstance<void, [number, number]>;
+  }> {
     const pipeline = createPipeline();
     const cols = collaborators(pipeline);
 
@@ -547,9 +559,11 @@ describe('SimplePipeline — Phase 27 quality metrics delegate to canonical esti
     });
 
     const spy = recordMetricsSpy();
+    const rtpmSpy = recordPipelineQualitySpy();
     spy.mockClear();
+    rtpmSpy.mockClear();
     await pipeline.process({ audioFile: audioFileFixture() });
-    return spy;
+    return { recordMetrics: spy, recordPipelineQuality: rtpmSpy };
   }
 
   /** Minimal audio File sufficient for process(). */
@@ -567,7 +581,7 @@ describe('SimplePipeline — Phase 27 quality metrics delegate to canonical esti
   }
 
   it('records measured values on a degenerate run (empty transcript, one long scene, overlapping layout)', async () => {
-    const spy = await runSuccessPath({
+    const { recordMetrics: spy } = await runSuccessPath({
       // A single empty-text segment: transcript is '' (length 0) — the
       // fabricated `transcript.length > 0 ? 0.9 : 0` would record 0 here
       // even though the run produced a scene.
@@ -593,7 +607,7 @@ describe('SimplePipeline — Phase 27 quality metrics delegate to canonical esti
   });
 
   it('records measured values on a healthy run (2 scenes × 2s, disjoint layouts)', async () => {
-    const spy = await runSuccessPath({
+    const { recordMetrics: spy } = await runSuccessPath({
       segmentTexts: ['first segment text', 'second segment text'],
       segmentMs: 2000,
       layoutNodes: [
@@ -607,5 +621,57 @@ describe('SimplePipeline — Phase 27 quality metrics delegate to canonical esti
     // 2–10 scenes (+0.15) with 2s average duration (+0.15) → 1.0.
     expect(payload.sceneSegmentationF1).toBe(1);
     expect(payload.layoutOverlap).toBe(0);
+  });
+
+  // ── REQ-373: the same measured overlap count is REPORTED to the real-time
+  // monitor — the producer behind snapshot.quality.layoutOverlapRate
+  // (REQ-372). The wiring sits at the measurement site (the
+  // countLayoutOverlaps scan), NOT inside QualityMonitor.recordMetrics:
+  // recordMetrics' other callers pass its DEFAULT `layoutOverlap: 0` for runs
+  // that measured nothing, and bridging there would feed those unmeasured
+  // zeros straight into the eq-0 zero-tolerance blocker gate.
+  describe('real-time monitor wiring (REQ-373)', () => {
+    it('reports (measuredScenes, measured overlap count) on the success path', async () => {
+      const { recordPipelineQuality } = await runSuccessPath({
+        segmentTexts: ['one segment text'],
+        segmentMs: 2000,
+        layoutNodes: [
+          { id: 'a', label: 'A', x: 0, y: 0, width: 100, height: 100 },
+          { id: 'b', label: 'B', x: 50, y: 50, width: 100, height: 100 },
+        ],
+      });
+
+      // 1 scene scanned, 1 overlapping (a,b) pair found.
+      expect(recordPipelineQuality).toHaveBeenCalledWith(1, 1);
+    });
+
+    it('reports a measured 0 for disjoint layouts (a real reading, not a default)', async () => {
+      const { recordPipelineQuality } = await runSuccessPath({
+        segmentTexts: ['first segment text', 'second segment text'],
+        segmentMs: 2000,
+        layoutNodes: [
+          { id: 'a', label: 'A', x: 0, y: 0, width: 100, height: 100 },
+          { id: 'b', label: 'B', x: 1000, y: 1000, width: 100, height: 100 },
+        ],
+      });
+
+      expect(recordPipelineQuality).toHaveBeenCalledWith(2, 0);
+    });
+
+    it('does NOT report on the failure path — a failed run measured nothing', async () => {
+      const pipeline = createPipeline();
+      const cols = collaborators(pipeline);
+      jest
+        .spyOn(cols.transcription, 'transcribe')
+        .mockRejectedValue(new Error('transcription failed'));
+
+      const rtpmSpy = recordPipelineQualitySpy();
+      rtpmSpy.mockClear();
+      await pipeline.process({ audioFile: audioFileFixture() });
+
+      // The failure path reports its fail-loud zeros to QualityMonitor but
+      // must NOT fabricate a "measured 0 overlaps" reading for the RTPM gate.
+      expect(rtpmSpy).not.toHaveBeenCalled();
+    });
   });
 });

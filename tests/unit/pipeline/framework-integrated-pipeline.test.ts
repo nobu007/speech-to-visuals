@@ -28,6 +28,10 @@ jest.unstable_mockModule('@/pipeline/types', () => ({
 
 jest.unstable_mockModule('@stv/core/utils/memory-usage', () => ({
   getHeapUsed: jest.fn<() => unknown>().mockReturnValue(0),
+  // REQ-373: the SUT now transitively imports real-time-performance-monitor,
+  // whose memory-backend reads getMemoryUsage — ESM mocks must export every
+  // name the (transitive) consumer reads.
+  getMemoryUsage: jest.fn<() => unknown>().mockReturnValue({ heapUsed: 0, heapTotal: 0 }),
 }));
 
 jest.unstable_mockModule('@stv/core/utils/logger', () => ({
@@ -112,12 +116,16 @@ jest.unstable_mockModule('@/framework/auto-improvement-engine', () => ({
 let FrameworkIntegratedPipeline: typeof import('@/pipeline/framework-integrated-pipeline').FrameworkIntegratedPipeline;
 let createFrameworkIntegratedPipeline: typeof import('@/pipeline/framework-integrated-pipeline').createFrameworkIntegratedPipeline;
 let MAX_PIPELINE_HISTORY: number;
+// Real (unmocked) singleton — same module instance the SUT reports to, so a
+// method spy observes the REQ-373 producer wiring.
+let realTimeMonitor: typeof import('@/monitoring/real-time-performance-monitor').realTimeMonitor;
 
 beforeAll(async () => {
   const mod = await import('@/pipeline/framework-integrated-pipeline');
   FrameworkIntegratedPipeline = mod.FrameworkIntegratedPipeline;
   createFrameworkIntegratedPipeline = mod.createFrameworkIntegratedPipeline;
   MAX_PIPELINE_HISTORY = mod.MAX_PIPELINE_HISTORY;
+  realTimeMonitor = (await import('@/monitoring/real-time-performance-monitor')).realTimeMonitor;
 });
 
 import type { PipelineResult } from '@/pipeline/types';
@@ -130,6 +138,7 @@ type PipelinePrivateMethods = {
   estimateEntityExtractionQuality: (result: PipelineResult) => number;
   estimateRelationAccuracy: (result: PipelineResult) => number;
   detectLayoutOverlaps: (result: PipelineResult) => number;
+  extractQualityMetrics: (result: PipelineResult) => Record<string, unknown>;
 };
 
 function makeScene(overrides: Record<string, unknown> = {}): SceneGraph {
@@ -473,6 +482,58 @@ describe('FrameworkIntegratedPipeline', () => {
       });
       // a and b overlap (no width/height, falls back to w/h)
       expect((pipeline as unknown as PipelinePrivateMethods).detectLayoutOverlaps(result)).toBe(1);
+    });
+  });
+
+  // ── extractQualityMetrics — REQ-373 real-time monitor wiring ──
+
+  describe('extractQualityMetrics — REQ-373 real-time monitor wiring', () => {
+    it('reports (measuredScenes, measured overlap count) to the real-time monitor', () => {
+      const spy = jest.spyOn(realTimeMonitor, 'recordPipelineQuality');
+      const result = makeResult({
+        success: true,
+        scenes: [
+          makeScene({
+            layout: {
+              nodes: [
+                { id: 'a', x: 0, y: 0, width: 100, height: 50 },
+                { id: 'b', x: 50, y: 25, width: 100, height: 50 },
+              ],
+              edges: [],
+            },
+          }),
+        ],
+      });
+
+      (pipeline as unknown as PipelinePrivateMethods).extractQualityMetrics(result);
+
+      // One measured scene, one overlapping (a,b) pair: the REQ-372 producer
+      // receives the REAL scan numbers, not QualityMonitor's default 0.
+      expect(spy).toHaveBeenCalledWith(1, 1);
+      spy.mockRestore();
+    });
+
+    it('a layout with no overlaps reports the measured 0', () => {
+      const spy = jest.spyOn(realTimeMonitor, 'recordPipelineQuality');
+      const result = makeResult({
+        success: true,
+        scenes: [
+          makeScene({
+            layout: {
+              nodes: [
+                { id: 'a', x: 0, y: 0, width: 100, height: 50 },
+                { id: 'b', x: 500, y: 500, width: 100, height: 50 },
+              ],
+              edges: [],
+            },
+          }),
+        ],
+      });
+
+      (pipeline as unknown as PipelinePrivateMethods).extractQualityMetrics(result);
+
+      expect(spy).toHaveBeenCalledWith(1, 0);
+      spy.mockRestore();
     });
   });
 });

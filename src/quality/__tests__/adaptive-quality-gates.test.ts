@@ -800,5 +800,28 @@ describe('AdaptiveQualityGatesSystem', () => {
       expect(loGate!.passed).toBe(true);
       expect(taGate!.message).not.toContain('UNAVAILABLE');
     });
+
+    // REQ-372/373 end-to-end: recordPipelineQuality is the producer that
+    // makes layoutOverlapRate a MEASURED value (the canonical
+    // countLayoutOverlaps count wired from the three pipeline measurement
+    // sites). The eq-0 zero-tolerance blocker now VERDICTS on it: a measured
+    // 0 passes, a measured defect count FAILS — neither the permanent-green
+    // fabrication (REQ-364's target) nor the permanent-UNAVAILABLE standby
+    // that the producer-less null enforced.
+    test('a measured overlap COUNT of 2 FAILS the eq-0 blocker — a real defect fails loud (REQ-372)', async () => {
+      mockGetSnapshot.mockReturnValue(makeSnapshot({
+        quality: { layoutOverlapRate: 2 },
+      }));
+
+      const result = await gates.evaluateGates();
+      const loGate = result.gates.find(g => g.name === 'Layout Overlap Rate');
+
+      expect(loGate!.passed).toBe(false);
+      // Failed on the MEASURED value, not on unavailability.
+      expect(loGate!.message).not.toContain('UNAVAILABLE');
+      expect(loGate!.message).toContain('≠');
+      expect(result.summary.blockers).toBeGreaterThanOrEqual(1);
+      expect(result.deploymentReady).toBe(false);
+    });
   });
 });

@@ -365,6 +365,16 @@ judge が再実行なしに主張を検証できるようにする（AI Hub stee
 
 ---
 
+## MW-041 — RTPM layoutOverlapRate 実測 producer・測定サイト直結 wiring の teeth（REQ-372〜373・Phase 173・TASK-0259）
+
+- **claim**: REQ-364 が finite-or-null 化した `snapshot.quality.layoutOverlapRate` に実測 producer（`recordPipelineQuality`）を実装し、canonical overlap scan が走る 3 測定サイト（SimplePipeline success path・MainPipeline `buildQualityMetrics`・FrameworkIntegratedPipeline `extractQualityMetrics`）から直結 wiring した。REQ-368 設計決定の fail-closed は `layoutOverlapRate` についてのみ解消（canonical scan が repo 内に既存のため）。MW-041 の mutation は (a) producer 全焼（snapshot 常時 null）・(b) 捏造 0 再注入（REQ-364 class 再発）・(c) wiring 削除がそれぞれ独立に RED になる実 teeth を実証する。**設計決定**: 値は count（`QualityMonitor.layoutOverlap` と同量）で rate ではない・bridge は recordMetrics 内でなく測定サイトに置く（recordMetrics の他 caller は未測定 DEFAULT 0 を渡すため）。
+- **target**: `src/monitoring/real-time-performance-monitor.ts`（recordPipelineQuality / measuredLayoutOverlapCount）/ `src/pipeline/simple-pipeline.ts`（success path の report call）
+- **mutation**: (a) snapshot `layoutOverlapRate: this.measuredLayoutOverlapCount()` → `null`・(b) 同 → 捏造 `0`・(c) SimplePipeline success path の `realTimeMonitor.recordPipelineQuality(scenes.length, layoutOverlap)` 行削除
+- **command**: 各 mutation 適用後に `NODE_OPTIONS='--experimental-vm-modules --max-old-space-size=4096' npx jest --config jest.config.cjs --testPathPatterns 'real-time-performance-monitor-null-propagation|adaptive-quality-gates|simple-pipeline.test'`
+- **observed** (2026-08-21・Phase 173 実施時): (a) 4 failed — producer test が **`Expected: 2 / 0 / 0 / 0, Received: null`** で RED（measured publish 契約の直接検出）。(b) 5 failed — fresh-monitor null 契約（捏造 0 は eq-0 blocker gate を無測定で pass させる REQ-364 class）・degenerate report・measured count 2・NaN sanitize・reset の全契約面が RED。(c) 2 failed — wiring test が **`Received number of calls: 0`** で RED（failure path 0 call test は緩すぎず success 2 test のみ RED = 測定サイト直結の検出）。各 revert（perl 逆置換・grep で実装残存確認）で 7 suites / 205 tests GREEN 復元・pipeline import 系 16 suites / 346 tests + integration/monitoring 22 suites / 418 tests 回帰 GREEN・tsc 両 config 0 error。**GOTCHA**: (b) の捏造 0 は adaptive-gates の直接 snapshot test（measured 2 で RED）には届かない — fresh-monitor null 契約 test が silent-pass 側の検出面。監査 pin **≥40 → ≥41** に引き上げ（MW-041 追加で 40 → 41 エントリ）。
+
+---
+
 ## 恒久 mutation test（ledger 対象外・常時 CI で走るもの）
 
 以下は「一時 mutant → RED 確認 → revert」ではなく mutant を恒久テスト化したもので、

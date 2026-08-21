@@ -119,10 +119,8 @@ export interface PerformanceSnapshot {
   };
   quality: {
     /**
-     * Pipeline-quality fields carry the REQ-364 finite-or-null contract: the
-     * monitor has NO quality producer (the comments said "Populated
-     * externally" but nothing ever populated them), so these are EXPLICIT
-     * null = "no reading". Never fabricated constants: the previous
+     * Pipeline-quality fields carry the REQ-364 finite-or-null contract:
+     * unmeasured = EXPLICIT null, never a fabricated constant. The previous
      * `0.90 / 0 / 0.85` sat exactly at/above the adaptive-gate thresholds
      * (DEFAULT_TRANSCRIPTION_ACCURACY_THRESHOLD 0.85 `gte`, Layout Overlap
      * Rate `eq 0`), so two BLOCKER gates were permanently green on values
@@ -130,8 +128,29 @@ export interface PerformanceSnapshot {
      * adapted its threshold toward the fabricated 0.90 (the REQ-360
      * poisoning hazard). Consumers (adaptive-quality-gates) fail such gates
      * LOUD as METRIC UNAVAILABLE instead of passing on the absent value.
+     *
+     * REQ-372 (Phase 173) gives `layoutOverlapRate` the first real producer:
+     * the pipelines report their MEASURED overlap count via
+     * `recordPipelineQuality` (the canonical `countLayoutOverlaps` pairwise
+     * scan over the run's actual scene layouts), so this field is a finite
+     * count once a run with ≥1 scene has completed. `transcriptionAccuracy`
+     * and `avgSceneQuality` stay null until a real measurement exists — the
+     * pipeline-side `estimateTranscriptionAccuracy` is a coarse proxy whose
+     * 0.90 would sit above the 0.85 blocker threshold on every non-empty
+     * run, i.e. feeding it here would re-create the permanently-green gate
+     * REQ-364 closed, one indirection deeper (REQ-368 design decision).
      */
     transcriptionAccuracy: number | null;
+    /**
+     * The canonical overlapping-node-pair COUNT measured over the latest
+     * reported pipeline run's scene layouts (lower is better; the 'Rate' in
+     * the name is legacy). A COUNT, deliberately not a normalized rate: the
+     * eq-0 zero-tolerance gate and QualityMonitor's own `layoutOverlap > 0`
+     * gate read the same quantity, while a normalized rate would need a
+     * denominator definition no module owns and would read 0 for an empty
+     * layout — a vacuous pass. Null until a run with ≥1 scene has reported
+     * (REQ-372 finite-or-null contract).
+     */
     layoutOverlapRate: number | null;
     avgSceneQuality: number | null;
   };
@@ -147,6 +166,26 @@ export interface TrendAnalysis {
     next1hour: number;
   };
   confidence: number;
+}
+
+/**
+ * A completed pipeline run's MEASURED layout quality (REQ-372). Reporters
+ * must pass values measured on the run's actual scene layouts — the
+ * canonical `countLayoutOverlaps` pairwise scan — NOT defaults: a failure
+ * path or a partial record has measured nothing and must simply not report
+ * (that is why this producer is wired at the three measurement sites, not
+ * bridged inside QualityMonitor.recordMetrics, whose other callers pass the
+ * recordMetrics DEFAULT `layoutOverlap: 0` for runs that measured nothing).
+ *
+ * `measuredScenes` is the measurement basis: how many scenes the scan ran
+ * over. A report with 0 measured scenes is a degenerate report — the run
+ * produced no layout to scan — and publishes null, not a vacuous 0.
+ */
+export interface PipelineQualityReport {
+  /** Scenes whose layouts the overlap scan actually ran over. */
+  measuredScenes: number;
+  /** Overlapping node pairs found by the canonical pairwise scan. */
+  layoutOverlapCount: number;
 }
 
 class RealTimePerformanceMonitor extends EventEmitter {
@@ -182,6 +221,13 @@ class RealTimePerformanceMonitor extends EventEmitter {
     recoveryAttempts: 0,
     recoverySuccesses: 0
   };
+
+  // REQ-372: latest pipeline-quality report — the producer behind
+  // snapshot.quality.layoutOverlapRate. Null until the first report; the
+  // last report wins (each completed pipeline run replaces the previous
+  // reading, mirroring how getSnapshot elsewhere reflects latest state).
+  // Values are sanitized at ingestion in recordPipelineQuality.
+  private pipelineQualityReport: PipelineQualityReport | null = null;
 
   // Performance history for trend analysis
   private performanceHistory: {
@@ -510,6 +556,27 @@ class RealTimePerformanceMonitor extends EventEmitter {
   }
 
   /**
+   * Record a completed pipeline run's MEASURED layout quality (REQ-372):
+   * the producer that turns `snapshot.quality.layoutOverlapRate` from the
+   * REQ-364 finite-or-null "no reading" marker into the measured overlap
+   * count. Wired from the three sites that run the canonical
+   * `countLayoutOverlaps` scan over a real result (SimplePipeline success
+   * path, MainPipeline.buildQualityMetrics,
+   * FrameworkIntegratedPipeline.extractQualityMetrics). The last report
+   * wins; a report whose scan ran over 0 scenes publishes null (getSnapshot
+   * derives that — see measuredLayoutOverlapCount), so a degenerate run
+   * fails the eq-0 blocker gate LOUD instead of passing vacuously.
+   */
+  public recordPipelineQuality(measuredScenes: number, layoutOverlapCount: number): void {
+    // Ingestion chokepoint (same leak class as recordLLMRequest): a
+    // non-finite input is sticky through the snapshot, so coerce here.
+    this.pipelineQualityReport = {
+      measuredScenes: sanitizeFinite(measuredScenes),
+      layoutOverlapCount: sanitizeFinite(layoutOverlapCount),
+    };
+  }
+
+  /**
    * Record error
    */
   public recordError(errorType: string, recovered: boolean): void {
@@ -614,12 +681,15 @@ class RealTimePerformanceMonitor extends EventEmitter {
         recoverySuccessRate: roundTo(recoveryRate, 3)
       },
       quality: {
-        // REQ-364: no quality producer exists — explicit null (no reading),
-        // not fabricated 0.90/0/0.85 constants that sat exactly at/above the
-        // adaptive-gate thresholds and kept two BLOCKER gates permanently
-        // green on unmeasured metrics (see PerformanceSnapshot.quality docs).
+        // REQ-364: unmeasured = explicit null, never the fabricated
+        // 0.90/0/0.85 constants that sat exactly at/above the adaptive-gate
+        // thresholds and kept two BLOCKER gates permanently green (see
+        // PerformanceSnapshot.quality docs). REQ-372 supplies
+        // layoutOverlapRate's first real producer; the other two stay null
+        // until a real measurement exists (estimator proxies would re-create
+        // the permanently-green gate one indirection deeper).
         transcriptionAccuracy: null,
-        layoutOverlapRate: null,
+        layoutOverlapRate: this.measuredLayoutOverlapCount(),
         avgSceneQuality: null
       }
     };
@@ -633,6 +703,19 @@ class RealTimePerformanceMonitor extends EventEmitter {
    */
   private avgModelResponseTimeMs(totalMs: number, count: number): number | null {
     return count > 0 ? Math.round(totalMs / count) : null;
+  }
+
+  /**
+   * REQ-372 finite-or-null derivation for snapshot.quality.layoutOverlapRate:
+   * the measured overlap count of the latest report whose scan actually ran
+   * over ≥1 scene; EXPLICIT null before any report and for a degenerate
+   * (0-scene) report — a run that produced no layout measured nothing, and a
+   * vacuous 0 here would pass the eq-0 zero-tolerance blocker gate without a
+   * measurement (the REQ-364 fabrication class).
+   */
+  private measuredLayoutOverlapCount(): number | null {
+    const report = this.pipelineQualityReport;
+    return report !== null && report.measuredScenes > 0 ? report.layoutOverlapCount : null;
   }
 
   /**
@@ -796,6 +879,7 @@ class RealTimePerformanceMonitor extends EventEmitter {
       recoveryAttempts: 0,
       recoverySuccesses: 0
     };
+    this.pipelineQualityReport = null;
     this.metrics.clear();
     this.alerts = [];
     this.performanceHistory = {
