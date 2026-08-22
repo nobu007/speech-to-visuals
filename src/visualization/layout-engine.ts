@@ -260,13 +260,16 @@ export class LayoutEngine extends BaseLayoutEngine {
     const layout = await this._applyInitialLayoutAndOverlapResolution(nodes, edges, diagramType);
     const bounds = this.calculateBounds(layout.nodes);
     const processingTime = performance.now() - startTime;
-    return {
-      layout,
-      bounds,
-      processingTime,
-      success: true,
-      confidence: 1.0 // Simple mode assumes high confidence for basic layout
-    };
+    // REQ-391: route through the SAME evaluator as every other path. The
+    // former hardcoded `confidence: 1.0 // Simple mode assumes high
+    // confidence` asserted MAX layout confidence with no evaluation — the
+    // identical bypass the complex path was cured of (constant 0.8
+    // default-masking, DROPS class e0f269af); a clean simple layout still
+    // scores ~1.0, a degenerate one no longer reports perfection.
+    return this._evaluateLayoutResult(
+      { layout, bounds, processingTime, success: true },
+      diagramType
+    );
   }
 
   /**

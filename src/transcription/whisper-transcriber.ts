@@ -27,6 +27,15 @@ export interface WhisperConfig {
 }
 
 /**
+ * Confidence stamped on placeholder-path segments (REQ-391). The placeholder
+ * pipeline emits fixed text with no ASR behind it, so no confidence is
+ * measured; this constant is the disclosed stand-in, pinned to the lower
+ * bound of the former `0.95 + Math.random() * 0.05` so no threshold consumer
+ * reads an inflated value.
+ */
+export const PLACEHOLDER_SEGMENT_CONFIDENCE = 0.95;
+
+/**
  * Extract file extension from a File object name or path string
  */
 function getAudioFormat(input: File | ArrayBuffer | string): string | null {
@@ -266,7 +275,14 @@ export class WhisperTranscriber {
         start: i,
         end: Math.min(i + segmentLength, duration),
         text: this.generateHighQualityTranscript(i / segmentLength),
-        confidence: 0.95 + (Math.random() * 0.05)
+        // Deterministic disclosed placeholder: this path emits fixed
+        // placeholder text with no ASR behind it (see README「音声認識の現状」),
+        // so there is no measured confidence. The former
+        // `0.95 + Math.random() * 0.05` dressed the placeholder up with
+        // measurement-like variance — random jitter mimics a real reading
+        // (REQ-391). Pinned to the old range's lower bound so no threshold
+        // consumer sees an inflated value.
+        confidence: PLACEHOLDER_SEGMENT_CONFIDENCE
       };
 
       segments.push(segment);

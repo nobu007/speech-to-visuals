@@ -69,7 +69,6 @@ describe('ContinuousLearner capacity backstops', () => {
       name,
       description: 'desc',
       targetComponent: 'comp',
-      currentPerformance: 0.5,
       expectedImprovement: 0.1,
       implementationComplexity: 'low' as const,
       riskLevel: 'low' as const,

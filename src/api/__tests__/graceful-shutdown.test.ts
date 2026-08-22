@@ -89,10 +89,6 @@ jest.unstable_mockModule('@/monitoring/health-check-service', () => ({
   healthCheckService: { destroy: mockHealthCheckServiceDestroy },
 }));
 
-jest.unstable_mockModule('@/monitoring/production-monitoring-excellence', () => ({
-  globalProductionMonitoring: { destroy: jest.fn().mockResolvedValue(undefined) },
-}));
-
 jest.unstable_mockModule('@/api/server', () => ({
   app: {
     listen: mockServerListen,

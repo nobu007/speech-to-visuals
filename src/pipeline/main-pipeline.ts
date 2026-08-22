@@ -696,13 +696,16 @@ export class MainPipeline {
     // Original transcription logic
     const result = await this.transcribeAudio(input);
 
-    // Cache successful results
+    // Cache successful results. duration is the transcription's own measured
+    // audio length; performanceScore stays at the neutral 0 because this site
+    // has no performance measurement to publish (the frozen 0.8 was a uniform
+    // fabricated eviction bonus — REQ-391).
     if (result.success) {
       await globalCache.store(cacheKey, result, {
         contentType: 'flow' as const,
-        duration: 0,
+        duration: result.duration,
         complexity: result.segments.length / 10,
-        performanceScore: 0.8,
+        performanceScore: 0,
         accessPattern: 'recent'
       });
     }

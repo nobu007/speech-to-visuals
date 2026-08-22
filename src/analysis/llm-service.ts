@@ -699,9 +699,13 @@ export class LLMService {
 
   /**
    * Calculate adaptive timeout based on historical response times
-   * Uses P95 (95th percentile) for robust timeout estimation
+   * Uses P95 (95th percentile) for robust timeout estimation.
+   * Public since REQ-391: stats surfaces (GeminiAnalyzer.getCacheStats →
+   * adaptiveTimeout.currentTimeoutMs) report the LIVE value this gate will
+   * apply on the next request, where they previously published a frozen
+   * 30000 stand-in.
    */
-  private getAdaptiveTimeout(): number {
+  getAdaptiveTimeout(): number {
     if (this.responseTimeHistory.length === 0) {
       return this.TIMEOUT_DEFAULT_MS;
     }

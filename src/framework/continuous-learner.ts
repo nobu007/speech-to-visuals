@@ -38,7 +38,10 @@ interface OptimizationStrategy {
   name: string;
   description: string;
   targetComponent: string;
-  currentPerformance: number;
+  // currentPerformance REMOVED (REQ-391): every producer site assigned a
+  // frozen literal (0.93 transcription / 0.85 quality / 0.8 performance / 0
+  // triggers) and NO consumer ever read it — a fabricated measurement with
+  // zero readers. Deleted rather than re-derived.
   expectedImprovement: number;
   implementationComplexity: 'low' | 'medium' | 'high';
   riskLevel: 'low' | 'medium' | 'high';
@@ -598,7 +601,6 @@ export class ContinuousLearner {
           name: 'transcription_optimization',
           description: 'Improve transcription accuracy and speed',
           targetComponent: 'transcription',
-          currentPerformance: 0.93,
           expectedImprovement: pattern.expectedGain,
           implementationComplexity: 'medium',
           riskLevel: 'low',
@@ -610,7 +612,6 @@ export class ContinuousLearner {
           name: 'quality_enhancement',
           description: 'Enhance overall quality metrics',
           targetComponent: pattern.applicableComponents[0],
-          currentPerformance: 0.85,
           expectedImprovement: pattern.expectedGain,
           implementationComplexity: 'low',
           riskLevel: 'low',
@@ -622,7 +623,6 @@ export class ContinuousLearner {
           name: 'performance_optimization',
           description: 'Optimize processing speed and resource usage',
           targetComponent: pattern.applicableComponents[0],
-          currentPerformance: 0.8,
           expectedImprovement: pattern.expectedGain,
           implementationComplexity: 'high',
           riskLevel: 'medium',
@@ -912,7 +912,6 @@ export class ContinuousLearner {
       name: `perf_opt:${component}`,
       description: `Address ${anomaly} in ${component}`,
       targetComponent: component,
-      currentPerformance: 0,
       expectedImprovement: 0.2,
       implementationComplexity: 'medium',
       riskLevel: 'low',
@@ -926,7 +925,6 @@ export class ContinuousLearner {
       name: `qual_imp:${component}`,
       description: `Resolve ${issue} in ${component}`,
       targetComponent: component,
-      currentPerformance: 0,
       expectedImprovement: 0.15,
       implementationComplexity: 'low',
       riskLevel: 'low',

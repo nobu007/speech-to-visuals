@@ -83,7 +83,7 @@ describe('PerformanceDashboard NaN/Infinity guards', () => {
         processing: { transcriptionTime: number; analysisTime: number; layoutTime: number; renderTime: number; totalTime: number };
         memory: { heapUsed: number; heapTotal: number; external: number; rss: number };
         cache: { hitRate: number; efficiency: number; memoryUsage: number; size: number };
-        quality: { successRate: number; errorRate: number; accuracyScore: number };
+        quality: { successRate: number; errorRate: number };
       }>;
       analyzePerformance: () => void;
       calculateAvgResponseTime: () => number;
@@ -112,7 +112,7 @@ describe('PerformanceDashboard NaN/Infinity guards', () => {
       },
       memory: { heapUsed: 100, heapTotal: 200, external: 10, rss: 150 },
       cache: { hitRate: 0.85, efficiency: 0.9, memoryUsage: 1024, size: 50 },
-      quality: { successRate: 1, errorRate: 0, accuracyScore: 0.95 },
+      quality: { successRate: 1, errorRate: 0 },
     };
   }
 

@@ -520,6 +520,7 @@ describe('round 43 layer 3: source anchors', () => {
   const resolver = readSource('src/visualization/layout/OverlapResolver.ts');
   const annealer = readSource('src/visualization/layout/strategies/SimulatedAnnealingStrategy.ts');
   const evaluatorSrc = readSource('src/visualization/strategies/LayoutEvaluator.ts');
+  const ezoSrc = readSource('src/visualization/enhanced-zero-overlap-layout.ts');
   const canonicalV2 = readSource('src/visualization/layout/edge-crossings.ts');
   const canonicalV1 = readSource('src/visualization/edge-crossing-minimizer.ts');
 
@@ -532,6 +533,17 @@ describe('round 43 layer 3: source anchors', () => {
     expect(codeLines(resolver).some((l) => l.includes('ccw('))).toBe(false);
     expect(codeLines(resolver).some((l) => l.includes('private countEdgeCrossings'))).toBe(false);
     expect(codeLines(resolver).some((l) => l.includes('private segmentsIntersect'))).toBe(false);
+  });
+
+  it('ezo (REQ-391) delegates its published crossings to the v2 canonical — count stub retired', () => {
+    // The published metric used to be `floor(edges.length * 0.1)` — a count
+    // derived from the edge COUNT with no geometry. It now feeds from the
+    // same strict-predicate scan every other engine reads.
+    expect(ezoSrc).toContain("import { countEdgeCrossings } from './layout/edge-crossings'");
+    expect(codeLines(ezoSrc).some((l) => l.includes('countEdgeCrossings(layout.nodes, layout.edges)'))).toBe(true);
+    // the retired count stub must not come back
+    expect(codeLines(ezoSrc).some((l) => l.includes('edges.length * 0.1'))).toBe(false);
+    expect(codeLines(ezoSrc).some((l) => l.includes('private calculateEdgeCrossings'))).toBe(false);
   });
 
   it('SimulatedAnnealingStrategy delegates and keeps only the energy policy', () => {

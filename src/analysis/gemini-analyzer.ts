@@ -336,7 +336,10 @@ export class GeminiAnalyzer {
       // Performance stats
       totalRequests: stats.totalRequests,
       adaptiveTimeout: {
-        currentTimeoutMs: 30000, // LLMService uses adaptive timeout internally
+        // REQ-391: the LIVE gate value for the next request (P95×buffer
+        // clamped to [15s, 60s]; 30000 default with no history yet) — the
+        // former frozen 30000 stand-in stayed at the default forever.
+        currentTimeoutMs: this.llmService.getAdaptiveTimeout(),
         avgResponseTimeMs: stats.performance.avgResponseTime,
         p50ResponseTimeMs: stats.performance.p50,
         p95ResponseTimeMs: stats.performance.p95,

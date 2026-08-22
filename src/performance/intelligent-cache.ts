@@ -1153,15 +1153,23 @@ export function cached(keyGenerator?: (args: unknown[]) => string) {
         return similarMatch.data;
       }
 
-      // Execute original method
+      // Execute original method, measuring the wall-clock cost of producing
+      // the value — that measurement is the only honest `duration` this
+      // decorator can publish.
+      const startedAt = performance.now();
       const result = await method.apply(this, args);
+      const elapsedMs = performance.now() - startedAt;
 
-      // Store result with metadata
+      // Store result with metadata. complexity/performanceScore feed eviction
+      // priority (calculatePriority/calculateUtilityScore); with no content
+      // complexity or performance measurement available at store time the
+      // honest value is the neutral 0 — the previous frozen 0.5/0.8 handed
+      // every decorated entry a uniform fabricated bonus (REQ-391).
       await globalCache.store(cacheKey, result, {
         contentType: 'flow', // Default type
-        duration: performance.now(),
-        complexity: 0.5,
-        performanceScore: 0.8,
+        duration: elapsedMs,
+        complexity: 0,
+        performanceScore: 0,
         accessPattern: 'mixed'
       });
 

@@ -15,6 +15,15 @@ import {
   DEFAULT_STREAMING_QUALITY_CONFIG,
 } from './streaming-quality-monitor';
 
+/**
+ * Confidence stamped on simulated chunk segments (REQ-391). processAudioChunk
+ * emits fixed placeholder text with no ASR behind it, so no confidence is
+ * measured; this is the disclosed stand-in, pinned to the lower bound of the
+ * former `0.75 + Math.random() * 0.2` so no threshold consumer (e.g.
+ * minConfidence filtering) reads an inflated value.
+ */
+export const PLACEHOLDER_CHUNK_CONFIDENCE = 0.75;
+
 export interface StreamingTranscriptionConfig extends TranscriptionConfig {
   chunkSizeMs?: number; // Audio chunk size in milliseconds
   overlapMs?: number;   // Overlap between chunks for continuity
@@ -424,7 +433,11 @@ export class StreamingTranscriber {
         start: segmentStart * 1000,
         end: segmentEnd * 1000,
         text: `Processed segment ${i + 1} from chunk ${chunk.start.toFixed(1)}s-${chunk.end.toFixed(1)}s`,
-        confidence: 0.75 + (Math.random() * 0.2), // 75-95% confidence
+        // Deterministic disclosed placeholder: this chunk processor simulates
+        // transcription (fixed text above), so no confidence is measured. The
+        // former `0.75 + Math.random() * 0.2` faked measurement variance
+        // (REQ-391); pinned to the old range's lower bound.
+        confidence: PLACEHOLDER_CHUNK_CONFIDENCE,
         speaker: 'unknown'
       });
     }

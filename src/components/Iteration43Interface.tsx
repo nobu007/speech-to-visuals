@@ -176,15 +176,20 @@ const Iteration43Interface: React.FC = () => {
       // Update quality metrics. Compute overallScore once and mirror it into the
       // local accumulator so the post-loop log reads the value just produced,
       // not the stale closure (see finalOverallScore declaration above).
-      const overallScore = Math.min((i + 1) * 20, 96 + Math.random() * 4);
+      // REQ-391: the simulation's metric legs are FIXED disclosed values, not
+      // `Math.random()` jitter — random noise mimics reading variance and is
+      // more deceptive than a constant (each value below is the old range's
+      // lower bound; this whole run loop is an open simulation — mock video
+      // URL — so nothing here is a measurement).
+      const overallScore = Math.min((i + 1) * 20, 96);
       finalOverallScore = overallScore;
       setQualityMetrics(prev => ({
         ...prev,
-        transcriptionAccuracy: i >= 0 ? 95 + Math.random() * 3 : prev.transcriptionAccuracy,
-        sceneSegmentationF1: i >= 1 ? 88 + Math.random() * 5 : prev.sceneSegmentationF1,
+        transcriptionAccuracy: i >= 0 ? 95 : prev.transcriptionAccuracy,
+        sceneSegmentationF1: i >= 1 ? 88 : prev.sceneSegmentationF1,
         layoutOverlap: 0,
-        renderTime: i >= 3 ? 25000 + Math.random() * 10000 : prev.renderTime,
-        memoryUsage: i >= 2 ? 300 + Math.random() * 100 : prev.memoryUsage,
+        renderTime: i >= 3 ? 25000 : prev.renderTime,
+        memoryUsage: i >= 2 ? 300 : prev.memoryUsage,
         overallScore
       }));
     }

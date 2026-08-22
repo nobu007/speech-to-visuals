@@ -36,13 +36,8 @@ type EnginePrivateMethods = {
   calculateOptimalSeparation: (node1: PositionedNode, node2: PositionedNode) => number;
   findRootNode: (nodes: NodeDatum[], edges: EdgeDatum[]) => string;
   buildTree: (rootId: string, nodes: NodeDatum[], edges: EdgeDatum[]) => { id: string; children: unknown[] };
-  calculateTreeHeight: (tree: unknown) => number;
-  calculateTreeWidth: (tree: unknown) => number;
-  positionTreeNodes: (tree: unknown, width: number, height: number) => PositionedNode[];
-  generateTreeEdges: (edges: EdgeDatum[], nodes: PositionedNode[]) => import('@stv/core/types/diagram').LayoutEdge[];
   getDefaultMetrics: () => import('@/visualization/enhanced-zero-overlap-layout').LayoutQualityMetrics;
   calculateOverlapArea: (overlaps: { node1: PositionedNode; node2: PositionedNode }[]) => number;
-  calculateEdgeCrossings: (edges: import('@stv/core/types/diagram').LayoutEdge[]) => number;
   calculateTotalEdgeLength: (edges: import('@stv/core/types/diagram').LayoutEdge[]) => number;
   calculateCanvasUtilization: (nodes: PositionedNode[]) => number;
   calculateSymmetryScore: (nodes: PositionedNode[]) => number;
@@ -738,42 +733,21 @@ describe('ZeroOverlapLayoutEngine', () => {
       expect(tree.children).toEqual([]);
     });
 
-    test('calculateTreeHeight should return fixed value', () => {
-      const pm = privateMethods(engine);
-      expect(pm.calculateTreeHeight({})).toBe(300);
-    });
-
-    test('calculateTreeWidth should return fixed value', () => {
-      const pm = privateMethods(engine);
-      expect(pm.calculateTreeWidth({})).toBe(600);
-    });
-
-    test('positionTreeNodes should return empty array', () => {
-      const pm = privateMethods(engine);
-      expect(pm.positionTreeNodes({}, 600, 300)).toEqual([]);
-    });
-
-    test('generateTreeEdges should produce edges with points', () => {
-      const pm = privateMethods(engine);
-      const edges = makeEdges([['a', 'b']]);
-      const nodes: PositionedNode[] = [
-        { id: 'a', label: 'A', x: 0, y: 0, w: 100, h: 50 },
-        { id: 'b', label: 'B', x: 100, y: 100, w: 100, h: 50 },
-      ];
-      const result = pm.generateTreeEdges(edges, nodes);
-      expect(result).toHaveLength(1);
-      expect(result[0].points).toBeDefined();
-      expect(result[0].points.length).toBeGreaterThan(0);
-    });
+    // The dead tree quartet (calculateTreeHeight/Width returning frozen
+    // 300/600, positionTreeNodes returning [], generateTreeEdges fabricating
+    // [{0,0},{100,100}] points) was retired with REQ-391 — zero production
+    // callers, frozen-constant stubs that read as live measurement helpers.
   });
 
   describe('metric calculation helpers (private)', () => {
-    test('calculateOverlapArea should return area based on overlap count', () => {
+    test('calculateOverlapArea should return the real AABB intersection area (REQ-391)', () => {
       const pm = privateMethods(engine);
       const node1: PositionedNode = { id: 'a', label: 'A', x: 0, y: 0, w: 100, h: 50 };
       const node2: PositionedNode = { id: 'b', label: 'B', x: 10, y: 10, w: 100, h: 50 };
       const area = pm.calculateOverlapArea([{ node1, node2 }]);
-      expect(area).toBe(100); // 1 overlap * 100
+      // x∩ [10,100]=90 × y∩ [10,50]=40 — the former stub billed every pair a
+      // flat 100px² regardless of geometry.
+      expect(area).toBe(90 * 40);
     });
 
     test('calculateOverlapArea should return 0 for empty array', () => {
@@ -781,14 +755,30 @@ describe('ZeroOverlapLayoutEngine', () => {
       expect(pm.calculateOverlapArea([])).toBe(0);
     });
 
-    test('calculateEdgeCrossings should return floor of edges * 0.1', () => {
-      const pm = privateMethods(engine);
-      const edges = Array.from({ length: 10 }, (_, i) => ({
-        from: `n${i}`,
-        to: `n${i + 1}`,
-        points: [{ x: 0, y: 0 }, { x: 100, y: 100 }],
-      }));
-      expect(pm.calculateEdgeCrossings(edges)).toBe(1);
+    test('published edgeCrossings is the real strict-predicate scan count (REQ-391)', async () => {
+      // The former private calculateEdgeCrossings stub derived a crossing
+      // COUNT from the edge count (`floor(len*0.1)`) with no geometry at all.
+      // calculateQualityMetrics now delegates to the round-43 single source
+      // (layout/edge-crossings.ts), so pin the published metric end-to-end:
+      // a square with both diagonals has exactly 1 proper crossing (the
+      // shared center point is a proper crossing of the two distinct pairs;
+      // the square sides share endpoints with the diagonals and are skipped).
+      const nodes: PositionedNode[] = [
+        { id: 'tl', label: 'TL', x: 0, y: 0, w: 40, h: 40 },
+        { id: 'tr', label: 'TR', x: 200, y: 0, w: 40, h: 40 },
+        { id: 'bl', label: 'BL', x: 0, y: 200, w: 40, h: 40 },
+        { id: 'br', label: 'BR', x: 200, y: 200, w: 40, h: 40 },
+      ];
+      const edges = [
+        { from: 'tl', to: 'br', source: 'tl', target: 'br', points: [{ x: 20, y: 20 }, { x: 220, y: 220 }] },
+        { from: 'tr', to: 'bl', source: 'tr', target: 'bl', points: [{ x: 220, y: 20 }, { x: 20, y: 220 }] },
+      ];
+      const result = await engine.generateZeroOverlapLayout('timeline', nodes, edges);
+      // Delegate directly through the same single source the engine now uses
+      // so the pin is on the WIRING (engine → canonical), not a copy of it.
+      const { countEdgeCrossings } = await import('@/visualization/layout/edge-crossings');
+      expect(result.qualityMetrics.edgeCrossings)
+        .toBe(countEdgeCrossings(result.nodes, result.edges));
     });
 
     test('calculateTotalEdgeLength should sum edge point distances', () => {
@@ -828,10 +818,23 @@ describe('ZeroOverlapLayoutEngine', () => {
       expect(utilization).toBeLessThanOrEqual(1);
     });
 
-    test('calculateSymmetryScore should return simulated value', () => {
+    test('calculateSymmetryScore derives horizontal balance from real positions (REQ-391)', () => {
       const pm = privateMethods(engine);
-      const score = pm.calculateSymmetryScore([]);
-      expect(score).toBe(0.75);
+      // Empty input: no mass to balance → 0 (the former stub returned a
+      // simulated 0.75 for everything, including empty layouts).
+      expect(pm.calculateSymmetryScore([])).toBe(0);
+      // Centroid on the canvas center axis (default canvas 1920 → center 960)
+      // → perfectly balanced mass → 1.
+      const balanced: PositionedNode[] = [
+        { id: 'a', label: 'A', x: 860, y: 0, w: 100, h: 50 },
+        { id: 'b', label: 'B', x: 1060, y: 100, w: 100, h: 50 },
+      ];
+      expect(pm.calculateSymmetryScore(balanced)).toBeCloseTo(1, 5);
+      // Centroid pushed to the left edge → 0.
+      const lopsided: PositionedNode[] = [
+        { id: 'a', label: 'A', x: 0, y: 0, w: 100, h: 50 },
+      ];
+      expect(pm.calculateSymmetryScore(lopsided)).toBe(0);
     });
 
     test('getDefaultMetrics should return all-zero metrics', () => {

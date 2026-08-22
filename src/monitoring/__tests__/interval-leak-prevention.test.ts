@@ -4,7 +4,6 @@
  */
 
 import { RealTimePerformanceMonitor } from '../real-time-performance-monitor';
-import { ProductionMonitoringExcellence } from '../production-monitoring-excellence';
 
 // Mock memory-usage
 jest.mock('@stv/core/utils/memory-usage', () => ({
@@ -72,37 +71,10 @@ describe('Interval leak prevention', () => {
     });
   });
 
-  describe('ProductionMonitoringExcellence', () => {
-    // NODE_ENV is 'test' during Jest, so intervals are skipped in constructor.
-    // But we test the destroy() method for correctness.
-
-    it('has a destroy() method', () => {
-      const pme = new ProductionMonitoringExcellence();
-      expect(typeof pme.destroy).toBe('function');
-      pme.destroy();
-    });
-
-    it('destroy() clears all interval IDs', () => {
-      const pme = new ProductionMonitoringExcellence();
-      pme.destroy();
-      // After destroy, monitoringEnabled should be false
-      // We can verify destroy is idempotent
-      expect(() => pme.destroy()).not.toThrow();
-    });
-
-    it('destroy() can be called multiple times safely', () => {
-      const pme = new ProductionMonitoringExcellence();
-      pme.destroy();
-      pme.destroy();
-      pme.destroy();
-    });
-
-    it('enhanceMonitoringSystem still works after destroy', async () => {
-      const pme = new ProductionMonitoringExcellence();
-      pme.destroy();
-      // Methods should still be callable (just no background intervals)
-      const result = await pme.enhanceMonitoringSystem();
-      expect(result).toBeDefined();
-    });
-  });
+  // ProductionMonitoringExcellence describe removed with the module itself
+  // (REQ-391): every metric it published was a hardcoded/random fixture
+  // (97.8% detection accuracy, random 5-20% "optimization gains", 7
+  // fabricated health indicators). Its only live consumer was destroy() in
+  // the API graceful-shutdown list; the interval-leak surface it was tested
+  // for no longer exists.
 });

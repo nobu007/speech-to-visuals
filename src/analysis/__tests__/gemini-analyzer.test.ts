@@ -36,6 +36,8 @@ function createMockLLMService(mockAnalysis: DiagramAnalysis): LLMService {
         fallbackUsed: false,
       },
     }),
+    // REQ-391: getCacheStats now reports the LIVE adaptive-timeout gate value.
+    getAdaptiveTimeout: jest.fn().mockReturnValue(30000),
     getStats: jest.fn().mockReturnValue({
       cacheHits: 0,
       cacheMisses: 0,
@@ -82,6 +84,8 @@ function createModelSelectionMockLLMService(flashModel: boolean): LLMService {
         fallbackUsed: false,
       },
     }),
+    // REQ-391: getCacheStats now reports the LIVE adaptive-timeout gate value.
+    getAdaptiveTimeout: jest.fn().mockReturnValue(30000),
     getStats: jest.fn().mockReturnValue({
       cacheHits: 0,
       cacheMisses: 0,

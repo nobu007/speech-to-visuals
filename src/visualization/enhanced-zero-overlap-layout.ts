@@ -18,6 +18,7 @@ import { clamp01 } from '@stv/core/utils/guards';
 import { Point } from './types';
 import { logger } from '@stv/core/utils/logger';
 import { getNodeWidth, getNodeHeight, DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT } from './node-dimensions';
+import { countEdgeCrossings } from './layout/edge-crossings';
 import { centerToCenterAnchors, centerAnchor } from './strategy-edges';
 import { TARGET_ASPECT_RATIO } from './canvas-dimensions';
 import { FORCE_DIRECTED_PHYSICS, runForceDirectedPhases, applyForceDirectedStep } from './force-directed-params';
@@ -98,6 +99,28 @@ export interface ZeroOverlapResult {
   processingTime: number;
   success: boolean;
   warnings: string[];
+}
+
+/**
+ * Weighted aesthetic composite over the MEASURED quality legs (REQ-391 single
+ * source — calculateQualityMetrics publishes its result as `aestheticScore`
+ * and calculateAestheticScore returns the same value; before this, the
+ * weights lived only inside the optimizer-facing copy while the published
+ * field was a frozen `0.85 // Simulated`).
+ */
+function deriveAestheticScore(
+  metrics: Omit<LayoutQualityMetrics, 'aestheticScore'>,
+  layout: { nodes: PositionedNode[]; edges: LayoutEdge[] }
+): number {
+  const score = (
+    (1 - metrics.overlapCount / Math.max(1, layout.nodes.length)) * 0.4 +  // No overlaps
+    (1 - metrics.edgeCrossings / Math.max(1, layout.edges.length)) * 0.2 +  // Fewer crossings
+    metrics.symmetryScore * 0.2 +  // Visual symmetry
+    metrics.compactnessScore * 0.1 +  // Compact layout
+    metrics.readabilityScore * 0.1  // Text readability
+  );
+
+  return clamp01(score);
 }
 
 /**
@@ -1105,18 +1128,11 @@ export class ZeroOverlapLayoutEngine {
    * Calculate aesthetic score for a layout
    */
   private calculateAestheticScore(layout: { nodes: PositionedNode[]; edges: LayoutEdge[] }): number {
-    const metrics = this.calculateQualityMetrics(layout);
-
-    // Weighted combination of aesthetic factors
-    const score = (
-      (1 - metrics.overlapCount / Math.max(1, layout.nodes.length)) * 0.4 +  // No overlaps
-      (1 - metrics.edgeCrossings / Math.max(1, layout.edges.length)) * 0.2 +  // Fewer crossings
-      metrics.symmetryScore * 0.2 +  // Visual symmetry
-      metrics.compactnessScore * 0.1 +  // Compact layout
-      metrics.readabilityScore * 0.1  // Text readability
-    );
-
-    return clamp01(score);
+    // Single source: identical to the aestheticScore calculateQualityMetrics
+    // publishes (both come from deriveAestheticScore over the same measured
+    // legs — REQ-391; the former private copy of the weights was the
+    // duplicate-formula class).
+    return this.calculateQualityMetrics(layout).aestheticScore;
   }
 
   /**
@@ -1178,19 +1194,36 @@ export class ZeroOverlapLayoutEngine {
   ): LayoutQualityMetrics {
     const overlaps = this.detectAllOverlaps(layout.nodes, 0);
     const spacingViolations = this.detectAllOverlaps(layout.nodes);
-
-    return {
+    // REQ-391: every score below is DERIVED from measured legs. The former
+    // `aestheticScore: 0.85 / compactnessScore: 0.8 / readabilityScore: 0.9
+    // // Simulated` constants published frozen numbers as readings, and the
+    // readability warning gate (`readabilityScore < 0.7`) could never fire on
+    // a constant 0.9.
+    const canvasUtilization = this.calculateCanvasUtilization(layout.nodes);
+    // Compactness ≡ bounding-box utilization by definition here: a layout
+    // whose extents pack tightly scores high. Same measured value, kept as a
+    // separate field for metric-shape compatibility with the other engines.
+    const compactnessScore = canvasUtilization;
+    // Readability: penalty model on MEASURED violation counts — 0.5 per
+    // geometric overlap, 0.25 per minimum-spacing violation, normalized by
+    // node count — so the <0.7 warning gate reflects real geometry.
+    const readabilityScore = clamp01(
+      1 - (overlaps.length * 0.5 + spacingViolations.length * 0.25)
+        / Math.max(1, layout.nodes.length)
+    );
+    const legs = {
       overlapCount: overlaps.length,
       spacingViolationCount: spacingViolations.length,
       overlapArea: this.calculateOverlapArea(overlaps),
-      edgeCrossings: this.calculateEdgeCrossings(layout.edges),
+      edgeCrossings: countEdgeCrossings(layout.nodes, layout.edges),
       totalEdgeLength: this.calculateTotalEdgeLength(layout.edges),
-      canvasUtilization: this.calculateCanvasUtilization(layout.nodes),
+      canvasUtilization,
       symmetryScore: this.calculateSymmetryScore(layout.nodes),
-      aestheticScore: 0.85, // Simulated high score
-      compactnessScore: 0.8, // Simulated
-      readabilityScore: 0.9  // Simulated
+      compactnessScore,
+      readabilityScore,
     };
+
+    return { ...legs, aestheticScore: deriveAestheticScore(legs, layout) };
   }
 
 
@@ -1205,25 +1238,12 @@ export class ZeroOverlapLayoutEngine {
     return { id: rootId, children: [] };
   }
 
-  private calculateTreeHeight(_tree: unknown): number {
-    return 300; // Simplified
-  }
-
-  private calculateTreeWidth(_tree: unknown): number {
-    return 600; // Simplified
-  }
-
-  private positionTreeNodes(_tree: unknown, _width: number, _height: number): PositionedNode[] {
-    // Simplified tree positioning
-    return [];
-  }
-
-  private generateTreeEdges(edges: EdgeDatum[], nodes: PositionedNode[]): LayoutEdge[] {
-    return edges.map(edge => ({
-      ...edge,
-      points: [{ x: 0, y: 0 }, { x: 100, y: 100 }]
-    }));
-  }
+  // REQ-391 retired the dead tree quartet (private calculateTreeHeight/
+  // calculateTreeWidth returning frozen 300/600, positionTreeNodes returning
+  // [], generateTreeEdges fabricating [{0,0},{100,100}] points): zero
+  // production callers — only their own white-box tests reached them. Same
+  // treatment as applyForceDirectedStep (round 40): plausible-looking
+  // frozen-constant stubs left in place read as live measurement helpers.
 
   // Round 40 retired `applyForceDirectedStep` (private): a THIRD copy of the
   // force-step skeleton with v1-era coefficients (1000/dist² repulsion,
@@ -1233,11 +1253,21 @@ export class ZeroOverlapLayoutEngine {
   // above, delegating to force-directed-params.
 
   private calculateOverlapArea(overlaps: { node1: PositionedNode; node2: PositionedNode }[]): number {
-    return overlaps.length * 100; // Simplified
-  }
-
-  private calculateEdgeCrossings(edges: LayoutEdge[]): number {
-    return Math.floor(edges.length * 0.1); // Simplified
+    // REQ-391: real AABB intersection area per overlapping pair. The former
+    // `overlaps.length * 100 // Simplified` billed every pair a flat 100px²
+    // regardless of geometry. Dimensions resolve through the canonical
+    // getNodeWidth/getNodeHeight helpers (NaN-guarded, width→w fallback).
+    return overlaps.reduce((total, { node1, node2 }) => {
+      const w = Math.min(
+        node1.x + getNodeWidth(node1),
+        node2.x + getNodeWidth(node2)
+      ) - Math.max(node1.x, node2.x);
+      const h = Math.min(
+        node1.y + getNodeHeight(node1),
+        node2.y + getNodeHeight(node2)
+      ) - Math.max(node1.y, node2.y);
+      return total + Math.max(0, w) * Math.max(0, h);
+    }, 0);
   }
 
   private calculateTotalEdgeLength(edges: LayoutEdge[]): number {
@@ -1272,8 +1302,16 @@ export class ZeroOverlapLayoutEngine {
   }
 
   private calculateSymmetryScore(nodes: PositionedNode[]): number {
-    // Simplified symmetry calculation
-    return 0.75; // Simulated good symmetry
+    // REQ-391: measured horizontal-balance derivation replaces the simulated
+    // constant 0.75. The node-mass centroid's distance from the canvas's
+    // vertical center axis, normalized by half the canvas width: 1 = mass
+    // centered on the axis, 0 = pushed against an edge. (A full mirror-pairing
+    // measure would need domain semantics this generic engine does not have;
+    // balance is the component of symmetry the geometry actually supports.)
+    if (nodes.length === 0) return 0;
+    const canvasCenterX = this.config.canvasWidth / 2;
+    const centroidX = nodes.reduce((sum, n) => sum + n.x, 0) / nodes.length;
+    return clamp01(1 - Math.abs(centroidX - canvasCenterX) / Math.max(1, canvasCenterX));
   }
 
   private getDefaultMetrics(): LayoutQualityMetrics {

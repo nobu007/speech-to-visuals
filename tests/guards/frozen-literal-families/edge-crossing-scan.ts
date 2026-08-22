@@ -27,8 +27,9 @@ export const RULES: FrozenLiteralRule[] = [
    * (boolean ccw `!==`, no shared-endpoint skip) kept by design;
    * `nodeMap.get(edge.source)` alone is not banned because three
    * edge-energy/repointing sites use it for non-crossing segment builds;
-   * ezo's calculateEdgeCrossings is a count stub (`floor(len*0.1)`), not
-   * geometry. Delegation pins per site live in
+   * ezo's calculateEdgeCrossings count stub (`floor(len*0.1)`) was retired
+   * by REQ-391 — ezo now delegates to the strict canonical like the rest.
+   * Delegation pins per site live in
    * edge-crossing-scan-single-source.test.ts.
    */
   {

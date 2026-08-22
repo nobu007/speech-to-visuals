@@ -104,6 +104,8 @@ function createParserMockLLMService(): {
         metadata: { model: 'none', responseTime: 0, fromCache: false, retryCount: 0, fallbackUsed: false },
       };
     }),
+    // REQ-391: getCacheStats now reports the LIVE adaptive-timeout gate value.
+    getAdaptiveTimeout: jest.fn().mockReturnValue(30000),
     getStats: jest.fn().mockReturnValue({
       totalRequests: 1,
       cacheHits: 0,
@@ -141,6 +143,8 @@ function createSimpleMockLLMService(analysis: DiagramAnalysis | null, success = 
         fallbackUsed: false,
       },
     }),
+    // REQ-391: getCacheStats now reports the LIVE adaptive-timeout gate value.
+    getAdaptiveTimeout: jest.fn().mockReturnValue(30000),
     getStats: jest.fn().mockReturnValue({
       totalRequests: 1,
       cacheHits: 0,

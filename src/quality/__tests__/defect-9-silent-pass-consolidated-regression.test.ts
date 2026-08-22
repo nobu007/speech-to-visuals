@@ -886,12 +886,13 @@ const DEFECT9_SURFACE: ReadonlyArray<SurfaceEntry> = [
       'calculateLayoutBalance→1 for empty nodes is a DEAD value (no gate reads it); ' +
       'overlapCount===0 for empty nodes is a genuine count, not a manufactured fallback.',
   },
-  {
-    file: 'src/monitoring/production-monitoring-excellence.ts',
-    ruledOut:
-      'Every metric is a hardcoded literal; no absent/empty input reaches any comparison and no ' +
-      'gate operators exist.',
-  },
+  // src/monitoring/production-monitoring-excellence.ts — DELETED (REQ-391 /
+  // Phase 189). The ruled-out note ("every metric is a hardcoded literal")
+  // held for the defect-9 class (no gate operators), but the hardcoded
+  // literals themselves were the measurement-fixture class: 97.8% detection
+  // accuracy, random 5-20% optimization gains, 7 fabricated health
+  // indicators. Removed wholesale with its only live consumer (destroy() in
+  // the API shutdown list), so it is no longer part of the swept surface.
   {
     file: 'src/monitoring/real-time-performance-monitor.ts',
     ruledOut:

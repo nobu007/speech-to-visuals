@@ -550,9 +550,12 @@ export class PipelineOrchestrator {
     // Auto-tune if enabled (REQ-039)
     if (this.config.enableAutoTuning) {
       try {
+        // No audio-quality measurement exists at this point (tuning runs
+        // before transcription), so `quality` is intentionally NOT passed:
+        // smart-parameter-tuner's documented `?? 0.8` default applies rather
+        // than this site asserting a fabricated reading (REQ-391).
         const characteristics = await this.tuner.analyzeContent('', {
           duration: config.output.videoDuration,
-          quality: 0.8,
         } as { duration?: number; format?: string; sampleRate?: number });
         const optimization = await this.tuner.optimizeParameters(characteristics);
         const tuned = optimization.parameters;

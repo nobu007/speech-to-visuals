@@ -47,7 +47,6 @@ interface PerformanceMetrics {
   quality: {
     successRate: number;
     errorRate: number;
-    accuracyScore: number;
   };
   // Phase 14: Optimization metrics
   optimization?: {
@@ -226,8 +225,11 @@ export class PerformanceDashboard {
       },
       quality: {
         successRate: this.totalRequests > 0 ? this.successfulRequests / this.totalRequests : 1,
-        errorRate: this.totalRequests > 0 ? (this.totalRequests - this.successfulRequests) / this.totalRequests : 0,
-        accuracyScore: 0.95 // Would be calculated from actual results
+        errorRate: this.totalRequests > 0 ? (this.totalRequests - this.successfulRequests) / this.totalRequests : 0
+        // accuracyScore REMOVED (REQ-391): it was the self-admitted fixture
+        // `0.95 // Would be calculated from actual results`. This dashboard has
+        // no accuracy measurement source, so per the measured-only policy the
+        // field is deleted rather than re-fabricated.
       }
     };
 
@@ -458,8 +460,7 @@ export class PerformanceDashboard {
       },
       quality: {
         successRate: acc.quality.successRate + metric.quality.successRate,
-        errorRate: acc.quality.errorRate + metric.quality.errorRate,
-        accuracyScore: acc.quality.accuracyScore + metric.quality.accuracyScore
+        errorRate: acc.quality.errorRate + metric.quality.errorRate
       }
     }), {
       timestamp: 0,
@@ -467,7 +468,7 @@ export class PerformanceDashboard {
       processing: { transcriptionTime: 0, analysisTime: 0, layoutTime: 0, renderTime: 0, totalTime: 0 },
       cache: { hitRate: 0, efficiency: 0, memoryUsage: 0, size: 0 },
       throughput: { requestsPerSecond: 0, avgResponseTime: 0, concurrentRequests: 0 },
-      quality: { successRate: 0, errorRate: 0, accuracyScore: 0 }
+      quality: { successRate: 0, errorRate: 0 }
     });
 
     const count = metrics.length;
@@ -499,8 +500,7 @@ export class PerformanceDashboard {
       },
       quality: {
         successRate: avg.quality.successRate / count,
-        errorRate: avg.quality.errorRate / count,
-        accuracyScore: avg.quality.accuracyScore / count
+        errorRate: avg.quality.errorRate / count
       }
     };
   }
