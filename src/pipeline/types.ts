@@ -78,7 +78,12 @@ export interface PipelineMetrics {
  * All fields are optional to remain backward-compatible with existing pipeline outputs.
  */
 export interface ExtendedPipelineMetrics extends PipelineMetrics {
-  /** Peak process memory usage in bytes */
+  /**
+   * Peak process memory usage in bytes. MainPipeline populates this on the
+   * success path (REQ-387) from the run's memory snapshots + a fresh
+   * memory-backend reading; the field is OMITTED when nothing was measured
+   * (never 0-as-unmeasured — REQ-383/386 score it as a real reading).
+   */
   memoryUsage?: number;
   /** Entity extraction F1 score (0.0 - 1.0), if ground truth is available */
   entityExtractionF1Score?: number;

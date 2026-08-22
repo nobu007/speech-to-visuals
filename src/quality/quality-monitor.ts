@@ -875,11 +875,13 @@ export class QualityMonitor {
       : 0.5;
 
     // REQ-383: `metrics.memoryUsage` (bytes — ExtendedPipelineMetrics contract)
-    // is OPTIONAL and currently unproduced by MainPipeline. An unmeasured leg
-    // must not claim a score: it is EXCLUDED from the keyset-derived average
-    // and its recommendation never fires. The old unconditional 0.5 fallback
-    // capped every production run's Iteration Quality Score at 90% and pushed
-    // a memory-optimization recommendation for a metric nobody measured.
+    // is OPTIONAL; MainPipeline populates it measured-only (REQ-387), so a run
+    // in a runtime with no memory API (or a hand-built result) still omits it.
+    // An unmeasured leg must not claim a score: it is EXCLUDED from the
+    // keyset-derived average and its recommendation never fires. The old
+    // unconditional 0.5 fallback capped every such run's Iteration Quality
+    // Score at 90% and pushed a memory-optimization recommendation for a
+    // metric nobody measured.
     const memoryUsageBytes = result.metrics?.memoryUsage;
     const memoryUsageMeasured =
       typeof memoryUsageBytes === 'number' && Number.isFinite(memoryUsageBytes);

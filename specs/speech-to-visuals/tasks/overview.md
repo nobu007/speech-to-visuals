@@ -2906,14 +2906,15 @@ bonus/violation の witness fixture は DEFECT-9 cap（measured quality なし �
 **背景**: Phase 181〜183（REQ-383〜385）が `src/quality/quality-monitor.ts` の Compliance 系評価の捏造 leg を撲滅した際、同一 file の performance 評価 2 leg に同型 sibling が残存していた（missed-sibling-site class。Phase 172 REQ-369〜371 の estimator 委譲は SimplePipeline / GeminiAnalyzer 対象で本 file は未処理）。(1) `assessProcessingSpeed` は `assumedAudioDuration = 60000` の捏造分子で vs-realtime 比を計算 — required top-level `PipelineResult.duration`（ms）が存在するのに無視（REQ-383 の processingTime leg と同型）し、12s content / 10s 処理の run（実 ratio 1.2）を 6x-realtime と過大評価 (2) `assessMemoryUsage` は hardcoded `currentMemoryMB = 128` から常に 1.0 を返す定数 always-pass — performanceScore 30% 重みを毎 run 無条件満点供給して overallScore +0.09、`checkDeploymentReadiness` 0.7 gate を押し上げ得る masking。
 
 - [x] [TASK-0268: assessPerformance 捏造 leg 2 件 measured-only 化 — fabricated 60s 音声 + hardcoded 128MB 撲滅（REQ-386・TC-370-01〜04・MW-050）](TASK-0268.md) - 2h (DIRECT) 🔵 ✅2026-08-22（speed 分子を required `result.duration` に読み替え + memory を実測 `metrics.memoryUsage`（bytes）に読み替え・未計測 leg は score/`maxScore` 分母両方から除外 + REQ-386 describe 4 tests exact-value pin 新設 + stale GREEN 2 test（iteration comparison — fixture `duration: 60` のまま processingTime のみ変化）を実測値 `duration: 60000` に更新 46/46 GREEN・広域 64 suites / 1711 tests GREEN（main-pipeline caller 回帰含む）+ tsc 両 config 0 + specs:mirror:check exit 0 + MW-050 4 独立 mutation RED 実測（2/1/1/1 failed）+ 監査 pin ≥49→≥50。**設計決定**: memoryUsage producer 計装は作成しない — Phase 171/383「fail-closed が計装を促す」方針）
+- [x] [TASK-0269: MainPipeline memoryUsage 実測 producer — REQ-383/386 dead contract の live 化（REQ-387・TC-371-01〜04・MW-051）](TASK-0269.md) - 2h (DIRECT) 🔵 ✅2026-08-22（make-run steering 直接指定の gap: measured-only 化された REQ-383/386 memory leg が読む `metrics.memoryUsage` を MainPipeline が一切生産せず dead contract 化。pure helper `memory-usage-metrics.ts` `peakHeapUsedBytes`（正の有限値 max・bytes verbatim・0 は未計測で null）+ `createSuccessResult` conditional spread で populate・no-API runtime は field omit + wiring test が生成 result を QualityMonitor に通して leg LIVE を実証（measured 512MB → performanceScore 0.7・💾 発火）16/16 GREEN・広域 103 suites / 2310 tests GREEN + tsc 両 config 0 + MW-051 4 独立 mutation RED 実測（1/2/6/4 failed）+ 監査 pin ≥50→≥51。TASK-0268 の「producer 計装不作成」設計決定を steering 方向で解除）
 
-### 信頼性レベルサマリー（Phase 184 追加分量）
+### 信頼性レベルサマリー（Phase 185 追加分量）
 
-- 全 1 タスク 🔵（実装・`PipelineResult` 型・両 test file を live 読みで確認した実欠陥修正。MW-050 4 mutation 独立 RED 実測 + production caller 回帰 GREEN）
+- 全 1 タスク 🔵（steering 指定 gap の実装。MW-051 4 mutation 独立 RED 実測 + producer→consumer 結合 pin + 広域回帰 GREEN）
 
 ### 次フェーズ開始番号
 
-**次回開始番号**: TASK-0269
+**次回開始番号**: TASK-0270
 
 
 ## Spine: external references

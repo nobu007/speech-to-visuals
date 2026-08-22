@@ -337,11 +337,12 @@ describe('QualityMonitor', () => {
   // --- REQ-383: iteration-quality legs read measured fields only ---
 
   describe('evaluateIterationQuality (REQ-383: measured legs only)', () => {
-    it('production-shape result (no metrics.memoryUsage) scores 100% and never recommends memory optimization', async () => {
-      // MainPipeline's PipelineResult.metrics carries only totalRetryAttempts
-      // — memoryUsage is never produced. The unmeasured leg must be EXCLUDED
-      // from the average (not scored 0.5) and must not emit its
-      // recommendation for a metric nobody measured.
+    it('unmeasured-shape result (no metrics.memoryUsage) scores 100% and never recommends memory optimization', async () => {
+      // MainPipeline produces metrics.memoryUsage measured-only (REQ-387), so
+      // a result from a runtime with no memory API — and any hand-built
+      // result — still carries only totalRetryAttempts. The unmeasured leg
+      // must be EXCLUDED from the average (not scored 0.5) and must not emit
+      // its recommendation for a metric nobody measured.
       const result = makeResult({ metrics: { totalRetryAttempts: 0 } });
 
       const assessment = await monitor.assessPipelineQuality(result);
@@ -505,8 +506,9 @@ describe('QualityMonitor', () => {
     });
 
     it('unmeasured memoryUsage is EXCLUDED from the weighted average, not fabricated 1.0 nor scored 0', async () => {
-      // MainPipeline never produces metrics.memoryUsage. 120s of content in
-      // 40s → ratio 3 → (3-2)/(6-2) = 0.25; success → 1.0. Excluding the
+      // memoryUsage is measured-only (REQ-387 produces it on the MainPipeline
+      // success path; a no-memory-API runtime still omits it). 120s of content
+      // in 40s → ratio 3 → (3-2)/(6-2) = 0.25; success → 1.0. Excluding the
       // memory leg: performanceScore = (0.25*0.4 + 0.3) / 0.7 = 4/7 ≈ 0.5714.
       // Fabricated 1.0 (old code) reports 0.7; scoring the leg 0 instead of
       // excluding it reports 0.4 — both directions are pinned away.

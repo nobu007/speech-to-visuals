@@ -48,6 +48,7 @@ import { realTimeMonitor } from '@/monitoring/real-time-performance-monitor';
 import { globalIterationLogger } from '@/framework/iteration-logger';
 import { getHeapUsed } from '@stv/core/utils/memory-usage';
 import { readMemoryBackend } from '@/monitoring/memory-backend';
+import { peakHeapUsedBytes } from './memory-usage-metrics';
 import { logger } from '@stv/core/utils/logger';
 
 /**
@@ -1085,6 +1086,12 @@ export class MainPipeline {
 
     const totalDuration = scenes.reduce((sum, scene) => sum + sanitizeFinite(scene.durationMs, 0), 0);
 
+    // REQ-387: measured-only producer for ExtendedPipelineMetrics.memoryUsage
+    // (bytes) — the signal the REQ-383/386 quality legs read. Conditional
+    // spread: an unmeasured run OMITS the field (the legs then exclude
+    // themselves) instead of publishing a fabricated value.
+    const memoryUsage = this.measuredPeakHeapUsedBytes();
+
     return {
       success: true,
       scenes,
@@ -1094,8 +1101,30 @@ export class MainPipeline {
       stages: this.stages,
       metrics: {
         totalRetryAttempts: this.retryAttempts,
+        ...(memoryUsage !== null ? { memoryUsage } : {}),
       },
     };
+  }
+
+  /**
+   * REQ-387: peak observed heap usage in BYTES for the current run, or null
+   * when no positive finite reading exists.
+   *
+   * Samples: this run's performanceTracker.memorySnapshots ('initial' from
+   * initializePerformanceMonitoring; per-stage snapshots when tracked) plus a
+   * fresh readMemoryBackend() reading taken here at result-build time.
+   * Math.max across them matches the ExtendedPipelineMetrics "peak process
+   * memory usage" contract — a single spot sample could report less than the
+   * run actually used. The zero/unmeasured filtering lives in the pure
+   * peakHeapUsedBytes helper (see its doc for why a 0 reading must not be
+   * published); readMemoryBackend is the REQ-358 finite-or-null boundary, so
+   * no non-finite value can reach the metrics object from here.
+   */
+  private measuredPeakHeapUsedBytes(): number | null {
+    return peakHeapUsedBytes(
+      this.performanceTracker.memorySnapshots.values(),
+      readMemoryBackend().heapUsed,
+    );
   }
 
   /**
