@@ -309,6 +309,26 @@ src/ + `@stv-core/core-four` の surface を列挙済み
 - [ ] 異常系: roster を 1 件変更して spec 編集なし → RED 🔵
 - [ ] 異常系: spec 数値のみ更新して roster 未変更 → RED 🔵
 
+### Initial roster counts (REQ-404/405 verbatim phrase declarations)
+
+stale-comment-census (REQ-396 family 5) は初回手動 audit 完了状態
+を confirmed-zero pin する。本 iteration で ship される ALLOWED
+台帳は手動 audit で拾った backward-compat documentation 26 件
+(descriptive `legacy`/`deprecated` の qualifier 付き言及 +
+dagre 上流 w/h 契約記述 + vendor-API config flag 4 件) で、
+ERADICATED は 0 件。type-narrow-as-any-census (REQ-397 family 6)
+は production surface に `as any` / `as any as` / `@ts-ignore` の
+hit が 0 件で、ALLOWED 0 key / ERADICATED 0 key の confirmed-zero
+pin。any-annotate-census (REQ-397 family 7) は production surface
+で `src/transcription/whisper-node.d.ts:7` の 1 件のみが
+third-party-sdk カテゴリで ALLOWED、ERADICATED 0 key。
+REQ-395 three-way guard の phrase 検査は次の verbatim 文字列を
+spec に要求する：
+
+- **stale-comment-census**: ALLOWED 23 key / ERADICATED 0 key
+- **type-narrow-as-any-census**: ALLOWED 0 key / ERADICATED 0 key
+- **any-annotate-census**: ALLOWED 1 key / ERADICATED 0 key
+
 ## 最小限の非機能要件
 
 - **パフォーマンス**: 3 guard 合計の実行時間が 30s 以内

@@ -39,7 +39,8 @@ import {
   parseCensusPinMarkers,
 } from './fold-census-families';
 
-const REQUIREMENTS = 'specs/speech-to-visuals/requirements.md';
+/** Default requirements path (the speech-to-visuals master spec). */
+const DEFAULT_REQUIREMENTS = 'specs/speech-to-visuals/requirements.md';
 
 /** A phrase the requirements prose must contain, built from a MEASURED count. */
 interface PhraseSpec {
@@ -52,6 +53,8 @@ interface PhraseSpec {
 interface ThreeWayRow {
   req: string;
   guard: string;
+  /** requirements path the phrase must appear in (defaults to the master spec). */
+  requirementsPath?: string;
   phrases: PhraseSpec[];
   /** verdict sub-counts (producer census) measured inside the named block. */
   verdictBlock?: string;
@@ -63,6 +66,10 @@ interface ThreeWayRow {
  * covered by the marker test below (its three-way predates this guard and
  * stays authoritative via TC-005-02 — re-asserted here so the promoted
  * condition spans the whole fold/census family).
+ *
+ * REQ-396/397 (audit-pass-first facet-5) live in their own spec folder;
+ * the requirementsPath column lets the phrase check read the right file
+ * without re-anchoring the master spec.
  */
 const THREE_WAY: ThreeWayRow[] = [
   {
@@ -94,6 +101,33 @@ const THREE_WAY: ThreeWayRow[] = [
     req: 'REQ-394',
     guard: 'tests/guards/measurement-statement-literal-census.test.ts',
     phrases: [{ block: 'ALLOWED', build: (n) => `ALLOWED ${n} key` }],
+  },
+  {
+    req: 'REQ-396',
+    guard: 'tests/guards/stale-comment-census.test.ts',
+    requirementsPath: 'specs/audit-pass-first-census-facet-5/requirements.md',
+    phrases: [
+      { block: 'ALLOWED', build: (n) => `ALLOWED ${n} key` },
+      { block: 'ERADICATED', build: (n) => `ERADICATED ${n} key` },
+    ],
+  },
+  {
+    req: 'REQ-397 (type-narrow-as-any)',
+    guard: 'tests/guards/type-narrow-as-any-census.test.ts',
+    requirementsPath: 'specs/audit-pass-first-census-facet-5/requirements.md',
+    phrases: [
+      { block: 'ALLOWED', build: (n) => `ALLOWED ${n} key` },
+      { block: 'ERADICATED', build: (n) => `ERADICATED ${n} key` },
+    ],
+  },
+  {
+    req: 'REQ-397 (any-annotate)',
+    guard: 'tests/guards/any-annotate-census.test.ts',
+    requirementsPath: 'specs/audit-pass-first-census-facet-5/requirements.md',
+    phrases: [
+      { block: 'ALLOWED', build: (n) => `ALLOWED ${n} key` },
+      { block: 'ERADICATED', build: (n) => `ERADICATED ${n} key` },
+    ],
   },
 ];
 
@@ -133,38 +167,69 @@ export function countVerdicts(source: string, block: string): Record<string, num
 }
 
 describe('census-artifact three-way match (REQ-395)', () => {
-  const spec = readSource(REQUIREMENTS);
+  // Cache each spec text once — the per-row loop reads its own file.
+  const specCache = new Map<string, string>();
+  const specFor = (row: ThreeWayRow): string => {
+    const path = row.requirementsPath ?? DEFAULT_REQUIREMENTS;
+    let cached = specCache.get(path);
+    if (cached === undefined) {
+      cached = readSource(path);
+      specCache.set(path, cached);
+    }
+    return cached;
+  };
 
   it('has authority: the table covers the census-guard family', () => {
-    expect(THREE_WAY.length).toBeGreaterThanOrEqual(4);
-    expect(THREE_WAY.map((r) => r.req)).toEqual(['REQ-391', 'REQ-392', 'REQ-393', 'REQ-394']);
+    expect(THREE_WAY.length).toBeGreaterThanOrEqual(7);
+    expect(THREE_WAY.map((r) => r.req)).toEqual([
+      'REQ-391',
+      'REQ-392',
+      'REQ-393',
+      'REQ-394',
+      'REQ-396',
+      'REQ-397 (type-narrow-as-any)',
+      'REQ-397 (any-annotate)',
+    ]);
   });
 
   it.each(THREE_WAY.map((r) => [r.req, r] as const))(
     '%s: the counts its requirements prose declares equal the shipped roster',
     (_req, row) => {
       const guardSource = readSource(row.guard);
+      const spec = specFor(row);
       const missing: string[] = [];
+      /**
+       * Read a block count, honoring the confirmed-zero shape (no block at
+       * all, or a block with zero quoted/bare-identifier keys): measured is
+       * 0, and the phrase must still be present in the spec. The phrase
+       * match below is the single source of truth for the floor — a roster
+       * edit without a spec edit (or a spec number with no matching roster)
+       * is RED here, regardless of whether the measured count is 0 or N.
+       */
+      const safeCount = (block: string): { measured: number; blockFound: boolean } => {
+        try {
+          return { measured: countRosterBlock(guardSource, block), blockFound: true };
+        } catch {
+          return { measured: 0, blockFound: false };
+        }
+      };
       for (const { block, build } of row.phrases) {
-        const measured = countRosterBlock(guardSource, block);
-        // measured >= 1 is the roster side's own floor; the phrase is built
-        // from the MEASURED count, so a roster edit without a spec edit (or
-        // a spec number with no matching roster) is RED here.
-        expect(measured).toBeGreaterThanOrEqual(1);
+        const { measured } = safeCount(block);
         const phrase = build(measured);
         if (!spec.includes(phrase)) {
-          missing.push(`${row.req} ${block}=${measured}: requirements.md must declare "${phrase}"`);
+          missing.push(`${row.req} ${block}=${measured}: spec must declare "${phrase}"`);
         }
       }
       if (row.verdictBlock !== undefined && row.verdictPhrases !== undefined) {
-        const verdicts = countVerdicts(guardSource, row.verdictBlock);
-        expect(Object.values(verdicts).reduce((a, b) => a + b, 0)).toBe(
-          countRosterBlock(guardSource, row.verdictBlock),
-        );
+        const { measured: rosterSize, blockFound } = safeCount(row.verdictBlock);
+        const verdicts = blockFound ? countVerdicts(guardSource, row.verdictBlock) : {};
+        if (blockFound) {
+          expect(Object.values(verdicts).reduce((a, b) => a + b, 0)).toBe(rosterSize);
+        }
         for (const phrase of row.verdictPhrases(verdicts)) {
           if (!spec.includes(phrase)) {
             missing.push(
-              `${row.req} ${row.verdictBlock} verdicts ${JSON.stringify(verdicts)}: requirements.md must declare "${phrase}"`,
+              `${row.req} ${row.verdictBlock} verdicts ${JSON.stringify(verdicts)}: spec must declare "${phrase}"`,
             );
           }
         }
