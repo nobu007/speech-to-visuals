@@ -2969,7 +2969,7 @@ bonus/violation の witness fixture は DEFECT-9 cap（measured quality なし �
 
 **ステータス**: ✅完了（2026-08-22・TASK-0273 完了・commit 5b598ba4 — 本 section は Phase 189 commit には overview.md 追加が欠けていたため Phase 190 run で補記）
 
-**背景**: steering「1コミット1箇所の滴下は同class redの再発を許す」への回答として REQ-383〜390 が個別修正してきた測定 fixture class（凍結 literal・`Math.random()` 測定値）を audit-pass-first で全候補 enum する census guard（`tests/guards/measurement-fixture-census.test.ts`・ALLOWED 38 / ERADICATED 21 / DELETED_FILES / random ban）を新設し、census が手動 enumeration を超える 31 key（行末 `}` 直前で旧 grep 不可視）を発見した後に残存 9 site（production-monitoring-excellence module 削除・performance-dashboard accuracyScore・continuous-learner currentPerformance・cache metadata neutral 化・placeholder confidence 決定化・ezol Simulated trio derive 化・gemini currentTimeoutMs live 化・layout-engine simple-mode 統一・Iteration43 random leg 決定化）を一括撲滅。MW-055 3 mutation 独立 RED・70 suites / 1583 tests GREEN・tsc 両 config 0・監査 pin ≥55。**Phase 190 で判明した債務**: census file 自身が non-null assertion 2 件を ship し tests-tree exact-0 ratchet を RED のまま commit していた（Phase 190 で修復）。
+**背景**: steering「1コミット1箇所の滴下は同class redの再発を許す」への回答として REQ-383〜390 が個別修正してきた測定 fixture class（凍結 literal・`Math.random()` 測定値）を audit-pass-first で全候補 enum する census guard（`tests/guards/measurement-fixture-census.test.ts`・ALLOWED 37 / ERADICATED 21 / DELETED_FILES / random ban）を新設し、census が手動 enumeration を超える 31 key（行末 `}` 直前で旧 grep 不可視）を発見した後に残存 9 site（production-monitoring-excellence module 削除・performance-dashboard accuracyScore・continuous-learner currentPerformance・cache metadata neutral 化・placeholder confidence 決定化・ezol Simulated trio derive 化・gemini currentTimeoutMs live 化・layout-engine simple-mode 統一・Iteration43 random leg 決定化）を一括撲滅。MW-055 3 mutation 独立 RED・70 suites / 1583 tests GREEN・tsc 両 config 0・監査 pin ≥55。**Phase 190 で判明した債務**: census file 自身が non-null assertion 2 件を ship し tests-tree exact-0 ratchet を RED のまま commit していた（Phase 190 で修復）。
 
 - [x] [TASK-0273: measurement-fixture class の repo-wide census guard 新設 + 残存 9 site 一括撲滅（REQ-391・TC-375-01〜05・MW-055）](TASK-0273.md) - 3h (TDD) 🔵 ✅2026-08-22（census guard 7/7 GREEN・completeness failure として手動漏れ 31 key を直接観測後に撲滅・MW-055 3 mutation 独立 RED 実測 → revert GREEN・監査 pin ≥55）
 
@@ -2985,9 +2985,9 @@ bonus/violation の witness fixture は DEFECT-9 cap（measured quality なし �
 
 **ステータス**: ✅完了（2026-08-22・TASK-0274 完了・REQ-391 値側 census に対する契約側の対偶 + Phase 189 滴り修復）
 
-**背景**: steering が「optional metrics の未producer契約」を enum 対象として明示指定。手動 enumeration（repo src/ + @stv-core core-four・31 optional numeric measurement 宣言）で 4 dead leg を確定 — `ExtendedPipelineMetrics.entityExtractionF1Score`/`relationAccuracy`（REQ-389 が維持した ground-truth hatch は producer ゼロで恒久 dormant）・pipeline `QualityMetrics.cacheHitRate`（writer は全て LLMStats/RTPM 形状で pipeline monitor への recordMetrics caller なし — cache-warming rec と Caching Efficiency opportunity は発火不能・live channel は llm-service → RTPM `s.llm.cacheHitRate` のみ）・`intelligent-cache.currentSize`（getStats が一度も書かない decorative alias）。producer census guard（ROSTER 32 row: LIVE 27 + INPUT-CONTRACT 1 + ERADICATED 4・8 test）で完全分類を強制。**REQ-389 設計決定 (2)「field は実 ground truth 専用に維持」を撤回** — 再導入時に census が producer 同梱を機械的に強制する方が prose の hatch 維持と同価値を保証する。
+**背景**: steering が「optional metrics の未producer契約」を enum 対象として明示指定。手動 enumeration（repo src/ + @stv-core core-four・31 optional numeric measurement 宣言）で 4 dead leg を確定 — `ExtendedPipelineMetrics.entityExtractionF1Score`/`relationAccuracy`（REQ-389 が維持した ground-truth hatch は producer ゼロで恒久 dormant）・pipeline `QualityMetrics.cacheHitRate`（writer は全て LLMStats/RTPM 形状で pipeline monitor への recordMetrics caller なし — cache-warming rec と Caching Efficiency opportunity は発火不能・live channel は llm-service → RTPM `s.llm.cacheHitRate` のみ）・`intelligent-cache.currentSize`（getStats が一度も書かない decorative alias）。producer census guard（ROSTER 34 row: LIVE 29 + INPUT-CONTRACT 1 + ERADICATED 4・8 test）で完全分類を強制。**REQ-389 設計決定 (2)「field は実 ground truth 専用に維持」を撤回** — 再導入時に census が producer 同梱を機械的に強制する方が prose の hatch 維持と同価値を保証する。
 
-- [x] [TASK-0274: 未populate契約（optional metric の producer ゼロ）census guard 新設 + 4 dead leg 一括撲滅（REQ-392・TC-376-01〜04・MW-056）](TASK-0274.md) - 3h (TDD) 🔵 ✅2026-08-22（census 8/8 GREEN・LIVE 27 row の producer 維持 / ERADICATED 4 再出現 / negative anchors を強制・MW-056 3 mutation 独立 RED 実測（eradicated field 再注入・cacheHitRate branch 再注入・LIVE producer 削除）→ revert 8/8 GREEN・広域 153 suites / 5290 tests GREEN・tsc 両 config 0・監査 pin ≥55→≥56。**副次発見・修復**: Phase 189 の measurement-fixture-census が non-null assertion 2 件を ship し tests-tree exact-0 ratchet を RED のまま commit していたのを broad batch が発見 → null-safe 化で修復・clamp01-single-source は clamp を使わなくなった quality-monitor.ts を BANNED_INLINE_ONLY へ移行）
+- [x] [TASK-0274: 未populate契約（optional metric の producer ゼロ）census guard 新設 + 4 dead leg 一括撲滅（REQ-392・TC-376-01〜04・MW-056）](TASK-0274.md) - 3h (TDD) 🔵 ✅2026-08-22（census 8/8 GREEN・LIVE 29 row の producer 維持 / ERADICATED 4 再出現 / negative anchors を強制・MW-056 3 mutation 独立 RED 実測（eradicated field 再注入・cacheHitRate branch 再注入・LIVE producer 削除）→ revert 8/8 GREEN・広域 153 suites / 5290 tests GREEN・tsc 両 config 0・監査 pin ≥55→≥56。**副次発見・修復**: Phase 189 の measurement-fixture-census が non-null assertion 2 件を ship し tests-tree exact-0 ratchet を RED のまま commit していたのを broad batch が発見 → null-safe 化で修復・clamp01-single-source は clamp を使わなくなった quality-monitor.ts を BANNED_INLINE_ONLY へ移行）
 
 ### 信頼性レベルサマリー（Phase 190 追加分量）
 
@@ -3020,6 +3020,18 @@ bonus/violation の witness fixture は DEFECT-9 cap（measured quality なし �
 ### 信頼性レベルサマリー（Phase 192 追加分量）
 
 - 全 1 タスク 🔵（audit-pass-first の確認側完走 — 残件 0 を固定する census・defect-9 roster 管轄の尊重を reason に明記・合成 liveness で clean tree 上の detector 腐敗を防止）
+
+## Phase 193: 終了済み ratchet の解体手順固定 + census-artifact 三方一致の共通 acceptance 昇格（REQ-395・TC-379-01〜03・MW-059）
+
+**ステータス**: ✅完了（2026-08-22・TASK-0277 完了・steering 2 bullet〔ratchet 解体手順明記・三方一致昇格〕の直接実装）
+
+**背景**: 本 repo の 2 ratchet は end condition 到達済み（non-null: src+tests 両 tree exact-0 / fold-census: round 50 value-neutral 収束）のため、steering「到達時点で ratchet 機構自体の解体手順を次 task の requirements に明記せよ」の残余義務は手順の明記のみ。三方一致側は各 census guard が roster↔実 tree・fold-census が doc marker↔pin↔engine を tie 済みだが、**requirements.md prose の宣言数 ↔ guard 実 roster を結ぶ辺は未検査**だった。新設 `tests/guards/census-artifact-three-way.test.ts` は phrase を guard 実測 roster 数から構築し spec の verbatim 含有を要求（roster 変更 without spec 編集・spec 数値のみの宣言の両方向 RED）。**初回 run が実 drift 2 件を発見・訂正**: REQ-391 は `ALLOWED 38 key` と宣言しつつ 37 で ship・REQ-392 は `ROSTER 32 row / LIVE 27` と宣言しつつ 34 row / LIVE 29 で ship — いずれも guard 作成 commit 自体が内包し 2 phase 未検出だった（昇格の必要性が実証された実例）。ratchet 解体手順は REQ-395 (1) に固定（non-null: round 提案禁止・pin 上下不可・end state での ratchet file 削除は厳格に強い代替機構を示す専用 REQ のみ / fold-census: family retirement は EDGE-102 同 commit 手順・全体退役は delegation target 存在 pin 移譲後のみ・pre-fold-count trail は新 series なしに凍結）。
+
+- [x] [TASK-0277: 終了済み ratchet の解体手順固定 + census-artifact 三方一致の共通 acceptance 昇格（REQ-395・TC-379-01〜03・MW-059）](TASK-0277.md) - 2h (TDD) 🔵 ✅2026-08-22（three-way guard 7/7 GREEN・MW-059 3 mutation 独立 RED 実測（spec 数値 drift 再現 1 failed・roster 追加 without spec 1 failed・census-pin marker 破壊 1 failed）→ revert 7/7 GREEN・drift 訂正 7 file・tsc 両 config 0・監査 pin ≥58→≥59）
+
+### 信頼性レベルサマリー（Phase 193 追加分量）
+
+- 全 1 タスク 🔵（steering 2 bullet の直接実装・guard 初回 run が実 drift 2 件を発見したことで昇格の必要性自体を実証・解体手順は requirements の要件文として固定）
 
 
 ## Spine: external references
