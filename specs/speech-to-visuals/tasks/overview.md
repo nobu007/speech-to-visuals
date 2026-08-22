@@ -3009,6 +3009,18 @@ bonus/violation の witness fixture は DEFECT-9 cap（measured quality なし �
 
 - 全 1 タスク 🔵（steering 直接指定の enum 対象・第 3 facet 完走で凍結測定 class の既知 facet を 3 census で cover・MW-057 3 mutation 独立 RED 実測）
 
+## Phase 192: statement-level frozen literal（frozen return / 直値 initializer）census guard 新設（REQ-394・TC-378-01〜03・MW-058）
+
+**ステータス**: ✅完了（2026-08-22・TASK-0276 完了・第 4 facet で凍結測定 class の既知 facet census cover 完結）
+
+**背景**: steering audit-pass-first の残 facet — 3 census（REQ-391 値側・REQ-392 契約側・REQ-393 条件側）の regex 形のいずれにも合致しない「測定名関数が丸ごと `return 0.9;`・測定名変数への直値 bind（`const healthScore = 0.95;`）」を同一 `walkProductionSurface` 上で手動 enumerate: **16 site / 15 key 全て既存の正当分類・捏造残 0** を確認（canonical estimator band・実測補正 heuristic base・named fail-closed ceiling・defect-9 BY-DESIGN・named disclosed placeholder）。したがって REQ-391〜393 と異なり**撲滅を同梱せず confirmed-zero を ALLOWED 18 key で固定**し、新規 site の意識的分類を強制。census 初回 run は手動 enumeration を 3 key 上回って発見（`export const` named 定数 — 手 audit regex に `export` prefix なし・REQ-391 と同一の completeness-beats-grep 効果）。実 tree が clean なため detector の歯は合成 liveness test が保持（REQ-388 precedent）・random-return ban（`return …Math.random` × 測定名関数）も同梱。
+
+- [x] [TASK-0276: statement-level frozen literal（frozen return / 直値 initializer）census guard 新設（REQ-394・TC-378-01〜03・MW-058）](TASK-0276.md) - 2h (TDD) 🔵 ✅2026-08-22（census 6/6 GREEN（ALLOWED 18 key: estimator band 3 / heuristic base 8 / deduction・ceiling 3 / defect-9 BY-DESIGN 1 / disclosed placeholder 3）・MW-058 3 mutation 独立 RED 実測（binding 注入 1 failed・frozen return 注入 1 failed — 実 file 上で enclosing-declaration attribution `estimateOverallHealth @ :346` を直接観測・random return 注入 2 failed）→ revert 6/6 GREEN・tsc 両 config 0・監査 pin ≥57→≥58）
+
+### 信頼性レベルサマリー（Phase 192 追加分量）
+
+- 全 1 タスク 🔵（audit-pass-first の確認側完走 — 残件 0 を固定する census・defect-9 roster 管轄の尊重を reason に明記・合成 liveness で clean tree 上の detector 腐敗を防止）
+
 
 ## Spine: external references
 
