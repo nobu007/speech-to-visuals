@@ -50,8 +50,6 @@ interface CacheStats {
   evictionCount: number;
   preloadHits: number;
   performanceScore: number;
-  /** Alias for totalEntries – current cache size */
-  currentSize?: number;
   /** Maximum cache capacity */
   maxSize?: number;
   /** Total number of cache hits */

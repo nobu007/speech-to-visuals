@@ -24,8 +24,15 @@ const SITES = [
   'src/visualization/strategies/LayoutEvaluator.ts',
   'src/performance/intelligent-cache.ts',
   'src/visualization/layout-quality-composite.ts',
-  'src/quality/quality-monitor.ts',
 ];
+
+// 'src/quality/quality-monitor.ts' left SITES in REQ-392: its only clamp01
+// use was the deleted entityExtractionF1Score/relationAccuracy measured
+// branch, and the surviving canonical-estimator delegation needs no clamp.
+// Keeping it in SITES would force a dead import — but it stays a BANNED
+// site: a future clamp there must import the canonical helper, never
+// re-inline the formula.
+const BANNED_INLINE_ONLY = ['src/quality/quality-monitor.ts'];
 
 describe('clamp01 — no former site re-inlines the formula', () => {
   for (const rel of SITES) {
@@ -46,6 +53,19 @@ describe('clamp01 — no former site re-inlines the formula', () => {
       // first, so a rationale comment that quotes the formula (e.g. the note
       // under the call site that explains WHY it delegates) does not itself
       // match the guard and false-positive.
+      const code = src
+        .replace(/^\s*\/\/.*$/gm, '')
+        .replace(/\/\*[\s\S]*?\*\//g, '');
+      expect(code).not.toMatch(/Math\.max\(0,\s*Math\.min\(1,/);
+      expect(code).not.toMatch(/Math\.min\(1,\s*Math\.max\(0,/);
+    });
+  }
+
+  // REQ-392: former sites that no longer import clamp01 (their clamping use
+  // died with a deleted branch) still may not re-inline the formula.
+  for (const rel of BANNED_INLINE_ONLY) {
+    it(`${rel} (clamp-free since REQ-392) does not re-inline Math.max(0, Math.min(1, …))`, () => {
+      const src = fs.readFileSync(path.join(REPO_ROOT, rel), 'utf-8');
       const code = src
         .replace(/^\s*\/\/.*$/gm, '')
         .replace(/\/\*[\s\S]*?\*\//g, '');

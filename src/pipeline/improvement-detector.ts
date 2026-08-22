@@ -237,28 +237,13 @@ export class ImprovementDetector {
       });
     }
 
-    // Check cache hit rate
-    if (latestMetrics.cacheHitRate !== undefined && latestMetrics.cacheHitRate < 0.5) {
-      opportunities.push({
-        area: 'Caching Efficiency',
-        priority: 'low',
-        currentValue: latestMetrics.cacheHitRate,
-        targetValue: 0.7,
-        confidence: 0.7,
-        impact: 'Low cache hit rate increases LLM API costs and latency',
-        suggestedActions: [
-          'Analyze cache key strategy (Phase 26 uses v26 prefix)',
-          'Implement semantic similarity-based cache lookup',
-          'Pre-warm cache with common queries',
-          'Increase cache TTL for stable content',
-        ],
-        estimatedEffort: 'low',
-        evidence: [
-          `Cache hit rate: ${(latestMetrics.cacheHitRate * 100).toFixed(0)}%`,
-          'Target: >70%',
-        ],
-      });
-    }
+    // REQ-392: the cache-hit-rate opportunity is deleted — no recordMetrics
+    // caller ever fed this monitor a cacheHitRate, so the branch could never
+    // fire on a real run. The system's live cache-hit-rate channel is
+    // llm-service's measured cache stats → the real-time monitor's llm
+    // snapshot (`s.llm.cacheHitRate`), consumed by HealthCheckService and the
+    // adaptive gates; a second, never-wired copy here was the unpopulated-
+    // contract class this phase eradicates.
 
     // Check fallback usage
     if (latestMetrics.fallbackTriggered) {

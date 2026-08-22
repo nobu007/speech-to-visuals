@@ -62,7 +62,6 @@ const defaultSnapshot = {
 };
 
 const defaultCacheStats = {
-  currentSize: 100,
   maxSize: 500,
   totalHits: 600,
   totalMisses: 400,

@@ -28,7 +28,6 @@ export interface QualityMetrics {
   // Performance Metrics
   processingTime: number; // ms
   memoryUsage: number; // MB
-  cacheHitRate?: number; // 0-1
 
   // Accuracy Metrics
   transcriptionAccuracy?: number; // 0-1
@@ -477,10 +476,11 @@ export class QualityMonitor {
     const recommendations = violations.map(v => v.recommendation);
 
     // Add proactive suggestions
-    if (metrics.cacheHitRate !== undefined && metrics.cacheHitRate < 0.5) {
-      recommendations.push('Low cache hit rate detected. Consider warming cache with common queries.');
-    }
-
+    // REQ-392: the `cacheHitRate < 0.5` cache-warming suggestion is deleted —
+    // no recordMetrics caller ever fed this monitor a cacheHitRate (the live
+    // channel is llm-service's measured cache stats → the real-time monitor's
+    // llm snapshot, consumed by HealthCheckService and the adaptive gates), so
+    // the branch could never fire on a real run.
     if (metrics.edgeCompleteness &&
         metrics.edgeCompleteness < 0.8 &&
         metrics.edgeCompleteness > 0.7) {

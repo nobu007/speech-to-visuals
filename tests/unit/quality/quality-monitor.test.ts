@@ -85,47 +85,13 @@ describe('QualityMonitor', () => {
       expect(assessment.reliabilityScore).toBeLessThan(1);
     });
 
-    it('should assess pipeline with LLM extraction metrics', async () => {
-      const result = makeSuccessResult({
-        metrics: {
-          totalProcessingTime: 5000,
-          memoryUsage: 128 * 1024 * 1024,
-          entityExtractionF1Score: 0.85,
-          relationAccuracy: 0.9,
-        },
-      } as Partial<PipelineResult>);
-      const assessment = await monitor.assessPipelineQuality(result);
-      expect(assessment.accuracyScore).toBeGreaterThan(0);
-    });
-
-    it('should handle NaN LLM extraction metrics without producing NaN scores', async () => {
-      const result = makeSuccessResult({
-        metrics: {
-          totalProcessingTime: 5000,
-          memoryUsage: 128 * 1024 * 1024,
-          entityExtractionF1Score: NaN,
-          relationAccuracy: NaN,
-        },
-      } as Partial<PipelineResult>);
-      const assessment = await monitor.assessPipelineQuality(result);
-      expect(Number.isFinite(assessment.accuracyScore)).toBe(true);
-      expect(Number.isFinite(assessment.overallScore)).toBe(true);
-    });
-
-    it('should handle Infinity LLM extraction metrics by clamping to [0,1]', async () => {
-      const result = makeSuccessResult({
-        metrics: {
-          totalProcessingTime: 5000,
-          memoryUsage: 128 * 1024 * 1024,
-          entityExtractionF1Score: Infinity,
-          relationAccuracy: -Infinity,
-        },
-      } as Partial<PipelineResult>);
-      const assessment = await monitor.assessPipelineQuality(result);
-      expect(assessment.accuracyScore).toBeGreaterThanOrEqual(0);
-      expect(assessment.accuracyScore).toBeLessThanOrEqual(1);
-      expect(Number.isFinite(assessment.overallScore)).toBe(true);
-    });
+    // REQ-392: the three hand-set `entityExtractionF1Score` /
+    // `relationAccuracy` tests (explicit metrics / NaN / Infinity) are
+    // deleted with the fields and the measured branch that read them — the
+    // fields had ZERO producers, so only tests could ever exercise the
+    // branch. assessLLMExtractionQuality now has exactly one path (the
+    // REQ-389 canonical-estimator delegation), whose finite outputs are
+    // pinned in src/quality/__tests__/quality-monitor.test.ts.
 
     it('should assess pipeline with many scenes', async () => {
       const manyScenes: SceneGraph[] = Array.from({ length: 15 }, (_, i) => ({

@@ -41,7 +41,6 @@ jest.unstable_mockModule('@stv/core/utils/memory-usage', () => ({
 
 // Healthy cache stats so the cache component does not mask the result.
 const mockGetCacheStats = jest.fn(() => ({
-  currentSize: 100,
   maxSize: 500,
   totalHits: 600,
   totalMisses: 400,

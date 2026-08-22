@@ -2965,6 +2965,38 @@ bonus/violation の witness fixture は DEFECT-9 cap（measured quality なし �
 
 **次回開始番号**: TASK-0273
 
+## Phase 189: measurement-fixture class の repo-wide census guard 新設 + 残存 9 site 一括撲滅（REQ-391・TC-375-01〜05・MW-055）〔Phase 190 補記〕
+
+**ステータス**: ✅完了（2026-08-22・TASK-0273 完了・commit 5b598ba4 — 本 section は Phase 189 commit には overview.md 追加が欠けていたため Phase 190 run で補記）
+
+**背景**: steering「1コミット1箇所の滴下は同class redの再発を許す」への回答として REQ-383〜390 が個別修正してきた測定 fixture class（凍結 literal・`Math.random()` 測定値）を audit-pass-first で全候補 enum する census guard（`tests/guards/measurement-fixture-census.test.ts`・ALLOWED 38 / ERADICATED 21 / DELETED_FILES / random ban）を新設し、census が手動 enumeration を超える 31 key（行末 `}` 直前で旧 grep 不可視）を発見した後に残存 9 site（production-monitoring-excellence module 削除・performance-dashboard accuracyScore・continuous-learner currentPerformance・cache metadata neutral 化・placeholder confidence 決定化・ezol Simulated trio derive 化・gemini currentTimeoutMs live 化・layout-engine simple-mode 統一・Iteration43 random leg 決定化）を一括撲滅。MW-055 3 mutation 独立 RED・70 suites / 1583 tests GREEN・tsc 両 config 0・監査 pin ≥55。**Phase 190 で判明した債務**: census file 自身が non-null assertion 2 件を ship し tests-tree exact-0 ratchet を RED のまま commit していた（Phase 190 で修復）。
+
+- [x] [TASK-0273: measurement-fixture class の repo-wide census guard 新設 + 残存 9 site 一括撲滅（REQ-391・TC-375-01〜05・MW-055）](TASK-0273.md) - 3h (TDD) 🔵 ✅2026-08-22（census guard 7/7 GREEN・completeness failure として手動漏れ 31 key を直接観測後に撲滅・MW-055 3 mutation 独立 RED 実測 → revert GREEN・監査 pin ≥55）
+
+### 信頼性レベルサマリー（Phase 189 追加分量）
+
+- 全 1 タスク 🔵（census が実 site 発見で権威を実証・MW-055 3 mutation 独立 RED 実測）
+
+### 次フェーズ開始番号
+
+**次回開始番号**: TASK-0274
+
+## Phase 190: 未populate契約（optional metric の producer ゼロ）census guard 新設 + 4 dead leg 一括撲滅（REQ-392・TC-376-01〜04・MW-056）
+
+**ステータス**: ✅完了（2026-08-22・TASK-0274 完了・REQ-391 値側 census に対する契約側の対偶 + Phase 189 滴り修復）
+
+**背景**: steering が「optional metrics の未producer契約」を enum 対象として明示指定。手動 enumeration（repo src/ + @stv-core core-four・31 optional numeric measurement 宣言）で 4 dead leg を確定 — `ExtendedPipelineMetrics.entityExtractionF1Score`/`relationAccuracy`（REQ-389 が維持した ground-truth hatch は producer ゼロで恒久 dormant）・pipeline `QualityMetrics.cacheHitRate`（writer は全て LLMStats/RTPM 形状で pipeline monitor への recordMetrics caller なし — cache-warming rec と Caching Efficiency opportunity は発火不能・live channel は llm-service → RTPM `s.llm.cacheHitRate` のみ）・`intelligent-cache.currentSize`（getStats が一度も書かない decorative alias）。producer census guard（ROSTER 32 row: LIVE 27 + INPUT-CONTRACT 1 + ERADICATED 4・8 test）で完全分類を強制。**REQ-389 設計決定 (2)「field は実 ground truth 専用に維持」を撤回** — 再導入時に census が producer 同梱を機械的に強制する方が prose の hatch 維持と同価値を保証する。
+
+- [x] [TASK-0274: 未populate契約（optional metric の producer ゼロ）census guard 新設 + 4 dead leg 一括撲滅（REQ-392・TC-376-01〜04・MW-056）](TASK-0274.md) - 3h (TDD) 🔵 ✅2026-08-22（census 8/8 GREEN・LIVE 27 row の producer 維持 / ERADICATED 4 再出現 / negative anchors を強制・MW-056 3 mutation 独立 RED 実測（eradicated field 再注入・cacheHitRate branch 再注入・LIVE producer 削除）→ revert 8/8 GREEN・広域 153 suites / 5290 tests GREEN・tsc 両 config 0・監査 pin ≥55→≥56。**副次発見・修復**: Phase 189 の measurement-fixture-census が non-null assertion 2 件を ship し tests-tree exact-0 ratchet を RED のまま commit していたのを broad batch が発見 → null-safe 化で修復・clamp01-single-source は clamp を使わなくなった quality-monitor.ts を BANNED_INLINE_ONLY へ移行）
+
+### 信頼性レベルサマリー（Phase 190 追加分量）
+
+- 全 1 タスク 🔵（steering 直接指定の enum 対象・REQ-389 設計決定撤回の根拠を REQ-392 本文に明記・MW-056 3 mutation 独立 RED 実測・滴りが guard 自体に残った実例を捕捉修復）
+
+### 次フェーズ開始番号
+
+**次回開始番号**: TASK-0275
+
 
 ## Spine: external references
 

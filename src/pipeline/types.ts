@@ -85,10 +85,15 @@ export interface ExtendedPipelineMetrics extends PipelineMetrics {
    * (never 0-as-unmeasured — REQ-383/386 score it as a real reading).
    */
   memoryUsage?: number;
-  /** Entity extraction F1 score (0.0 - 1.0), if ground truth is available */
-  entityExtractionF1Score?: number;
-  /** Relation extraction accuracy (0.0 - 1.0), if ground truth is available */
-  relationAccuracy?: number;
+  /**
+   * REQ-392: `entityExtractionF1Score` / `relationAccuracy` deleted — the
+   * "if ground truth is available" pair had ZERO producers (only tests set
+   * them), so assessLLMExtractionQuality's measured branch was a
+   * permanently-dead hatch around the REQ-389 canonical-estimator
+   * delegation. A real ground-truth producer MAY re-introduce a field here
+   * — the optional-metric-producer census (tests/guards) then requires the
+   * writer to ship in the same change.
+   */
   /** Layout quality composite score after optimization (0.0~1.0) (REQ-084) */
   layoutQualityScore?: number;
   /** Number of auto-optimization attempts made (0~3) (REQ-084) */

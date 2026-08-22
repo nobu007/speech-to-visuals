@@ -9,9 +9,6 @@ import { jest } from '@jest/globals';
 
 const { QualityMonitor } = await import('../quality-monitor');
 const { logger } = await import('@stv/core/utils/logger');
-const { estimateEntityExtractionQuality, estimateRelationAccuracy } = await import(
-  '../../pipeline/quality-estimators'
-);
 import type { PipelineResult, PipelineStage } from '../../pipeline/types';
 import type { SceneGraph } from '@stv/core/types/diagram';
 
@@ -612,19 +609,12 @@ describe('QualityMonitor', () => {
   // --- LLM extraction quality ---
 
   describe('LLM extraction quality', () => {
-    it('uses explicit entity/relation metrics when available', async () => {
-      const result = makeResult({
-        metrics: {
-          totalProcessingTime: 10000,
-          memoryUsage: 128 * 1024 * 1024,
-          entityExtractionF1Score: 0.92,
-          relationAccuracy: 0.88,
-        },
-      });
-
-      const assessment = await monitor.assessPipelineQuality(result);
-      expect(assessment.accuracyScore).toBeGreaterThan(0.5);
-    });
+    // REQ-392: the `metrics.entityExtractionF1Score` / `relationAccuracy`
+    // "measured branch" tests are deleted with the branch — those fields had
+    // ZERO producers (only tests ever set them), and the census
+    // (tests/guards/optional-metric-producer-census.test.ts) now holds the
+    // eradication. The canonical-estimator delegation tests below are the
+    // only live path.
 
     it('falls back to heuristic when metrics unavailable', async () => {
       const result = makeResult({ metrics: undefined });
@@ -722,25 +712,9 @@ describe('QualityMonitor', () => {
         expect(assessment.accuracyScore).toBeCloseTo(0.77, 10);
       });
 
-      it('measured branch and fallback can never disagree: canonical-estimate metrics yield the SAME accuracyScore as no metrics', async () => {
-        const scenes = healthyScenes();
-        const viaFallback = await new QualityMonitor().assessPipelineQuality(
-          makeResult({ scenes, metrics: undefined }),
-        );
-        const viaMeasured = await new QualityMonitor().assessPipelineQuality(
-          makeResult({
-            scenes,
-            metrics: {
-              entityExtractionF1Score: estimateEntityExtractionQuality({ success: true, scenes, duration: 60 }),
-              relationAccuracy: estimateRelationAccuracy({ success: true, scenes, duration: 60 }),
-            },
-          }),
-        );
-
-        // One scale, both sites: whichever branch assessLLMExtractionQuality
-        // takes, the leg (and therefore accuracyScore) is identical.
-        expect(viaMeasured.accuracyScore).toBeCloseTo(viaFallback.accuracyScore, 10);
-      });
+      // REQ-392: the branch-equivalence proof (TC-373-04's pin (d)) is
+      // deleted with the measured branch itself — there is exactly ONE path
+      // now (canonical delegation), so two branches can no longer disagree.
     });
   });
 

@@ -87,7 +87,6 @@ describe('QualityMonitor', () => {
       monitor.recordMetrics({
         processingTime: 5000,
         memoryUsage: 300,
-        cacheHitRate: 0.8,
         transcriptionAccuracy: 0.95,
         sceneSegmentationF1: 0.88,
         entityExtractionF1: 0.90,
@@ -103,7 +102,6 @@ describe('QualityMonitor', () => {
 
       const latest = monitor.getLatestMetrics();
       expect(latest!.transcriptionAccuracy).toBe(0.95);
-      expect(latest!.cacheHitRate).toBe(0.8);
       expect(latest!.edgeCompleteness).toBe(0.85);
     });
 
@@ -454,7 +452,12 @@ describe('QualityMonitor', () => {
       expect(monitor.generateReport().status).toBe('critical');
     });
 
-    it('should generate proactive recommendations for low cache hit rate', () => {
+    it('emits no cache-warming recommendation: QualityMetrics.cacheHitRate is deleted (REQ-392)', () => {
+      // The never-fed leg is gone: no recordMetrics caller ever supplied a
+      // cache hit rate, so the suggestion branch could never fire on a real
+      // run. The live channel is llm-service → RTPM llm snapshot
+      // (s.llm.cacheHitRate), consumed by HealthCheckService and the
+      // adaptive gates.
       monitor.recordMetrics({
         processingTime: 5000,
         memoryUsage: 200,
@@ -462,11 +465,12 @@ describe('QualityMonitor', () => {
         errorCount: 0,
         warningCount: 0,
         fallbackTriggered: false,
-        cacheHitRate: 0.3,
       });
 
       const report = monitor.generateReport();
-      expect(report.recommendations.some(r => r.includes('cache'))).toBe(true);
+      expect(report.recommendations).not.toContain(
+        'Low cache hit rate detected. Consider warming cache with common queries.',
+      );
     });
 
     it('should generate recommendation for edge completeness near threshold', () => {
@@ -557,11 +561,6 @@ describe('QualityMonitor', () => {
       expect(trend).toEqual([0, 0]);
     });
 
-    it('should return 0 for undefined cacheHitRate in trend', () => {
-      monitor.recordMetrics({ processingTime: 1000, memoryUsage: 100, layoutOverlap: 0, errorCount: 0, warningCount: 0, fallbackTriggered: false });
-      const trend = monitor.getTrend('cacheHitRate');
-      expect(trend).toEqual([0]);
-    });
   });
 
   // --- logIteration ---

@@ -239,7 +239,7 @@ describe('measurement-fixture census (REQ-391)', () => {
   it('completeness: every discovered measurement-shaped literal is classified in ALLOWED', () => {
     const unclassified = [...discovered.keys()].filter((k) => !(k in ALLOWED));
     expect(
-      unclassified.map((k) => `${k} @ ${discovered.get(k)!.join(', ')}`),
+      unclassified.map((k) => `${k} @ ${(discovered.get(k) ?? []).join(', ')}`),
     ).toEqual([]);
   });
 
@@ -268,7 +268,7 @@ describe('measurement-fixture census (REQ-391)', () => {
   it('eradicated fixtures stay eradicated (reappearance is RED)', () => {
     const reappeared = Object.keys(ERADICATED).filter((k) => discovered.has(k));
     expect(
-      reappeared.map((k) => `${k} reappeared @ ${discovered.get(k)!.join(', ')}`),
+      reappeared.map((k) => `${k} reappeared @ ${(discovered.get(k) ?? []).join(', ')}`),
     ).toEqual([]);
   });
 

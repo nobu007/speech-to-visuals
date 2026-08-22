@@ -57,7 +57,6 @@ describe('QualityMonitor', () => {
       const full: Partial<QualityMetrics> = {
         processingTime: 5000,
         memoryUsage: 256,
-        cacheHitRate: 0.8,
         transcriptionAccuracy: 0.92,
         sceneSegmentationF1: 0.85,
         entityExtractionF1: 0.88,
@@ -472,11 +471,16 @@ describe('QualityMonitor', () => {
   // -----------------------------------------------------------------------
 
   describe('recommendations', () => {
-    it('suggests cache warming when cacheHitRate is low', () => {
+    it('emits no cache-warming recommendation: the pipeline monitor has no cacheHitRate channel (REQ-392)', () => {
+      // The `cacheHitRate < 0.5` suggestion branch was deleted with the
+      // field — no recordMetrics caller ever fed this monitor a cache hit
+      // rate, so the branch could never fire on a real run. The system's
+      // live channel is llm-service's measured cache stats → the RTPM llm
+      // snapshot (s.llm.cacheHitRate), consumed by HealthCheckService and
+      // the adaptive gates.
       monitor.recordMetrics({
         processingTime: 1000,
         memoryUsage: 128,
-        cacheHitRate: 0.3,
         layoutOverlap: 0,
         errorCount: 0,
         warningCount: 0,
@@ -484,7 +488,9 @@ describe('QualityMonitor', () => {
       });
 
       const report = monitor.generateReport();
-      expect(report.recommendations.some((r) => r.includes('cache'))).toBe(true);
+      expect(report.recommendations).not.toContain(
+        'Low cache hit rate detected. Consider warming cache with common queries.',
+      );
     });
 
     it('includes no-action recommendation when no violations', () => {
@@ -587,7 +593,7 @@ describe('QualityMonitor', () => {
 
     it('returns 0 for undefined metric values', () => {
       monitor.recordMetrics({ processingTime: 100 });
-      const trend = monitor.getTrend('cacheHitRate');
+      const trend = monitor.getTrend('transcriptionAccuracy');
       expect(trend).toEqual([0]);
     });
   });

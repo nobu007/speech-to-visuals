@@ -217,14 +217,19 @@ describe('ImprovementDetector', () => {
   });
 
   describe('generateReport - cache efficiency opportunity', () => {
-    it('detects low cache hit rate', () => {
-      const monitor = createMockMonitor(makeMetrics({ cacheHitRate: 0.3 }));
+    it('emits no Caching Efficiency opportunity: the never-wired leg is gone (REQ-392)', () => {
+      // The cache-hit-rate opportunity branch was deleted with the
+      // QualityMetrics.cacheHitRate field — no recordMetrics caller ever
+      // fed this monitor a cache hit rate, so the opportunity could never
+      // fire on a real run. The live channel is llm-service's measured
+      // cache stats → the RTPM llm snapshot, consumed by HealthCheckService
+      // and the adaptive gates.
+      const monitor = createMockMonitor(makeMetrics({}));
       const detector = new ImprovementDetector(monitor as never);
       const report = detector.generateReport();
 
       const opp = report.opportunities.find(o => o.area === 'Caching Efficiency');
-      expect(opp).toBeDefined();
-      expect(requireOpportunity(report, 'Caching Efficiency').priority).toBe('low');
+      expect(opp).toBeUndefined();
     });
   });
 
@@ -247,7 +252,7 @@ describe('ImprovementDetector', () => {
         memoryUsage: 600,         // medium
         layoutOverlap: 1,         // critical
         errorCount: 1,            // high
-        cacheHitRate: 0.3,        // low
+        // (REQ-392: no cacheHitRate leg — the never-wired field is deleted)
       }));
       const detector = new ImprovementDetector(monitor as never);
       const report = detector.generateReport();

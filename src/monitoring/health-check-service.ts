@@ -355,7 +355,10 @@ class HealthCheckService {
       latency: Date.now() - startTime,
       lastChecked: Date.now(),
       details: {
-        currentSize: stats.currentSize ?? stats.totalEntries,
+        // REQ-392: the decorative `stats.currentSize` alias is gone — it was
+        // never produced (getStats writes totalEntries), so the left operand
+        // of the old `?? ` was always undefined.
+        currentSize: stats.totalEntries,
         maxSize: stats.maxSize ?? -1,
         hitRate: roundTo(hitRate, 3),
         totalHits,

@@ -232,19 +232,23 @@ describe('ImprovementDetector', () => {
       expect(relOpportunity).toBeDefined();
     });
 
-    test('should detect low cache hit rate', () => {
+    test('emits no Caching Efficiency opportunity: the never-wired leg is gone (REQ-392)', () => {
+      // The cache-hit-rate opportunity branch was deleted with the
+      // QualityMetrics.cacheHitRate field — no recordMetrics caller ever
+      // fed this monitor a cache hit rate, so the opportunity could never
+      // fire on a real run. The live channel is llm-service's measured
+      // cache stats → the RTPM llm snapshot, consumed by HealthCheckService
+      // and the adaptive gates.
       seedMetrics(monitor, Array(6).fill({
         processingTime: 5000,
         memoryUsage: 200,
         layoutOverlap: 0,
         errorCount: 0,
-        cacheHitRate: 0.3,
       }));
 
       const report = detector.generateReport();
       const cacheOpportunity = report.opportunities.find((o) => o.area === 'Caching Efficiency');
-      expect(cacheOpportunity).toBeDefined();
-      expect(cacheOpportunity!.priority).toBe('low');
+      expect(cacheOpportunity).toBeUndefined();
     });
 
     test('should detect fallback triggered', () => {
@@ -276,7 +280,6 @@ describe('ImprovementDetector', () => {
         memoryUsage: 600,
         layoutOverlap: 5,
         errorCount: 1,
-        cacheHitRate: 0.3,
         fallbackTriggered: true,
       }));
 
@@ -338,7 +341,6 @@ describe('ImprovementDetector', () => {
         memoryUsage: 600,
         layoutOverlap: 1,
         errorCount: 1,
-        cacheHitRate: 0.3,
         fallbackTriggered: true,
       }));
 

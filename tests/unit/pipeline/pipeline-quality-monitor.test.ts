@@ -157,7 +157,6 @@ describe('QualityMonitor (pipeline)', () => {
         entityExtractionF1: 0.90,
         relationshipAccuracy: 0.90,
         edgeCompleteness: 0.95,
-        cacheHitRate: 0.8,
       });
 
       const report = monitor.generateReport();
@@ -550,21 +549,6 @@ describe('QualityMonitor (pipeline)', () => {
   });
 
   describe('recommendations', () => {
-    it('should suggest cache warming for low cache hit rate', () => {
-      monitor.recordMetrics({
-        processingTime: 1000,
-        memoryUsage: 100,
-        layoutOverlap: 0,
-        errorCount: 0,
-        warningCount: 0,
-        fallbackTriggered: false,
-        cacheHitRate: 0.3,
-      });
-
-      const report = monitor.generateReport();
-      expect(report.recommendations).toContain('Low cache hit rate detected. Consider warming cache with common queries.');
-    });
-
     it('should suggest monitoring for edge completeness near threshold', () => {
       monitor.recordMetrics({
         processingTime: 1000,

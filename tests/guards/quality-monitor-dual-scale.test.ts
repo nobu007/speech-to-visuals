@@ -125,7 +125,6 @@ describe('dual QualityMonitor scale contract (REQ-382 / TC-366-01)', () => {
       monitor.recordMetrics({
         processingTime: 1000,
         memoryUsage: 100,
-        cacheHitRate: 0.9,
         transcriptionAccuracy: 0.95,
         sceneSegmentationF1: 0.9,
         entityExtractionF1: 0.9,

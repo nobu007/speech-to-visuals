@@ -1,6 +1,5 @@
 import { PipelineResult, PipelineStage } from '@/pipeline/types';
 import { SceneGraph, PositionedNode, isDiagramType } from '@stv/core/types/diagram';
-import { clamp01 } from '@stv/core/utils/guards';
 import { logger } from '@stv/core/utils/logger';
 import { hasOverlapPairs } from '@/visualization/layout-utils';
 import {
@@ -337,21 +336,20 @@ export class QualityMonitor {
   }
 
   /**
-   * Assess LLM extraction quality if metrics are available; otherwise infer from scene structure.
+   * Assess LLM extraction quality from scene structure.
+   *
+   * REQ-392: the `metrics.entityExtractionF1Score` / `relationAccuracy`
+   * "measured branch" is deleted. Those ExtendedPipelineMetrics fields had
+   * ZERO producers (only tests ever set them), so the branch was a
+   * permanently-dead hatch around the delegation — and the only thing a
+   * future writer could feed it is an estimator proxy, which REQ-389 (2)
+   * already forbids as fabrication re-introduction. Supersedes the REQ-389
+   * decision to keep the ground-truth fields dormant: REQ-391's norm (no
+   * measurement source → delete the field, don't re-fabricate) applies, and
+   * the census guard forces any re-introduced ground-truth field to ship
+   * with a producer.
    */
   private assessLLMExtractionQuality(result: PipelineResult): number {
-    const m = result.metrics as unknown as Record<string, unknown> | null;
-
-    const hasEntity = typeof m?.entityExtractionF1Score === 'number' && Number.isFinite(m.entityExtractionF1Score);
-    const hasRelation = typeof m?.relationAccuracy === 'number' && Number.isFinite(m.relationAccuracy);
-
-    if (hasEntity || hasRelation) {
-      const parts: number[] = [];
-      if (hasEntity && m) parts.push(clamp01(m.entityExtractionF1Score as number));
-      if (hasRelation && m) parts.push(clamp01(m.relationAccuracy as number));
-      return parts.length ? parts.reduce((a, b) => a + b, 0) / parts.length : 0;
-    }
-
     // REQ-389: delegate to the canonical estimators (quality-estimators —
     // the module whose header contract promises pipelines AND this monitor
     // "honest, identical quality signals"). This site previously re-froze a

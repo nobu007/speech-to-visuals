@@ -30,7 +30,6 @@ import { LOWER_IS_BETTER_QUALITY_METRICS, type QualityMetrics } from '@/pipeline
 const NUMERIC_METRIC_KEYS: (keyof QualityMetrics)[] = [
   'processingTime',
   'memoryUsage',
-  'cacheHitRate',
   'transcriptionAccuracy',
   'sceneSegmentationF1',
   'entityExtractionF1',
@@ -45,7 +44,6 @@ const NUMERIC_METRIC_KEYS: (keyof QualityMetrics)[] = [
 
 /** The complement: numeric metrics where a HIGHER value is better. */
 const HIGHER_IS_BETTER = new Set<keyof QualityMetrics>([
-  'cacheHitRate',
   'transcriptionAccuracy',
   'sceneSegmentationF1',
   'entityExtractionF1',
@@ -97,6 +95,5 @@ describe('LOWER_IS_BETTER_QUALITY_METRICS (QualityMetrics polarity registry)', (
     expect(LOWER_IS_BETTER_QUALITY_METRICS.has('transcriptionAccuracy')).toBe(false);
     expect(LOWER_IS_BETTER_QUALITY_METRICS.has('entityExtractionF1')).toBe(false);
     expect(LOWER_IS_BETTER_QUALITY_METRICS.has('edgeCompleteness')).toBe(false);
-    expect(LOWER_IS_BETTER_QUALITY_METRICS.has('cacheHitRate')).toBe(false);
   });
 });
