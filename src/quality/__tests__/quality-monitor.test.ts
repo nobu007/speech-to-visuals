@@ -9,6 +9,9 @@ import { jest } from '@jest/globals';
 
 const { QualityMonitor } = await import('../quality-monitor');
 const { logger } = await import('@stv/core/utils/logger');
+const { estimateEntityExtractionQuality, estimateRelationAccuracy } = await import(
+  '../../pipeline/quality-estimators'
+);
 import type { PipelineResult, PipelineStage } from '../../pipeline/types';
 import type { SceneGraph } from '@stv/core/types/diagram';
 
@@ -628,6 +631,116 @@ describe('QualityMonitor', () => {
       const assessment = await monitor.assessPipelineQuality(result);
 
       expect(assessment.accuracyScore).toBeGreaterThanOrEqual(0);
+    });
+
+    // REQ-389: the fallback must delegate to the canonical estimators
+    // (src/pipeline/quality-estimators) instead of re-freezing its own scale —
+    // that module's header contract promises pipelines AND this monitor
+    // "honest, identical quality signals", and this 20%-of-accuracyScore leg
+    // (8% of overallScore) previously scored a THIRD frozen scale
+    // (entity 0.8/0.6/0.3 + relation 0.8/0.5) that could never agree with the
+    // framework's own view of the same run. Exact-arithmetic pins below: every
+    // assessor is deterministic on the fixture, so accuracyScore pins the leg
+    // value exactly.
+    describe('REQ-389: fallback delegates to the canonical estimator scale', () => {
+      /**
+       * Healthy 2-scene run — every assessor deterministic:
+       *   sceneScore 1.0 (2 scenes ∈ 2-8) · layout 0.9 per scene (no overlap,
+       *   positioning (0.5 good-x + 0.3 bad-y) = 0.8 → (1.0+0.8)/2) ·
+       *   content 1.0 (valid type + 2-15 nodes + summary + keyphrases) ·
+       *   llm: entity 0.90 (avg 2 nodes over scenes-with-nodes) + relation
+       *   0.85 (avg 1 edge/scene ≥ 1) → 0.875 (canonical), NOT 0.8 (frozen).
+       */
+      function healthyScenes(): SceneGraph[] {
+        const scene = (suffix: string): SceneGraph => ({
+          type: 'flowchart',
+          nodes: [
+            { id: `n1-${suffix}`, label: 'Node 1' },
+            { id: `n2-${suffix}`, label: 'Node 2' },
+          ],
+          edges: [{ source: `n1-${suffix}`, target: `n2-${suffix}` }],
+          summary: 'A test scene with sufficient length',
+          keyphrases: ['test', 'scene'],
+          startMs: 0,
+          durationMs: 5000,
+          layout: {
+            nodes: [
+              { id: `n1-${suffix}`, label: 'Node 1', x: 100, y: 100, width: 120, height: 60 },
+              { id: `n2-${suffix}`, label: 'Node 2', x: 700, y: 100, width: 120, height: 60 },
+            ],
+            edges: [{ from: `n1-${suffix}`, to: `n2-${suffix}` }],
+          },
+        });
+        return [scene('a'), scene('b')];
+      }
+
+      it('no-metrics healthy run scores the leg 0.875 (accuracyScore 0.945, not the frozen-scale 0.935)', async () => {
+        const result = makeResult({ scenes: healthyScenes(), metrics: undefined });
+        const assessment = await monitor.assessPipelineQuality(result);
+
+        // 0.2*1.0 + 0.3*0.9 + 0.3*1.0 + 0.2*0.875 = 0.945. The pre-REQ-389
+        // frozen scale (entity 0.8 + relation 0.8 → 0.8) gave 0.935 — this
+        // pin fails on either scale drift direction.
+        expect(assessment.accuracyScore).toBeCloseTo(0.945, 10);
+      });
+
+      it('singleton-node / no-edge scene scores entity 0.70 + relation 0.60 (frozen scale claimed 0.6/0.5)', async () => {
+        const scene: SceneGraph = {
+          type: 'flowchart',
+          nodes: [{ id: 'n1', label: 'Node 1' }],
+          edges: [],
+          summary: 'A test scene with sufficient length',
+          keyphrases: ['test', 'scene'],
+          startMs: 0,
+          durationMs: 5000,
+          layout: {
+            nodes: [{ id: 'n1', label: 'Node 1', x: 100, y: 100, width: 120, height: 60 }],
+            edges: [],
+          },
+        };
+        const result = makeResult({ scenes: [scene], metrics: undefined });
+        const assessment = await monitor.assessPipelineQuality(result);
+
+        // scene 0.8 (1 scene) + layout 0.8 (positioning 0.6) + content 0.9
+        // (nodeCount 1 → 0.2 leg) + llm (0.70+0.60)/2 = 0.65:
+        // 0.2*0.8 + 0.3*0.8 + 0.3*0.9 + 0.2*0.65 = 0.80.
+        expect(assessment.accuracyScore).toBeCloseTo(0.8, 10);
+      });
+
+      it('a FAILED run with structured scenes scores the leg 0 — no extraction-quality claim without success', async () => {
+        const result = makeResult({
+          success: false,
+          scenes: healthyScenes(),
+          metrics: undefined,
+        });
+        const assessment = await monitor.assessPipelineQuality(result);
+
+        // Canonical estimators gate on success (0). The pre-REQ-389 fallback
+        // read structure regardless of success and scored a FAILED run 0.8 on
+        // this leg (accuracyScore 0.93 — above the 0.8 readiness bar).
+        // 0.2*1.0 + 0.3*0.9 + 0.3*1.0 + 0.2*0 = 0.77.
+        expect(assessment.accuracyScore).toBeCloseTo(0.77, 10);
+      });
+
+      it('measured branch and fallback can never disagree: canonical-estimate metrics yield the SAME accuracyScore as no metrics', async () => {
+        const scenes = healthyScenes();
+        const viaFallback = await new QualityMonitor().assessPipelineQuality(
+          makeResult({ scenes, metrics: undefined }),
+        );
+        const viaMeasured = await new QualityMonitor().assessPipelineQuality(
+          makeResult({
+            scenes,
+            metrics: {
+              entityExtractionF1Score: estimateEntityExtractionQuality({ success: true, scenes, duration: 60 }),
+              relationAccuracy: estimateRelationAccuracy({ success: true, scenes, duration: 60 }),
+            },
+          }),
+        );
+
+        // One scale, both sites: whichever branch assessLLMExtractionQuality
+        // takes, the leg (and therefore accuracyScore) is identical.
+        expect(viaMeasured.accuracyScore).toBeCloseTo(viaFallback.accuracyScore, 10);
+      });
     });
   });
 

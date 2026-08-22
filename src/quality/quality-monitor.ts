@@ -3,6 +3,10 @@ import { SceneGraph, PositionedNode, isDiagramType } from '@stv/core/types/diagr
 import { clamp01 } from '@stv/core/utils/guards';
 import { logger } from '@stv/core/utils/logger';
 import { hasOverlapPairs } from '@/visualization/layout-utils';
+import {
+  estimateEntityExtractionQuality,
+  estimateRelationAccuracy,
+} from '@/pipeline/quality-estimators';
 import { safeArray } from '@stv/core/lib/safe-array';
 
 /**
@@ -348,16 +352,19 @@ export class QualityMonitor {
       return parts.length ? parts.reduce((a, b) => a + b, 0) / parts.length : 0;
     }
 
-    // Heuristic fallback: infer a proxy score from scene structure
-    const scenes = result.scenes || [];
-    if (scenes.length === 0) return 0;
-
-    const avgNodes = scenes.reduce((a, s) => a + (s.nodes?.length || 0), 0) / scenes.length;
-    const anyEdges = scenes.some(s => (s.edges?.length || 0) > 0);
-
-    const entityScore = avgNodes >= 2 ? 0.8 : avgNodes >= 1 ? 0.6 : 0.3;
-    const relationScore = anyEdges ? 0.8 : 0.5;
-    return (entityScore + relationScore) / 2;
+    // REQ-389: delegate to the canonical estimators (quality-estimators —
+    // the module whose header contract promises pipelines AND this monitor
+    // "honest, identical quality signals"). This site previously re-froze a
+    // THIRD scale for a signal that module owns — entity 0.8/0.6/0.3 (mean
+    // over ALL scenes) + relation 0.8/0.5 (`some` edges) vs the canonical
+    // scoreNodeDensity 0.90/0.70/0.50 (mean over scenes WITH nodes) and
+    // 0.85/0.60 (avg edge density) — so this 20%-of-accuracyScore leg (8% of
+    // overallScore) could never agree with the framework's own view of the
+    // same run, and it scored scene structure on FAILED runs where the
+    // canonical estimators honestly report 0.
+    return (
+      estimateEntityExtractionQuality(result) + estimateRelationAccuracy(result)
+    ) / 2;
   }
 
   /**

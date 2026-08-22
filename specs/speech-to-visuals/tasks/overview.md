@@ -2933,6 +2933,22 @@ bonus/violation の witness fixture は DEFECT-9 cap（measured quality なし �
 
 **次回開始番号**: TASK-0271
 
+## Phase 187: assessLLMExtractionQuality 再凍結第三 scale の canonical estimator 委譲（REQ-389・TC-373-01〜04・MW-053）
+
+**ステータス**: ✅完了（2026-08-22・TASK-0271 完了・REQ-383〜386 same-file sibling sweep の継続）
+
+**背景**: make-run steering は REQ-383/386 で measured-only 化された memoryUsage leg の producer（Phase 185・TASK-0269 で live 化済み）と anchor 一括正規化（Phase 186・TASK-0270 で完了済み）を指示していたが、両者は本 run 開始時に着地済み（feedback は Phase 184 時点生成）。高レベル方向（捏造 scoring / divergent scale の撲滅）に沿って `src/quality/quality-monitor.ts` の残る評価 leg を sweep した結果、`assessLLMExtractionQuality` の heuristic fallback が canonical single-source module `quality-estimators`（header 契約「Phase 27 QualityMonitor が honest, identical quality signals を見る」）と異なる**第三の凍結 scale**（entity 0.8/0.6/0.3 全 scene 平均 + relation 0.8/0.5 some(edges)）を保持し、ground-truth field（`entityExtractionF1Score`/`relationAccuracy`）に producer がゼロのため全実 run がこの divergent scale で accuracyScore 20% leg を採点されていること、さらに FAILED run の構造に success 未参照で 0.8 を与え readiness bar 0.8 超 (0.93) を主張していたことを発見。
+
+- [x] [TASK-0271: assessLLMExtractionQuality 再凍結第三 scale の canonical estimator 委譲（REQ-389・TC-373-01〜04・MW-053）](TASK-0271.md) - 2h (TDD) 🔵 ✅2026-08-22（全 assessor deterministic な fixture で accuracyScore を exact pin（healthy 0.945 = leg 0.875 canonical / 旧 0.935・singleton 0.80 = leg 0.65 / 旧 0.79・FAILED run 0.77 = leg 0 / 旧 0.93）+ canonical 推定値を metrics に与えた run と metrics なし run の完全一致 pin（branch 間不一致不可能の実行可能証明）を fix 前 RED 4 で確認後に fallback を `estimateEntityExtractionQuality` + `estimateRelationAccuracy` 委譲で 50/50 GREEN・広域 203 suites / 6001 tests GREEN・tsc 両 config 0・MW-053 3 独立 mutation RED 実測（旧 scale 再注入 4 failed・relation leg 欠落 3 failed・success gate 解除 1 failed）+ 監査 pin ≥52→≥53。**設計決定**: ground-truth field への推定値 publish はしない（"if ground truth is available" 宣言の slot に proxy を書くと捏造 class 再導入 — REQ-387 memoryUsage との差分）・measured branch は実 ground truth が来るまで dormant）
+
+### 信頼性レベルサマリー（Phase 187 追加分量）
+
+- 全 1 タスク 🔵（canonical module の header 契約と実装の矛盾が根拠・fix 前 RED 4 で旧 scale 値を直接観測・MW-053 3 mutation 独立 RED 実測）
+
+### 次フェーズ開始番号
+
+**次回開始番号**: TASK-0272
+
 
 ## Spine: external references
 
