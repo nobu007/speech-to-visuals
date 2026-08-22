@@ -66,17 +66,22 @@ describe('IterationManager.evaluateSuccessCriteria — safeArray guard (line 121
     expect(() => priv.evaluateSuccessCriteria({})).not.toThrow();
   });
 
-  it('WITH guard: returns empty results when successCriteria is null', () => {
+  it('WITH guard: null successCriteria is FAIL-CLOSED, not a vacuous pass (REQ-385)', () => {
     const manager = makeManager(null);
     const priv = manager as unknown as {
       evaluateSuccessCriteria: (m: Record<string, unknown>) => {
         allMet: boolean;
-        results: { criterion: string; met: boolean }[];
+        results: { criterion: string; met: boolean; reason?: string }[];
       };
     };
     const result = priv.evaluateSuccessCriteria({});
-    expect(result.results).toEqual([]);
-    expect(result.allMet).toBe(true); // every() on empty array → true
+    // REQ-385 (Phase 183) closed the vacuous-every() hole: a cycle that
+    // declares NO criteria cannot claim success — one loud failing row is
+    // returned instead of the old `[] → allMet: true`.
+    expect(result.allMet).toBe(false);
+    expect(result.results).toHaveLength(1);
+    expect(result.results[0].met).toBe(false);
+    expect(result.results[0].reason).toContain('no successCriteria');
   });
 
   it('WITH guard: still works normally with valid criteria', () => {
@@ -120,7 +125,7 @@ describe('StageQualityGate.evaluate — safeArray guard (line 107)', () => {
     expect(() => gate.evaluate({})).not.toThrow();
   });
 
-  it('WITH guard: returns passed=true when criteria is null (vacuous truth)', () => {
+  it('WITH guard: null criteria is FAIL-CLOSED, not a vacuous pass (REQ-385)', () => {
     const gate = new StageQualityGate({
       stage: 'test',
       name: 'test-gate',
@@ -128,8 +133,9 @@ describe('StageQualityGate.evaluate — safeArray guard (line 107)', () => {
       blockingOnFailure: false,
     } as unknown as ConstructorParameters<typeof StageQualityGate>[0]);
     const result = gate.evaluate({});
-    expect(result.passed).toBe(true); // every() on empty results → true
-    expect(result.results).toEqual([]);
+    // REQ-385 (Phase 183): a gate with NO criteria cannot vacuously pass —
+    // the old `every()` on an empty array returned passed=true.
+    expect(result.passed).toBe(false);
   });
 });
 

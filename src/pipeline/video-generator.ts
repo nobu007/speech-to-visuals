@@ -289,10 +289,13 @@ export class VideoGenerator {
       // buildSceneGraph always sets content (`segment.text ?? ''`); the
       // normalization only guards scenes from producers bypassing it.
       transcript: scene.content ?? '',
-      // 0.0 is a legitimate "layout/detection broke down" signal; use ?? so it
-      // is not masked to 0.8 (which would also silence the low-confidence
-      // warning in validateRemotionData: confidence < 0.5).
-      confidence: scene.confidence ?? 0.8,
+      // 0.0 is a legitimate "layout/detection broke down" signal; use ?? so a
+      // real 0 is preserved. REQ-393: the undefined leg falls to 0 as well —
+      // completing the comment's own argument, an absent measurement must not
+      // read as 0.8 (which silenced the low-confidence warning in
+      // validateRemotionData: confidence < 0.5). buildSceneGraph always sets
+      // confidence, so this leg only guards producers bypassing it.
+      confidence: scene.confidence ?? 0,
       keyphrases: scene.keyphrases || []
     };
   }

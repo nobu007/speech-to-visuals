@@ -661,7 +661,7 @@ describe('StreamingTranscriber', () => {
       expect(onSegment).not.toHaveBeenCalled();
     });
 
-    it('uses default confidence of 0.8 when result confidence is falsy', async () => {
+    it('falls back to the named placeholder confidence when result confidence is falsy (REQ-393)', async () => {
       await loadModule();
       const transcriber = new StreamingTranscriberModule.StreamingTranscriber();
       const onSegment = jest.fn();
@@ -680,7 +680,7 @@ describe('StreamingTranscriber', () => {
               length: 1,
               0: {
                 transcript: 'test',
-                confidence: 0, // Falsy -> should default to 0.8
+                confidence: 0, // Falsy -> disclosed placeholder stand-in (REQ-393)
               },
             },
           } as unknown as SpeechRecognitionResultList,
@@ -691,10 +691,12 @@ describe('StreamingTranscriber', () => {
 
       await promise;
 
-      // 0.8 >= 0.7 (default minConfidence), so should be called
+      // PLACEHOLDER_CHUNK_CONFIDENCE (0.75) >= 0.7 (default minConfidence), so
+      // the disclosed placeholder stand-in (REQ-391/393) passes the gate — the
+      // former anonymous 0.8 was a fabricated confidence.
       expect(onSegment).toHaveBeenCalledWith(
         expect.objectContaining({
-          confidence: 0.8,
+          confidence: 0.75,
         })
       );
     });

@@ -23,6 +23,14 @@ export interface BrowserCompatibility {
 }
 
 /**
+ * Stand-in confidence for a FINAL Web Speech result that omits `confidence`
+ * (the DOM type marks it optional). Neutral 0.5, the same disclosed
+ * convention the streaming transcriber uses for interim chunks: the value
+ * expresses "no confidence reading", not a measured near-certainty (REQ-393).
+ */
+export const FINAL_NO_CONFIDENCE_STANDIN = 0.5;
+
+/**
  * Browser-compatible transcription service
  * Uses Web Speech API and fallback strategies for cross-browser compatibility
  *
@@ -339,9 +347,12 @@ export class BrowserTranscriber {
           if (result.isFinal) {
             const text = result[0]?.transcript?.trim() ?? '';
             // Web Speech confidence is [0,1]; 0 is a legit "very uncertain"
-            // final result. Use ?? so only undefined falls back to 0.9 — `||`
-            // would invert a real 0 into 0.9 (highly confident), backwards.
-            const confidence = result[0]?.confidence ?? 0.9;
+            // final result. Use ?? so only undefined falls back — `||` would
+            // invert a real 0 into the stand-in, backwards. REQ-393: the
+            // stand-in for a MISSING final confidence is the disclosed
+            // neutral 0.5 (same convention as interim chunks), not 0.9 — an
+            // absent measurement must not claim near-certainty.
+            const confidence = result[0]?.confidence ?? FINAL_NO_CONFIDENCE_STANDIN;
             const currentTime = audio.currentTime * 1000; // Convert to ms
 
             if (text) {

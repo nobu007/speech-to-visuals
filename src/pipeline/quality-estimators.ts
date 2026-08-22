@@ -80,6 +80,36 @@ export function estimateSegmentationQuality(result: PipelineQualitySignals): num
 }
 
 /**
+ * Mean of the segments' OWN confidences — the measured accuracy signal the
+ * transcribers themselves publish (Whisper/WebSpeech per-segment confidence,
+ * the named placeholder constants on placeholder paths).
+ *
+ * SINGLE SOURCE for "how confident was this transcription": the learner legs
+ * of SimplePipeline (transcription + segmentation stages) and
+ * PipelineOrchestrator's transcriptionAccuracy record (REQ-393). Before this
+ * extraction the two sites each carried their own frozen value — the
+ * orchestrator an inline reduce, SimplePipeline a `? 0.9 : 0.3` band that
+ * equals-or-exceeds the learner's 0.85 improvement threshold on every
+ * success, so the learner never saw a real degradation.
+ *
+ * A segment without a finite confidence contributes 0 (fail value, not a
+ * neutral mid-scale guess): an unmeasured segment must drag the mean DOWN,
+ * the same fail-closed direction `?? 0` reads in the orchestrator's old
+ * reduce. Empty input → 0.
+ */
+export function meanSegmentConfidence(
+  segments: ReadonlyArray<{ confidence?: unknown }>,
+): number {
+  if (segments.length === 0) return 0;
+  let sum = 0;
+  for (const segment of segments) {
+    const c = segment.confidence;
+    sum += typeof c === 'number' && Number.isFinite(c) ? c : 0;
+  }
+  return sum / segments.length;
+}
+
+/**
  * Map an average node density to the entity-extraction quality score.
  *
  * SINGLE SOURCE for the density→score scale, consumed by BOTH extraction

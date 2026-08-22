@@ -282,7 +282,10 @@ export class TranscriptionPipeline {
       startMs: segment.start,
       endMs: segment.end,
       timestampMs: segment.start,
-      confidence: segment.confidence ?? 0.9
+      // REQ-393: Caption.confidence is `number | null` — null is the type's
+      // own "no measurement" representation. The previous `?? 0.9` dressed a
+      // missing segment confidence as near-certainty.
+      confidence: segment.confidence ?? null
     }));
 
     return captions;

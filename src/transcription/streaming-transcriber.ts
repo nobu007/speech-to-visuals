@@ -298,7 +298,13 @@ export class StreamingTranscriber {
             // optional (TranscriptionSegment.confidence?): reading it back for
             // the threshold compare would need a non-null assertion, while the
             // local const is the exact number just computed.
-            const segmentConfidence = Number.isFinite(confidence) && confidence > 0 ? confidence : 0.8;
+            // REQ-393: a missing/non-positive confidence falls back to the
+            // module's own named placeholder chunk confidence, not a bare
+            // 0.8 — one disclosed constant for every "chunk had no usable
+            // confidence" path in this file.
+            const segmentConfidence = Number.isFinite(confidence) && confidence > 0
+              ? confidence
+              : PLACEHOLDER_CHUNK_CONFIDENCE;
             const segment: TranscriptionSegment = {
               start: segmentStartTime - recordingStartTime,
               end: performance.now() - recordingStartTime,

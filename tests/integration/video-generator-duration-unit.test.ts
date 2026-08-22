@@ -132,9 +132,14 @@ describe('VideoGenerator scene-duration time-unit correctness (real methods)', (
       expect(out.confidence).toBe(0);
     });
 
-    it('a missing confidence still falls back to the 0.8 default', () => {
+    it('a missing confidence falls back to 0, the fail value (REQ-393)', () => {
+      // REQ-393 completes this file's own argument: `?? 0.8` mapped undefined
+      // to the HIGH-confidence default while 0 was preserved — an absent
+      // measurement must not read as near-certainty (it would silence
+      // validateRemotionData's confidence < 0.5 warning exactly like the
+      // `|| 0.8` above it).
       const out = api.convertSceneToRemotionFormat(makeSceneSec(0, 5), 0);
-      expect(out.confidence).toBe(0.8);
+      expect(out.confidence).toBe(0);
     });
   });
 

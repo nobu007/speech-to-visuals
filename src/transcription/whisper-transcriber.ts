@@ -375,7 +375,9 @@ export class WhisperTranscriber {
       startMs: segment.start,
       endMs: segment.end,
       timestampMs: segment.start,
-      confidence: segment.confidence ?? 0.9
+      // REQ-393: null is Caption.confidence's own "unmeasured" value —
+      // `?? 0.9` asserted near-certainty no measurement backed.
+      confidence: segment.confidence ?? null
     }));
   }
 

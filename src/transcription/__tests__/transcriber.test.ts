@@ -309,7 +309,7 @@ describe('TranscriptionPipeline', () => {
       expect(result.captions![0].confidence).toBe(0);
     });
 
-    test('undefined confidence defaults to 0.9 in captions', async () => {
+    test('undefined confidence stays null in captions (REQ-393: type-owned unmeasured value)', async () => {
       const segments = [
         { start: 0, end: 3000, text: 'No confidence field' },
       ];
@@ -317,7 +317,9 @@ describe('TranscriptionPipeline', () => {
       getTranscribeMock().mockResolvedValue(makeWhisperResult(segments as TranscriptionSegment[]));
       const result = await pipeline.transcribe(tmpAudio('wav'));
 
-      expect(result.captions![0].confidence).toBe(0.9);
+      // Caption.confidence is `number | null` — an absent measurement is the
+      // type's own null, NOT a near-certainty 0.9 (REQ-393).
+      expect(result.captions![0].confidence).toBeNull();
     });
 
     test('high confidence is preserved', async () => {

@@ -2995,7 +2995,19 @@ bonus/violation の witness fixture は DEFECT-9 cap（measured quality なし �
 
 ### 次フェーズ開始番号
 
-**次回開始番号**: TASK-0275
+**次回開始番号**: TASK-0276
+
+## Phase 191: score-ladder（凍結小数 leg）census guard 新設 + 10 site 一括撲滅（REQ-393・TC-377-01〜04・MW-057）
+
+**ステータス**: ✅完了（2026-08-22・TASK-0275 完了・REQ-391 値側 / REQ-392 契約側に続く第 3 facet で凍結測定 class の全既知 facet を census cover）
+
+**背景**: steering が「数値literal比較でスコアを返すsite」を enum 対象として明示指定。audit pass（`walkProductionSurface` 上を行-level discovery）で pre-fix 29 site → 撲滅後 21 site（@stv/core core-four 0 site）を enumerate し fabricated 10 site を確定。核心: SimplePipeline continuousLearner transcription leg `? 0.9 : 0.3` は learner 自身の `qualityScore < 0.85` improvement threshold を成功 run が常に上回り quality-degradation 検出を恒久 green 化（permanently-green gate class の pipeline 内残留）。canonical `meanSegmentConfidence` を `quality-estimators.ts` に新設し learner 2 leg + orchestrator reduce（sibling single-sourcing）を委譲・transcription 3 file の confidence fallback は型自身の null / named neutral / fail 0 で disclose・video-generator `?? 0.8` は `?? 0`（in-file comment 自身の 0.8-mask 論証の完成）。stale test 2 件（旧 0.9/0.8 挙動 pin）を REQ-393 契約へ更新。
+
+- [x] [TASK-0275: score-ladder（凍結小数 leg）census guard 新設 + 10 site 一括撲滅（REQ-393・TC-377-01〜04・MW-057）](TASK-0275.md) - 3h (TDD) 🔵 ✅2026-08-22（census 7/7 GREEN（ALLOWED 17 + ERADICATED 11・negative anchors が行-level discovery の複数行上限を補完）+ learner 5 test GREEN・MW-057 3 mutation 独立 RED 実測（band 再注入 4 failed・caption `?? 0.9` 再注入 3 failed・estimator fail 値高値化 1 failed — anchor prefix-match の抜け穴を本 mutation が発見し `: 0;` 厳格化で guard 単独検出化）→ revert GREEN・full suite 761 suites GREEN（**副次修復**: stale test 4 件 — REQ-393 挙動 pin 3 + HEAD 時点で RED だった Phase 183 (REQ-385) twin 取り残し genuine-guard-verification 2 failed を full-suite run が発見）・tsc 両 config 0・監査 pin ≥56→≥57）
+
+### 信頼性レベルサマリー（Phase 191 追加分量）
+
+- 全 1 タスク 🔵（steering 直接指定の enum 対象・第 3 facet 完走で凍結測定 class の既知 facet を 3 census で cover・MW-057 3 mutation 独立 RED 実測）
 
 
 ## Spine: external references

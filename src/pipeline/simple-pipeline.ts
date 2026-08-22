@@ -21,6 +21,7 @@ import {
   estimateTranscriptionAccuracy,
   estimateSegmentationQuality,
   countLayoutOverlaps,
+  meanSegmentConfidence,
   type PipelineQualitySignals,
 } from './quality-estimators';
 import { getHeapUsed } from '@stv/core/utils/memory-usage';
@@ -187,7 +188,12 @@ export class SimplePipeline {
       const transcriptionResult = await this.transcription.transcribe(audioUrl);
 
       const transcriptionProcessingTime = Date.now() - transcriptionStartTime;
-      const transcriptionQuality = transcriptionResult.success && transcriptionResult.segments?.length > 0 ? 0.9 : 0.3;
+      // REQ-393: measured mean of the transcriber's own per-segment
+      // confidences (canonical estimator), NOT a `? 0.9 : 0.3` band — that
+      // frozen 0.9 sat above the learner's 0.85 improvement threshold on
+      // every success, so the quality-degradation detector never saw real
+      // transcription quality, only a dressed-up success flag.
+      const transcriptionQuality = meanSegmentConfidence(transcriptionResult.segments ?? []);
       // `=== true` matches the truthiness reads below/after (undefined and
       // false both mean "failed" for the learner AND the guard right after
       // this call), without asserting an optional field is always present.
@@ -226,8 +232,12 @@ export class SimplePipeline {
       );
 
       const segmentationProcessingTime = Date.now() - segmentationStartTime;
-      const segmentationQuality = contentSegments && contentSegments.length > 0 ?
-        Math.min(0.95, 0.7 + (contentSegments.length / 10) * 0.25) : 0.3;
+      // REQ-393: ContentSegment.confidence is the segmenter's own measured
+      // derivation (max of the merged source-segment confidences) — the same
+      // meanSegmentConfidence single source the transcription leg uses. The
+      // previous `0.7 + (count/10) * 0.25` ladder scored segment COUNT, not
+      // segmentation quality.
+      const segmentationQuality = meanSegmentConfidence(contentSegments ?? []);
 
       // Custom Instructions: Learn from scene segmentation results
       await continuousLearner.learnFromProcessingResult(
@@ -348,11 +358,15 @@ export class SimplePipeline {
               diagramAnalysis.edges || []
             );
 
-            // Convert enhanced result to standard layout result format
+            // Convert enhanced result to standard layout result format.
+            // REQ-393: `?? 0.8` dressed an absent aestheticScore as a good
+            // layout — the fail value 0 keeps "unmeasured" distinguishable
+            // from "measured good" (aestheticScore is derived, REQ-391, so
+            // this leg only fires if the metrics object itself is missing).
             layoutResult = {
               success: enhancedResult.success,
               layout: { nodes: enhancedResult.nodes, edges: enhancedResult.edges },
-              confidence: (enhancedResult.qualityMetrics?.aestheticScore ?? 0.8)
+              confidence: (enhancedResult.qualityMetrics?.aestheticScore ?? 0)
             };
           } else {
             layoutResult = await this.layoutEngine.generateLayout(
@@ -365,8 +379,16 @@ export class SimplePipeline {
 
           const lr = layoutResult as Record<string, unknown>;
           const layoutProcessingTime = Date.now() - layoutStartTime;
-          const layoutQuality = lr.success && lr.layout ?
-            Math.min(0.95, 0.8 + (((lr.confidence as number) || 0) * 0.15)) : 0.3;
+          // REQ-393: the layout engine's own measured confidence (both
+          // engines produce one; the enhanced path carries the derived
+          // aestheticScore, the standard path calculateLayoutConfidence —
+          // REQ-391 closed its hardcoded-1.0 bypass). The previous
+          // `0.8 + conf * 0.15` rescale re-froze a ≥0.8 floor over the
+          // measured value; failure is fail-closed 0, matching the
+          // pipeline_failure leg's disclosed 0.0.
+          const layoutQuality = lr.success && lr.layout
+            ? sanitizeFinite(lr.confidence)
+            : 0;
 
           // Custom Instructions: Learn from layout generation
           await continuousLearner.learnFromProcessingResult(
@@ -453,18 +475,24 @@ export class SimplePipeline {
       const totalDiagramProcessingTime = Date.now() - diagramDetectionStartTime;
 
       // Custom Instructions: Learn from overall diagram pipeline performance
+      // REQ-393: the MEASURED scene yield (scenes produced / segments fed) —
+      // a half-failing diagram stage now reports ~0.5 and trips the learner's
+      // 0.85 improvement threshold instead of the frozen 0.9 that only
+      // reflected "at least one scene". Same value is published in the
+      // context payload below, computed once.
+      const sceneYield = scenes.length / segmentsToProcess.length;
       await continuousLearner.learnFromProcessingResult(
         'diagram_pipeline',
         { segmentCount: segmentsToProcess.length },
         { scenes, totalScenes: scenes.length },
         totalDiagramProcessingTime,
-        scenes.length > 0 ? 0.9 : 0.3,
+        sceneYield,
         scenes.length > 0,
         scenes.length === 0 ? ['no_scenes_generated'] : [],
         {
           inputSegments: segmentsToProcess.length,
           outputScenes: scenes.length,
-          successRate: scenes.length / segmentsToProcess.length,
+          successRate: sceneYield,
           customInstructionsPhase: '図解生成'
         }
       );
@@ -505,7 +533,13 @@ export class SimplePipeline {
         );
 
         const videoProcessingTime = Date.now() - videoGenerationStartTime;
-        const videoQuality = videoResult.success ? 0.95 : 0.3;
+        // REQ-393: disclosed binary — a successful video generation is a
+        // complete success for this stage (no partial-quality measurement
+        // exists on the result), a failed one 0. Same idiom as
+        // quality-monitor's successScore and the pipeline_failure leg's 0.0;
+        // the previous 0.95/0.3 pair claimed graded quality that was never
+        // measured, and the 0.3 failure leg still sat above "catastrophic".
+        const videoQuality = videoResult.success ? 1 : 0;
 
         // Custom Instructions: Learn from video generation
         await continuousLearner.learnFromProcessingResult(

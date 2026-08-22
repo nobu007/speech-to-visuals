@@ -24,6 +24,7 @@ import {
   StageQualityScores,
 } from './types';
 import { QualityMonitor } from './quality-monitor';
+import { meanSegmentConfidence } from './quality-estimators';
 import { TranscriptionPipeline, TranscriptionSegment, TranscriptionResult } from '@/transcription';
 import { bytesToMb } from '@stv/core/lib/metrics-utils';
 import { SceneSegmenter, DiagramDetector, DEFAULT_MIN_SEGMENT_LENGTH_MS, DEFAULT_MAX_SEGMENT_LENGTH_MS } from '@/analysis';
@@ -1121,13 +1122,13 @@ export class PipelineOrchestrator {
 
       switch (stage) {
         case 'transcription': {
-          // Extract average confidence from transcription segments
+          // Measured mean segment confidence via the canonical estimator —
+          // the same single source SimplePipeline's learner legs use (REQ-393
+          // collapsed this inline reduce and SimplePipeline's frozen 0.9 band
+          // onto one helper; a non-finite confidence still counts as 0).
           const segments = (output?.segments ?? []) as Array<Record<string, unknown>>;
           if (segments.length > 0) {
-            const totalConf = segments.reduce(
-              (sum, s) => sum + ((s.confidence as number) ?? 0), 0,
-            );
-            score = totalConf / segments.length;
+            score = meanSegmentConfidence(segments);
             this.qualityMonitor.recordMetrics({ transcriptionAccuracy: score });
           }
           break;

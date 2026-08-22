@@ -8,6 +8,7 @@
 import { SimplePipeline, simplePipeline } from '@/pipeline/simple-pipeline';
 import { getQualityMonitor } from '@/pipeline/quality-monitor';
 import { realTimeMonitor } from '@/monitoring/real-time-performance-monitor';
+import { continuousLearner } from '@/framework/continuous-learner';
 import type { SceneGraph } from '@stv/core/types/diagram';
 
 // ---------------------------------------------------------------------------
@@ -520,6 +521,10 @@ describe('SimplePipeline — Phase 27 quality metrics delegate to canonical esti
     segmentTexts: string[];
     segmentMs: number;
     layoutNodes: Array<Record<string, unknown>>;
+    /** Per-segment transcription confidences (default: uniform 0.9). */
+    segmentConfidences?: number[];
+    /** Confidence the segmenter stamps on each ContentSegment (default: none). */
+    contentConfidence?: number;
   }): Promise<{
     recordMetrics: jest.MockInstance<void, unknown[]>;
     recordPipelineQuality: jest.MockInstance<void, [number, number]>;
@@ -533,7 +538,12 @@ describe('SimplePipeline — Phase 27 quality metrics delegate to canonical esti
         start: i * fixture.segmentMs,
         end: (i + 1) * fixture.segmentMs,
         text,
-        confidence: 0.9,
+        // Raw pass-through when the fixture supplies confidences (an explicit
+        // `undefined` entry STAYS undefined — the REQ-393 test proves the
+        // estimator counts an unmeasured segment as 0); uniform 0.9 otherwise.
+        confidence: fixture.segmentConfidences
+          ? fixture.segmentConfidences[i]
+          : 0.9,
       })),
     });
     jest.spyOn(cols.segmenter, 'segment').mockResolvedValue(
@@ -543,6 +553,9 @@ describe('SimplePipeline — Phase 27 quality metrics delegate to canonical esti
         text: '',
         summary: '',
         keyphrases: [],
+        ...(fixture.contentConfidence !== undefined
+          ? { confidence: fixture.contentConfidence }
+          : {}),
       })),
     );
     jest.spyOn(cols.detector, 'analyze').mockResolvedValue({
@@ -686,6 +699,93 @@ describe('SimplePipeline — Phase 27 quality metrics delegate to canonical esti
       if (!failurePayload) throw new Error('failure-path recordMetrics call not found');
       expect(failurePayload.layoutOverlap).toBeUndefined();
       expect(getQualityMonitor().getLatestMetrics()?.layoutOverlap).toBeNull();
+    });
+  });
+
+  // ── REQ-393: the continuousLearner stage legs carry MEASURED values, not
+  // frozen bands. The learner's own contract gates on qualityScore < 0.85
+  // (triggerCustomInstructionsImprovement) and feeds quality-degradation
+  // detection, so a `? 0.9 : 0.3`-shaped leg makes those mechanisms see a
+  // permanently satisfactory pipeline. Each leg now delegates to the
+  // measurement the stage itself produced.
+  describe('continuousLearner legs carry measured values (REQ-393)', () => {
+    type Learner = { learnFromProcessingResult: (...args: unknown[]) => Promise<void> };
+
+    /** Spy on the REAL learner singleton (jest.mock is a no-op here, ESM). */
+    function learnerSpy(): jest.MockInstance<Promise<void>, unknown[]> {
+      return jest.spyOn(
+        (continuousLearner as unknown as Learner),
+        'learnFromProcessingResult',
+      );
+    }
+
+    /** The quality (5th arg) of a component's FIRST learner call. */
+    function qualityFor(spy: jest.MockInstance<Promise<void>, unknown[]>, component: string): number {
+      const call = spy.mock.calls.find((args: unknown[]) => args[0] === component);
+      if (!call) throw new Error(`learnFromProcessingResult(${component}) not called`);
+      return call[4] as number;
+    }
+
+    it('transcription leg = mean segment confidence (varied 0.6/0.8 → 0.7, not a frozen 0.9)', async () => {
+      const spy = learnerSpy();
+      await runSuccessPath({
+        segmentTexts: ['first text', 'second text'],
+        segmentMs: 2000,
+        segmentConfidences: [0.6, 0.8],
+        layoutNodes: [{ id: 'a', label: 'A', x: 0, y: 0, width: 100, height: 100 }],
+      });
+      expect(qualityFor(spy, 'transcription')).toBeCloseTo(0.7, 10);
+      spy.mockRestore();
+    });
+
+    it('transcription leg counts an unmeasured segment as 0 (fail value drags the mean down)', async () => {
+      const spy = learnerSpy();
+      await runSuccessPath({
+        segmentTexts: ['first text', 'second text'],
+        segmentMs: 2000,
+        // One measured 0.9 + one segment with NO confidence → mean 0.45.
+        segmentConfidences: [0.9, undefined as unknown as number],
+        layoutNodes: [{ id: 'a', label: 'A', x: 0, y: 0, width: 100, height: 100 }],
+      });
+      expect(qualityFor(spy, 'transcription')).toBeCloseTo(0.45, 10);
+      spy.mockRestore();
+    });
+
+    it('segmentation leg = mean ContentSegment confidence (the segmenter’s own derivation)', async () => {
+      const spy = learnerSpy();
+      await runSuccessPath({
+        segmentTexts: ['first text', 'second text'],
+        segmentMs: 2000,
+        contentConfidence: 0.75,
+        layoutNodes: [{ id: 'a', label: 'A', x: 0, y: 0, width: 100, height: 100 }],
+      });
+      expect(qualityFor(spy, 'scene_segmentation')).toBeCloseTo(0.75, 10);
+      spy.mockRestore();
+    });
+
+    it('diagram_pipeline leg = measured scene yield (2/2 segments → 1.0, not a frozen 0.9)', async () => {
+      const spy = learnerSpy();
+      await runSuccessPath({
+        segmentTexts: ['first text', 'second text'],
+        segmentMs: 2000,
+        layoutNodes: [{ id: 'a', label: 'A', x: 0, y: 0, width: 100, height: 100 }],
+      });
+      expect(qualityFor(spy, 'diagram_pipeline')).toBe(1);
+      spy.mockRestore();
+    });
+
+    it('layout leg = the layout engine’s own measured confidence (0.8 in → 0.8 out, no rescale floor)', async () => {
+      const spy = learnerSpy();
+      await runSuccessPath({
+        segmentTexts: ['first text'],
+        segmentMs: 2000,
+        layoutNodes: [{ id: 'a', label: 'A', x: 0, y: 0, width: 100, height: 100 }],
+      });
+      // runSuccessPath pins layout confidence 0.8 via its generateLayout
+      // stub; the measured pass-through publishes exactly that (the
+      // eradicated `0.8 + conf*0.15` rescale would have published ~0.92).
+      expect(qualityFor(spy, 'layout_generation')).toBe(0.8);
+      spy.mockRestore();
     });
   });
 });
