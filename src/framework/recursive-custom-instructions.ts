@@ -49,31 +49,47 @@ export interface IterationState {
   nextActions: string[];
 }
 
+/**
+ * REQ-390: every module result below carries ONLY fields with a measured
+ * source in `currentState.metrics` (populated by recordStageSuccess /
+ * recordStageFailure — the live MainPipeline contract) plus the `issues`
+ * derived from threshold violations. The pre-fix interfaces carried fields
+ * no producer ever measured (`confidence`, `diagramDetection`,
+ * `relationshipExtraction`, `labelReadability`, `renderPerformance`,
+ * `pipelineFlow`, `errorHandling`) whose values were constant fixtures, and
+ * a `duration: number` in SECONDS that calculateModuleScore averaged into
+ * the 0-1 module mean (module score 1.4167, overallScore ≈ 1.0037 — a
+ * "quality fraction" permanently above 1.0). Fields without a measurement
+ * are REMOVED, not re-fabricated (the REQ-383 documentation-leg /
+ * REQ-384 commitPhase move).
+ */
 interface TranscriptionQualityResult {
+  /** 0-1 — `currentState.metrics.transcriptionAccuracy`. */
   accuracy: number;
-  confidence: number;
-  duration: number;
   issues: string[];
 }
 
 interface AnalysisQualityResult {
+  /** 0-1 — `currentState.metrics.sceneSegmentationF1`. */
   sceneSegmentation: number;
-  diagramDetection: number;
-  relationshipExtraction: number;
   issues: string[];
 }
 
 interface VisualizationQualityResult {
+  /** 1 = measured zero-overlap layout; 0 = overlaps measured (count gate). */
   layoutQuality: number;
-  labelReadability: number;
-  renderPerformance: number;
   issues: string[];
 }
 
 interface IntegrationQualityResult {
-  pipelineFlow: number;
-  errorHandling: number;
-  memoryUsage: number;
+  /** 1 | 0.5 — measured `renderTime` vs the renderTime threshold. */
+  timeBudget: number;
+  /**
+   * 1 | 0.5 — measured `memoryUsage` BYTES vs the bytes threshold. Named
+   * `memoryBudget` (a 0-1 score) precisely because `QualityMetrics.memoryUsage`
+   * is bytes: same-name-different-unit is the recurring ms/s-style trap.
+   */
+  memoryBudget: number;
   issues: string[];
 }
 
@@ -201,44 +217,69 @@ export class RecursiveCustomInstructionsFramework {
     return checks;
   }
 
+  /**
+   * REQ-390: scores the RECORDED measurement — the same
+   * `currentState.metrics` fields `evaluateIteration` gates on — instead of
+   * the previous constant fixture (a fixed accuracy plus a seconds-valued
+   * duration averaged into the 0-1 mean) that made the module score a
+   * run-independent constant above 1.0.
+   */
   private async checkTranscriptionQuality(): Promise<TranscriptionQualityResult> {
-    // Implement transcription quality validation
-    return {
-      accuracy: 0.9,
-      confidence: 0.85,
-      duration: 2.5,
-      issues: []
-    };
+    const accuracy = this.currentState.metrics.transcriptionAccuracy;
+    const issues: string[] = [];
+    if (accuracy < this.qualityThresholds.transcriptionAccuracy) {
+      issues.push(
+        `Transcription accuracy ${accuracy} below ${this.qualityThresholds.transcriptionAccuracy}`
+      );
+    }
+    return { accuracy, issues };
   }
 
   private async checkAnalysisQuality(): Promise<AnalysisQualityResult> {
-    // Implement analysis quality validation
-    return {
-      sceneSegmentation: 0.82,
-      diagramDetection: 0.78,
-      relationshipExtraction: 0.75,
-      issues: []
-    };
+    const sceneSegmentation = this.currentState.metrics.sceneSegmentationF1;
+    const issues: string[] = [];
+    if (sceneSegmentation < this.qualityThresholds.sceneSegmentationF1) {
+      issues.push(
+        `Scene segmentation F1 ${sceneSegmentation} below ${this.qualityThresholds.sceneSegmentationF1}`
+      );
+    }
+    return { sceneSegmentation, issues };
   }
 
   private async checkVisualizationQuality(): Promise<VisualizationQualityResult> {
-    // Implement visualization quality validation
-    return {
-      layoutQuality: 0.95,
-      labelReadability: 1.0,
-      renderPerformance: 0.88,
-      issues: []
-    };
+    // Count gate (DEFAULT_LAYOUT_OVERLAP_THRESHOLD = 0): a measured zero is
+    // the product's zero-overlap quality bar → 1; any measured overlap → 0.
+    const layoutQuality =
+      this.currentState.metrics.layoutOverlap <= this.qualityThresholds.layoutOverlap ? 1 : 0;
+    const issues: string[] = [];
+    if (layoutQuality < 1) {
+      issues.push(
+        `Layout overlap count ${this.currentState.metrics.layoutOverlap} above ${this.qualityThresholds.layoutOverlap}`
+      );
+    }
+    return { layoutQuality, issues };
   }
 
   private async checkIntegrationQuality(): Promise<IntegrationQualityResult> {
-    // Implement integration quality validation
-    return {
-      pipelineFlow: 0.93,
-      errorHandling: 0.90,
-      memoryUsage: 0.85,
-      issues: []
-    };
+    // Budget legs follow calculateCurrentQualityScore's binary idiom
+    // (in budget → 1, over → 0.5) over the MEASURED values every
+    // recordStageSuccess call writes (renderTime ms, memoryUsage bytes).
+    const timeBudget =
+      this.currentState.metrics.renderTime <= this.qualityThresholds.renderTime ? 1 : 0.5;
+    const memoryBudget =
+      this.currentState.metrics.memoryUsage <= DEFAULT_MEMORY_USAGE_THRESHOLD_BYTES ? 1 : 0.5;
+    const issues: string[] = [];
+    if (timeBudget < 1) {
+      issues.push(
+        `Render time ${this.currentState.metrics.renderTime}ms exceeds ${this.qualityThresholds.renderTime}ms`
+      );
+    }
+    if (memoryBudget < 1) {
+      issues.push(
+        `Memory usage ${this.currentState.metrics.memoryUsage} bytes exceeds ${DEFAULT_MEMORY_USAGE_THRESHOLD_BYTES}`
+      );
+    }
+    return { timeBudget, memoryBudget, issues };
   }
 
   /**
@@ -311,15 +352,21 @@ export class RecursiveCustomInstructionsFramework {
       suggestions.push("Improve audio preprocessing for better transcription accuracy");
     }
 
-    if (testResults.analysis?.sceneSegmentation < 0.8) {
+    // REQ-390: threshold constant (0.75) instead of the previously hardcoded
+    // 0.8 — the same single-source rule as every other gate in this class.
+    if (testResults.analysis?.sceneSegmentation < DEFAULT_SCENE_SEGMENTATION_F1_THRESHOLD) {
       suggestions.push("Enhance scene segmentation algorithm with better boundary detection");
     }
 
-    if (testResults.visualization?.layoutQuality < 0.9) {
+    if (testResults.visualization?.layoutQuality < 1) {
       suggestions.push("Optimize layout algorithm to prevent overlaps and improve readability");
     }
 
-    if (testResults.integration?.memoryUsage < 0.8) {
+    if (testResults.integration?.timeBudget < 1) {
+      suggestions.push("Implement performance optimization for faster rendering");
+    }
+
+    if (testResults.integration?.memoryBudget < 1) {
       suggestions.push("Implement memory optimization techniques for large file processing");
     }
 

@@ -124,8 +124,35 @@ describe('RecursiveCustomInstructionsFramework', () => {
       const mockImpl = jest.fn().mockResolvedValue('success');
       const state = await framework.executeDevelopmentCycle('test', mockImpl);
       expect(state).toBeDefined();
-      expect(state.status).toBe('completed');
       expect(mockImpl).toHaveBeenCalled();
+    });
+
+    // REQ-390: a cycle whose implementation recorded NO quality measurements
+    // must NOT reach `passed` — the commit trigger. The pre-fix checks returned
+    // constant fixtures (accuracy 0.9, confidence 0.85, duration 2.5, ...) so
+    // overallScore was the constant ~1.0037 and EVERY cycle "passed" and
+    // committed regardless of what implementation() actually did — the
+    // fabricated always-pass verdict class (REQ-383 documentation leg /
+    // REQ-384 commitPhase). Fail-closed: no evidence → iterate, not commit.
+    it('REQ-390: does not complete a cycle with no recorded measurements', async () => {
+      const mockImpl = jest.fn().mockResolvedValue('success');
+      const state = await framework.executeDevelopmentCycle('test', mockImpl);
+      expect(state.status).not.toBe('completed');
+      expect(state.iteration).toBe(2); // iterated instead of committing
+    });
+
+    // REQ-390 pass path: when the implementation callback records real stage
+    // measurements (the recordStageSuccess contract MainPipeline drives), the
+    // verdict must follow THOSE numbers — here all four modules pass and the
+    // cycle completes. Pins that the pass path survives the de-fabrication.
+    it('REQ-390: completes a cycle when recorded measurements pass', async () => {
+      const mockImpl = jest.fn(async () => {
+        await framework.recordStageSuccess('transcription', { accuracy: 0.9, duration: 5000 });
+        await framework.recordStageSuccess('analysis', { accuracy: 0.88, duration: 3000 });
+        await framework.recordStageSuccess('layout', { duration: 2000 });
+      });
+      const state = await framework.executeDevelopmentCycle('内容分析', mockImpl);
+      expect(state.status).toBe('completed');
     });
 
     it('handles implementation error gracefully', async () => {
@@ -287,6 +314,107 @@ describe('RecursiveCustomInstructionsFramework', () => {
       expect(report).toHaveProperty('improvements');
       expect(report).toHaveProperty('nextActions');
       expect(report).toHaveProperty('timestamp');
+    });
+  });
+
+  // REQ-390: the Quality Check System must score the RECORDED measurements
+  // (currentState.metrics — what recordStageSuccess/recordStageFailure write,
+  // the same source evaluateIteration gates on), never constant fixtures.
+  // Before the fix all four checkXxxQuality methods returned hardcoded
+  // numbers ("Implement ... validation" stubs), so:
+  //   - the verdict was the constant passed=true for EVERY cycle (commit
+  //     trigger on fabricated evidence — REQ-383/384 class), and
+  //   - the transcription fixture carried `duration: 2.5` (SECONDS) which
+  //     calculateModuleScore averaged into the 0-1 module mean, yielding the
+  //     module score 1.4167 and overallScore ≈ 1.0037 — a "quality fraction"
+  //     permanently above 1.0 (ms/s-style unit pollution of a 0-1 scale).
+  describe('REQ-390: quality checks score recorded measurements, not fixtures', () => {
+    const internals = () =>
+      framework as unknown as {
+        runQualityChecks: () => Promise<Record<string, { issues: string[] }>>;
+        evaluateResults: (t: Record<string, { issues: string[] }>) => Promise<{
+          passed: boolean;
+          score: number;
+        }>;
+      };
+
+    async function evaluateRecordedState(): Promise<{ passed: boolean; score: number }> {
+      const testResults = await internals().runQualityChecks();
+      return internals().evaluateResults(testResults);
+    }
+
+    it('verdict follows recorded accuracy (bad recording does not pass)', async () => {
+      await framework.recordStageSuccess('transcription', { accuracy: 0.5, duration: 5000 });
+      await framework.recordStageSuccess('analysis', { accuracy: 0.4, duration: 3000 });
+      await framework.recordStageSuccess('layout', { duration: 2000 });
+      const evaluation = await evaluateRecordedState();
+      expect(evaluation.passed).toBe(false);
+      expect(evaluation.score).toBeLessThan(0.8);
+    });
+
+    it('scores a passing recording exactly (0.25·0.9 + 0.30·0.88 + 0.25·1 + 0.20·1)', async () => {
+      await framework.recordStageSuccess('transcription', { accuracy: 0.9, duration: 5000 });
+      await framework.recordStageSuccess('analysis', { accuracy: 0.88, duration: 3000 });
+      await framework.recordStageSuccess('layout', { duration: 2000 });
+      const evaluation = await evaluateRecordedState();
+      expect(evaluation.score).toBeCloseTo(0.939, 12);
+      expect(evaluation.passed).toBe(true);
+    });
+
+    it('overallScore never exceeds 1.0 (no non-0-1 field averaged into the mean)', async () => {
+      // Fresh state: the worst case for scale honesty used to be the FIXTURE
+      // (duration 2.5 → module 1.4167). A derived score over 0-1 legs is
+      // bounded by construction; pin the bound for both states.
+      const fresh = await evaluateRecordedState();
+      expect(fresh.score).toBeLessThanOrEqual(1);
+      expect(fresh.score).toBeGreaterThanOrEqual(0);
+
+      await framework.recordStageSuccess('transcription', { accuracy: 0.9, duration: 5000 });
+      await framework.recordStageSuccess('analysis', { accuracy: 0.88, duration: 3000 });
+      await framework.recordStageSuccess('layout', { duration: 2000 });
+      const recorded = await evaluateRecordedState();
+      expect(recorded.score).toBeLessThanOrEqual(1);
+    });
+
+    it('scores an unmeasured (fresh) cycle at exactly the fail-closed 0.45', async () => {
+      // All-zero recorded state: accuracy legs 0 (fail-loud initial metrics),
+      // layout leg 1 (layoutOverlap count 0 = no overlap), integration legs 1
+      // (renderTime 0 / memoryUsage 0 are within budget). 0·0.25 + 0·0.30 +
+      // 1·0.25 + 1·0.20 = 0.45 < 0.8 → the aggregate verdict fails closed even
+      // though two legs read their initial zeros — pinned exactly so any
+      // change to that residual is a visible decision, not a silent drift.
+      const evaluation = await evaluateRecordedState();
+      expect(evaluation.score).toBeCloseTo(0.45, 12);
+      expect(evaluation.passed).toBe(false);
+    });
+
+    it('surfaces threshold violations as check issues (no constant empty issues)', async () => {
+      await framework.recordStageSuccess('transcription', { accuracy: 0.5, duration: 5000 });
+      const testResults = await internals().runQualityChecks();
+      expect(
+        testResults.transcription.issues.length +
+          testResults.analysis.issues.length +
+          testResults.visualization.issues.length +
+          testResults.integration.issues.length
+      ).toBeGreaterThan(0);
+    });
+
+    // REQ-390 budget legs: measured renderTime/memoryUsage over threshold
+    // score 0.5 (calculateCurrentQualityScore's binary idiom) — recorded LAST
+    // so their values survive the later recordStageSuccess overwrites.
+    // 0.25·0.9 + 0.30·0.88 + 0.25·1 + 0.20·((0.5+0.5)/2) = 0.839.
+    it('scores over-budget renderTime/memoryUsage legs at 0.5 (exact 0.839)', async () => {
+      await framework.recordStageSuccess('analysis', { accuracy: 0.88, duration: 3000 });
+      await framework.recordStageSuccess('layout', { duration: 2000 });
+      await framework.recordStageSuccess('transcription', {
+        accuracy: 0.9,
+        duration: 60000, // > 30000ms threshold → timeBudget 0.5
+        memoryUsage: 600 * 1024 * 1024, // > 512MB threshold → memoryBudget 0.5
+      });
+      const testResults = await internals().runQualityChecks();
+      expect(testResults.integration.issues.length).toBe(2);
+      const evaluation = await internals().evaluateResults(testResults);
+      expect(evaluation.score).toBeCloseTo(0.839, 12);
     });
   });
 });

@@ -2949,6 +2949,22 @@ bonus/violation の witness fixture は DEFECT-9 cap（measured quality なし �
 
 **次回開始番号**: TASK-0272
 
+## Phase 188: RecursiveCustomInstructionsFramework Quality Check System の定数 fixture 撲滅（REQ-390・TC-374-01〜04・MW-054）
+
+**ステータス**: ✅完了（2026-08-22・TASK-0272 完了・REQ-383〜386・389 捏造 leg 撲滅の framework 編 sweep）
+
+**背景**: make-run steering の具体 item（memoryUsage producer・spine anchor 一括正規化）は Phase 185/186 で着地済みのため、高レベル方向（品質評価コードの捏造 scoring 撲滅）に沿って framework 大陸を sweep した結果、`src/framework/recursive-custom-instructions.ts` の Quality Check System が 4 check メソッドすべて "Implement ... validation" stub で**定数 fixture**（`accuracy: 0.9, confidence: 0.85, duration: 2.5` ほか）を返し、verdict（`passed = overallScore >= 0.8` ≈ 1.0037 で恒久 true）・commit trigger・issues の全段が run 非依存だったことを発見（steering が「品質評価コードに実在した捏造スコアリング」と評した class の最大残存 cluster）。秒値 `duration: 2.5` が 0-1 module 平均に混入し overallScore が 1.0 を恒久超過する unit 混入、測定 source のない 7 field、定数空配列 issues も同根。
+
+- [x] [TASK-0272: RecursiveCustomInstructionsFramework Quality Check System の定数 fixture 撲滅 — measured derive 化（REQ-390・TC-374-01〜04・MW-054）](TASK-0272.md) - 2h (TDD) 🔵 ✅2026-08-22（fix 前 RED 6 で定数 verdict 実値 `1.0036666666666667` を直接観測後に 4 check を `currentState.metrics` derive 化・測定 source なし 7 field は削除・issues は threshold 違反 derive・fresh cycle は aggregate 0.45 fail-closed で 41/41 GREEN・tsc 両 config 0・MW-054 3 mutation 独立 RED 実測（transcription 定数 4 failed・analysis 定数 4 failed・budget 比較除去 1 failed）+ 監査 pin ≥53→≥54・source guard `tests/guards/framework-quality-checks-measured-source.test.ts` 新設。**設計決定**: integration 0-1 score は `timeBudget` / `memoryBudget` と命名し `QualityMetrics.memoryUsage`（bytes）との same-name-different-unit trap を回避・未測定の per-field null contract は `FrameworkQualityMetrics` 全域波及のため導入せず residual は exact pin で可視化）
+
+### 信頼性レベルサマリー（Phase 188 追加分量）
+
+- 全 1 タスク 🔵（verdict 経路全体が定数という実装と pin の乖離を fix 前 RED 6 で直接観測・MW-054 3 mutation 独立 RED 実測・round-20 oracle との契約維持を明示検証）
+
+### 次フェーズ開始番号
+
+**次回開始番号**: TASK-0273
+
 
 ## Spine: external references
 
