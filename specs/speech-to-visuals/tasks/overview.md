@@ -2917,6 +2917,23 @@ bonus/violation の witness fixture は DEFECT-9 cap（measured quality なし �
 **次回開始番号**: TASK-0270
 
 
+## Phase 186: spine anchor role 一括正規化 pass — role 行なし 93 + anchor 欠落 62 の一括解消 + census guard（REQ-388・TC-372-01〜04・MW-052）
+
+**ステータス**: ✅完了（2026-08-22・TASK-0270 完了・正規化 155 file + guard/generator を単一 commit に同梱）
+
+**背景**: make-run steering が直接指摘（「repo内に依然90件超のrole行なしspecが残る(476中380のみ保有)。次回はspineManifestValidatorを緑に保ったまま、SPINE_ANCHOR_ROLESからroleを一括割当する有界な正規化passを1回実行し、2行ずつの滴下を繰り返さないこと」「末端掃込みコミット('chore(make-run): commit 2 remaining change(s)')でanchorスキーマ修正を雑扱いしないこと」）。Phase 186 時点の specs/ は role 行なし anchor block 93 file（TASK-0109〜0222 群）と TASK file なのに anchor block 自体なし 62 file（TASK-0223〜0269 群 + sibling feature 15）を抱え、schema 違反を検出する gate が存在しなかった（滴下の構造的根因）。指摘中の `SPINE_ANCHOR_ROLES` は phantom — 実体は hub 側 `spine.py` の `_classify_filename` / `_role_for_spine_node` 導出規則。
+
+- [x] [TASK-0270: spine anchor role 一括正規化 pass — role 行なし 93 file + anchor 欠落 62 file の一括解消 + census guard（REQ-388・TC-372-01〜04・MW-052）](TASK-0270.md) - 2h (DIRECT) 🔵 ✅2026-08-22（spine.py 導出規則を `tests/guards/spine-anchor-contract.ts` に移植（語彙 6 role・評価順固定・specs-relative 要求 — repo-relative は "spec" substring 全退化の罠）し、実 241 block の既存 role 値と突合して導出誤差 0 を確認後に generator `scripts/sync-spine-anchor-roles.ts` で 155 file を一括正規化（role 行挿入 93 + 正規形 block 挿入 62・冪等・TASK file 以外の specs file には触れない有界性・既存 role 値の不一致は書き換えず fail-loud）。TASK-0270.md 自身の anchor block も generator が挿入（dogfooding）。census guard `tests/guards/spine-anchor-role-census.test.ts` 36 tests（実 tree exact-0 + TASK floor ≥277 + 移植表 + normalize 全分岐 + 合成 fixture 違反検出 5 種）新設で新規 TASK file の anchor/role なし land が即 RED 36/36 GREEN・`specs:anchor:check` GREEN（313 file / 304 block / violations 0）・**`spine:validate` GREEN 維持**（spineManifestValidator + specs mirror contract — steering 条件）・tsc 3 config 0 + MW-052 3 独立 mutation RED 実測（6/1/1 failed）+ 監査 pin ≥51→≥52。**設計決定**: 既存 role 値の機械的書き換えはしない（不一致 0 なので対象外・今後不一致は人手 curation）・role 語彙追加は hub 側 spine.py が先・`_doc_spine.yml` manifest は auto-generated のため対象外）
+
+### 信頼性レベルサマリー（Phase 186 追加分量）
+
+- 全 1 タスク 🔵（steering 直接指摘 gap。導出規則を実データ突合（誤差 0）後に一括適用・MW-052 3 mutation 独立 RED 実測・validator 緑維持を明示検証）
+
+### 次フェーズ開始番号
+
+**次回開始番号**: TASK-0271
+
+
 ## Spine: external references
 
 - [speech-to-visuals API エンドポイント仕様](/home/jinno/speech-to-visuals/specs/speech-to-visuals/api-endpoints.md)
