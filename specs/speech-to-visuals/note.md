@@ -10,7 +10,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-08-21（Phase 176 REQ-378 履行 — count-or-null 契約を health-check-service の fallback に拡張：6 つの gate-fed field（successRate/avgProcessingTime/activeRequests/cacheHitRate/errorRate/recoverySuccessRate）の DEFAULT 0 を明示 null に置換・PerformanceSnapshot 型を `number | null` に widen・`hitRate = ... || 0` silent-PASS を `totalHits+totalMisses === 0 → degraded "no events recorded yet"` へ置換・MW-043 mutation-verified）
+**最終更新**: 2026-08-23（kairo-design session 統合記録 — design-interview.md A126 追加・audit-pass-first pattern をアーキテクチャ不変量に昇格・architecture.md に独立節新設・Acceptance に Phase 189-193 の REQ-391/392/393/394/395 census 5 chain + REQ-396/397 facet 5 計画 spec 受理 + A126 統合記録の 7 行追加）/ 2026-08-21（Phase 176 REQ-378 履行 — count-or-null 契約を health-check-service の fallback に拡張：6 つの gate-fed field（successRate/avgProcessingTime/activeRequests/cacheHitRate/errorRate/recoverySuccessRate）の DEFAULT 0 を明示 null に置換・PerformanceSnapshot 型を `number | null` に widen・`hitRate = ... || 0` silent-PASS を `totalHits+totalMisses === 0 → degraded "no events recorded yet"` へ置換・MW-043 mutation-verified）
 **プロジェクト**: Speech-to-Visuals - 音声→図解動画自動生成システム
 
 ## 技術スタック
@@ -148,6 +148,13 @@ src/
 - [x] 第210回検証: Phase 131+ パターン横展開提案（REQ-298~301・AI Hub steering feedback A〜D・diagram-type-switch-parity 他同値クラス展開 / storageParser validators JSON.parse vs JSON.stringify 非対称監査 / async-setState positive-case fixture / timestamp guard mutation-verified CI ピン留め）
 - [x] 第211回検証: Phase 131+ 提案具体化（REQ-298/299/300 追加・feedback A/B/C 統合・feedback D「timestamp guard」は REQ-301 codec option 占有のため除外し別経路で段階実装・interview-record A129 参照）
 - [x] 第218回検証: Phase 137 stv-core コア分割後の要件同期（REQ-310~312 — @stv/core 単一ソース/重複実装禁止・GitHub タグ pin 固定・tests/guards 境界 structural pin・requirements.md dead citation 17件 + acceptance-criteria.md 10件解消・Phase 111+ サマリー表 stale 合計是正・interview-record A137 参照）
+- [x] 第219回検証: Phase 189 audit-pass-first census 第1facet 確立 — REQ-391 measurement-fixture class repo-wide census guard 新設 + 残存 9 site 一括撲滅（5b598ba4・TASK-0273・MW-055、interview-record A126 参照）
+- [x] 第220回検証: Phase 190 audit-pass-first census 第2facet 契約側 — REQ-392 未populate契約（optional metric producer ゼロ）census guard 新設 + 4 dead leg 一括撲滅（fd6e4674・TASK-0274・MW-056、entityExtractionF1Score/relationAccuracy + measured branch + pipeline cacheHitRate never-wired leg + currentSize alias、REQ-389 設計決定 (2) 撤回を含む）
+- [x] 第221回検証: Phase 191 audit-pass-first census 第3facet — REQ-393 score-ladder（凍結小数 leg）census guard 新設 + 10 site 一括撲滅（3d29c1ae・TASK-0275・MW-057、meanSegmentConfidence canonical 化）
+- [x] 第222回検証: Phase 192 audit-pass-first census 第4facet — REQ-394 文-level 凍結 literal（frozen return・直値 initializer）census guard 新設 + 残件 0 固定 confirmed-zero（58bf86b4・TASK-0276・MW-058、撲滅同梱なし）
+- [x] 第223回検証: Phase 193 audit-pass-first census 第5facet — REQ-395 census-artifact 三方一致 guard（spec 宣言数 ↔ guard roster ↔ LIVE archive 行の未検査辺を結ぶ、phrase は実測から構築）+ 終了済み ratchet 解体手順固定（解体≠削除）（5bd755d7・TASK-0277・MW-059、初回 run で spec↔roster drift 2 件発見訂正: REQ-391 ALLOWED 38→37・REQ-392 ROSTER 32/LIVE 27→34/29・7 file、pin ≥59）
+- [x] 第224回検証: REQ-396/397 audit-pass-first census 第6facet（stale-comment・type-narrow-as-any・any 漏出）計画 spec 新設 — paired 3 guard 新設計画・family 5/6/7 登録・confirmed-zero + audit-driven 撲滅同梱の 2 方針併用を plan text 化（5d098b8b・specs/audit-pass-first-census-facet-5/ 同梱、実装履行は次 TASK 着手予定）
+- [x] 第225回検証: design-interview.md A126 統合記録追加（kairo-design session 2026-08-23・audit-pass-first pattern のアーキテクチャ不変量昇格・T0250 closing receipt 単一 range 化を次 TASK 履行待ちとして記録） + architecture.md に audit-pass-first census パターン節新設 + 6 行 acceptance 反映
 - [ ] **第218回+AI Hub make-run: Phase 175 AI Hub make-run steering feedback 統合要件化（REQ-378〜381 要件化完了・TC-362〜365 追加）** — make-run 出力値判定「前イテレーション VALUABLE」「4 commits of concrete bug fixes」からの継続プロンプト 4 件（count-or-null 契約の一般化方針昇格・suite-count == registry-entry-count parity leg 不変量化・pre-fold registry entry-count audit・4-row mutant ledger template 付録昇格）を次サイクル要件として具象化。要件化は完了（spec prose 反映）、実装履行は次 TASK（例: TASK-0261/0262）着手予定。TC-362〜365 は提案ベース（🟡）+ 1 件不変量 pin（🔵 TC-363）で履行を待つ状態。architecture.md に pre-fold audit 行（round 50、pre-fold count = 47）を追加し、frozen-literal-registry の PINNED ≥42 直前の fold 候補 4 family を文書化。mutation-witness-ledger.md の 更新ルール に 4-row template への正規化 step を追加予定
 
 ## 注意事項

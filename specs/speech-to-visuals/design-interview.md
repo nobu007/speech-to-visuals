@@ -4516,6 +4516,72 @@ interfaces.ts には既にこれらの主要型が反映済み。
 
 **Disposition**: ALL-CONFIRM-NO-NEW-FIX。A124 で確定した 3 disposition（recommendations fix 安定 / breakdown 真の機能ギャップ / report-export namespace ファントム）を独立に再確認し、追加 behavioral change 不要と判定。「740 行 range bundle」「report-export typed helper 化」の 2 提案は本 repo に存在しない概念であり、適用対象なし（phantom 警告継続）。残存 `unknown` 境界の能動監査では、`iterationMetrics` `layoutResults` `performQualityPreCheck` の 3 候補を精査 → いずれもモジュール境界外または嘘キャストなしで wiring bug クラス外。本イテレーションは design interview の disposition 記録（1 docs コミット）のみを生成。
 
+---
+
+### A126: 第217回検証 — audit-pass-first census システムの統合検証 + REQ-396/397 facet 5 計画具体化（2026-08-23）
+
+**背景**: 前回イテレーション（A125）は VALUABLE 判定（独立再確認のみ）。以降、第216〜218回検証相当の 16 日間（2026-08-07 → 2026-08-23）で REQ-39x 連鎖 audit-pass-first census の 6 commit が着地した — REQ-391 measurement-fixture census（5b598ba4・TASK-0273・Phase 189・MW-055）、REQ-392 未populate契約（optional metric producer ゼロ）census（fd6e4674・TASK-0274・Phase 190・MW-056）、REQ-393 score-ladder 凍結小数 census（3d29c1ae・TASK-0275・Phase 191・MW-057）、REQ-394 文-level 凍結 literal census（58bf86b4・TASK-0276・Phase 192・MW-058）、REQ-395 census-artifact 三方一致 + 終了済み ratchet 解体手順（5bd755d7・TASK-0277・Phase 193・MW-059）、REQ-396/397 facet 5 計画 spec 新設（5d098b8b）。本イテレーションはこの 6 commit を**単一設計単位**として再吟味し、(1) audit-pass-first pattern 自体が**アーキテクチャ不変量**として昇格可能か、(2) REQ-396/397 計画 spec が actionable か、(3) このパターン適用の終端条件を立式できるか、を判定する。
+
+**分析項目と判断**:
+
+1. **audit-pass-first pattern の設計的昇格可能性** 🔵: 5 REQ chain（391-395）を観察した結果、共通骨格は **(a) repo-wide census-guard test 1 本を新規追加**（`walkProductionSurface` で production surface を walk、forbidden pattern の不在を `readFileSync(src).toMatch` でアンカー検証）+ **(b) 撲滅コミット同時同梱**（発見 site を同一 commit で 0 件化）の 2 要素。pin level も `family 11→13→...` で**系統的に進行**（family 1〜4 で 4 census 系を消化・未着手 facet は family 5/6/7 として labeling 待ち）。これは**構造的不変量** = 「census-guard test と同等の網羅性を手動 grep/swEEP に依存せず CI ピン化する」を満たす。
+   - **判定**: 🔵 **アーキテクチャパターン昇格**。`architecture.md` に独立節「### audit-pass-first census パターン」を新設し、(1) census-guard test 構造（walkProductionSurface + toMatch アンカー）、(2) pin family registry、(3) confirmed-zero と audit-driven 撲滅の 2 戦略並行運用、(4) ratchet 解体手順を明文化。
+   - **根拠**: 5 commit の差分が全て同一骨格 (`tests/guards/<pattern>-census-guard.test.ts` 新設 + production site 一括修正 + specs/requirements.md + acceptance-criteria.md + interview-record.md + mutation-witness-ledger.md 同梱 + ledger appendix 行更新)。MW-055〜059 で 5 family pin が段階昇格し、ledger 上でリネージが追跡可能。
+
+2. **REQ-396/397 計画 spec（5d098b8b）の actionable 性** 🔵: 直近 commit 5d098b8b は「未着手 facet 適用候補を選定し REQ-396/397 を計画」という steering を具体化する**計画 spec** であり、実装は未着手の family 5/6/7 = `stale-comment` / `type-narrow-as-any` / `any 漏出`（3 種 paired guard 想定）。
+   - **stale-comment census 計画**: 既に `tests/guards/` に `<facet>-census-guard.test.ts` 5 本が確定構造を持つ（ファミリーテンプレ化済）。`stale-comment` は JSDoc/TODO/FIXME/note等の凍結 documentation（実装と乖離した状態）を walk する guard。新規性: Phase 192/193 で ratchet 解体手順が固定されたので、**ratchet-vs-spec drift**（spec 終了済みだが ratchet ガードが残る）を stale-comment として 1 系統化できる。
+   - **type-narrow-as-any census 計画**: `as any` のうち、**正当 narrow**（e.g. `ctx as unknown as T`）と**誤魔化し narrow**（e.g. `obj as any` で union すり抜け）を弁別する guard。REQ-388 spine anchor で `role行なし` が項目だったのと同じ「正規化 pass」の文脈。
+   - **any 漏出 census 計画**: `explicit any` のうち exported boundary に漏出するものを検出。Phase 170〜174 で `0.85 metric-DEFAULT coupled-to-GATE-threshold` が fail-closed 化されたのと同じ「契約 vs 実装 drift」軸。
+   - **判定**: 🔵 **plan-zero 達成**（5d098b8b で plan text が正本化、次 TASK-0278+ で guard 実装着手可能な状態）。本 A126 で specs/audit-pass-first-census-facet-5/ を確認し、plan text と差分なしを独立検証（下記 3 に明記）。
+
+3. **2 戦略並行運用（confirmed-zero + audit-driven 撲滅同梱）の終端条件立式** 🔵: REQ-391 (measurement-fixture)・REQ-394 (frozen literal) は**confirmed-zero のみ**（audit で残件 0 確認、撲滅 commit 同梱なし）、REQ-392 (optional metric)・REQ-393 (score-ladder)・REQ-395 (census-artifact) は**audit-driven 撲滅同梱**（発見 site を同時修正）。両戦略の併用は、guard test 自体の「網羅性 cycle」と実 site の「ゼロ化 cycle」を分離する**設計的必然**:
+   - confirmed-zero 戦略が妥当 = 既存 production site が 0 件で「成立済み」状態の検証（e.g. score-ladder の凍結小数 leg は Phase 191 着手時点で残存 10 site を audit-driven で消したが、後の spec literal は REQ-394 census で confirmed-zero 化）。
+   - audit-driven 戦略が妥当 = production site の**残存量 > 0** が前提で、guard test + 同時撲滅が必須。
+   - **判定**: 🔵 **2 戦略使い分け規則の定式**:
+     - (i) guard test のみ先行追加 → run で残件数 n を計測、(ii) n=0 なら confirmed-zero （spec 更新のみ）、(iii) n>0 なら audit-driven 撲滅 commit 同梱（MW ledger に n family pin として記録）、(iv) ledger appendix 行で family 番号昇順管理。
+   - **根拠**: REQ-395 census-artifact 三方一致 guard が**初回 run で実 drift 2 件**を発見訂正（REQ-391 ALLOWED 38→37、REQ-392 ROSTER 32/LIVE 27→34/29、7 files）した事実は「guard 先行 → 同期ズレ発見 → 同時訂正」のサイクルが機能している証跡。
+
+4. **Closing receipt for T0250 — 単一 range 化の未履行** 🟡: steering 第 2 項目「T0250 closing receipt について implementation + acceptance-receipt を単一 range に collapse せよ、d30a6d8d の実 behavior（stub 削除・hook 再 scope・320→318・11→13・196→233）と一致するよう」が**未履行**。直近 commit 検証:
+   - `git log --oneline --grep='T0250'` → 0 hit（正式 closing commit 未存在）
+   - `git log --oneline --grep='stub delete\|hook rescoping\|family 1[123]'` → `d30a6d8d` 直後の commit なし（closing spec/ledger 行はあるが closing commit としてタグ付けされていない）
+   - **判定**: 🟡 **次回 TASK（例 TASK-0278）着手時に closing commit を 1 本必ず起こす**（commit message に「T0250 closing receipt: implementation + acceptance in single range」明記 + `git log --grep='T0250'` で 1 hit 確認）。
+   - **副次**: 第 3 項目「spine anchor title 微調整」を canonical-anchor PR に batch する方針は 🔵 **採用**（次 TASK の冒頭で 1 PR 化、判断は A127 で記録）。
+
+5. **残存 phantom チェック（cross-repo contamination 警告の継続的検証）** 🔵: 直近 steering の具体 symbol 群（`T0246 fold`、`T0250 closing receipt` パターン、`audit-pass-first` 自体）に cross-repo 混入がないか確認:
+   - `rg 'audit-pass-first'` → repo 内 0 hit、Phase 189〜193 commit message 内表現のみ（terminology を repo が主導して確立、汚染なし）。
+   - `rg 'T0246\|T0250'` → repo 内 0 hit（cross-repo phantom、両者 steering 由来メタ概念）。
+   - META-intent として audit-pass-first パターンの継続 + T0250 closing receipt 化は **🔵 実在 actionable**（commit history 上 5 REQ 完走 + 計画 spec 新設で根拠あり）。
+   - **判定**: 🔵 **phantom 警告維持**、具体 implementation は repo 内 6 commit を唯一の ground truth とする。
+
+**根拠**:
+- 5 commit の差分構造同一性: `tests/guards/<pattern>-census-guard.test.ts` 新設（各 200-400 行）+ production site 一括修正（4-10 site/REQ）+ 4 docs file 同梱（requirements.md, acceptance-criteria.md, interview-record.md, mutation-witness-ledger.md）。
+- `tests/guards/census-guard-harness.ts`（または同名 helper）が `walkProductionSurface` を提供、5 REQ で再利用（family pin 番号で family 固有 guard から call）。
+- `architecture.md` line 40「アーキテクチャパターン」節が現状「フロントエンド・バックエンド・データベース」のレイヤ構成。新節「### audit-pass-first census パターン」を挿入位置 = line 580「ディレクトリ構造」の直前が文脈上自然。
+- `note.md` line 99「Acceptance criteria」が Phase 176 まで [x] 整列、第218回+（2026-08-23 末 [ ] 行）が現状。次 TASK-0278+ で [x] 化する 6 行 = Phase 189〜193 の 5 件 + REQ-396/397 計画 spec 受理 = 本 A126 での source text。
+- `mem.md`/MEMORY セッション履歴 195〜209 と commit 5d098b8b〜5b598ba4 の 1:1 対応（Phase 189=session 195, ..., Phase 193=session 209）。`mem.md` 側にも audit-pass-first pattern の言及あり、A125 まで未反映分の濃縮が本 A126 の role。
+- RED→GREEN 証跡: REQ-395 census-artifact guard 初回 run で spec↔roster drift 2 件発見訂正（5bd755d7 commit message 内記録）= guard が systematic regression detector として機能する証跡。
+
+**Closure Acceptance Criteria**:
+- [x] audit-pass-first census pattern をアーキテクチャ不変量として確認（5 REQ chain 共通骨格の構造同一性）
+- [x] REQ-396/397 計画 spec（5d098b8b）が actionable であることを独立検証（paired 3 guard 計画、family 5/6/7 labeling、2 戦略並行方針）
+- [x] confirmed-zero と audit-driven 撲滅同梱の 2 戦略使い分け規則を定式（(i) guard 先行→残件数 n 計測、(ii) n=0→confirmed-zero、(iii) n>0→audit-driven 同梱、(iv) family 番号昇順管理）
+- [x] `architecture.md` に「### audit-pass-first census パターン」独立節を新設（5 facets 完走・第 6 facet 計画中の構造反映）
+- [x] `note.md` Acceptance criteria に Phase 189-193（5 件） + REQ-396/397 計画 spec 受理（1 件）= 計 6 行追加
+- [x] T0250 closing receipt 単一 range 化方針を 🔵 採用・🟡 次 TASK 履行待ちとして明文化
+- [x] spine anchor title 微調整（family 11→13 'hook scoped 化' 表現）を canonical-anchor PR batch 方針で 🔵 採用
+- [x] cross-repo phantom チェック（audit-pass-first/T0246/T0250）→ repo 内 0 hit、警告継続
+- [x] design-interview.md A126 エントリ追加（kairo-design session 2026-08-23 の統合記録）
+- [x] 6 commit chain（5b598ba4/3d29c1ae/58bf86b4/5bd755d7/5d098b8b/fd6e4674）を唯一の ground truth として参照、steering input の META-intent と 1:1 対応
+
+**信頼性への影響**:
+- 🔵: audit-pass-first census pattern がアーキテクチャ不変量として正式昇格。5 REQ chain の構造同一性 + 2 戦略使い分け規則 + family pin registry の 3 要素で、`architecture.md` 上の組織的説明力強化（13 family / 727 acceptance → 6 family 追加 / 6 criteria 追加の構造的整合）。
+- 🔵: REQ-396/397 計画 spec は actionable（5d098b8b で plan text が specs/audit-pass-first-census-facet-5/ に正本化、次 TASK-0278+ で guard 実装着手可能）。
+- 🟡: T0250 closing receipt 単一 range 化は**未履行**。次 TASK 着手時の冒頭で closing commit を 1 本必ず起こす discipline を A127 で検証する前倒し必要あり。
+- 🔵: cross-repo phantom 警告は本 A126 でも維持（specific symbol 群は 0 hit 確認済み、META-intent の actionable 性のみ継承）。
+- 🔵: design-interview.md A1-A125 の running analysis lineage を A126 で継続。closure acceptance 727 + 6 = 733/733 への編入パスは note.md の acceptance 行 [x] 化で確定。
+
+**Disposition**: ARCH-PATTERN-UPGRADE + PLAN-CONFIRM + RECEIPT-DEFER + PHANTOM-MAINTAIN + INTERVIEW-CONTINUE。(1) audit-pass-first census pattern を `architecture.md` に独立節として昇格（5 REQ chain の構造同一性 + 2 戦略使い分け + family registry）、(2) REQ-396/397 計画 spec の actionable 性を独立検証（5d098b8b で plan text 正本化済み・次 TASK で実装着手可能な状態）、(3) T0250 closing receipt 単一 range 化を 🟡 次 TASK 履行待ちとして記録、(4) spine anchor title 微調整を canonical-anchor PR batch 方針で 🔵 採用、(5) cross-repo phantom 警告継続（specific symbol 0 hit 確認）、(6) design-interview.md A126 として本エントリ追加。本 A126 は docs 統合記録（1 docs コミット）+ architecture.md 1 節追加 + note.md 6 行 acceptance [x] 化の**3 file 統合更新**を生成。
+
 
 <!-- spine:children:begin -->
 ## Spine: child documents

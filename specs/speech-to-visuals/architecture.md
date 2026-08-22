@@ -530,6 +530,46 @@ graph TB
 
 **信頼性**: 🔵 *SYSTEM_CORE.md §3・PIPELINE_FLOW.md・既存実装より*
 
+## audit-pass-first census パターン 🔵
+
+**信頼性**: 🔵 *Phase 189〜193 の 5 REQ chain 構造同一性・REQ-396/397 計画 spec・design-interview.md A126 より*
+
+REPO-391（measurement-fixture / 5b598ba4・MW-055）、REQ-392（optional metric producer / fd6e4674・MW-056）、REQ-393（score-ladder 凍結小数 / 3d29c1ae・MW-057）、REQ-394（文-level 凍結 literal / 58bf86b4・MW-058）、REQ-395（census-artifact 三方一致 / 5bd755d7・MW-059）の 5 REQ chain を経て確立された**品質ガード アーキテクチャパターン**。`specs/audit-pass-first-census-facet-5/`（5d098b8b）で第 6 facet（stale-comment・type-narrow-as-any・any 漏出 = family 5/6/7）が計画中。
+
+### パターンの 3 要素
+
+1. **repo-wide census-guard test** (1 commit 1 test)：
+   - `tests/guards/<pattern>-census-guard.test.ts` を新規追加。
+   - 共通ヘルパー `walkProductionSurface` で `src/` production surface を walk し、`readFileSync(src).toMatch(forbiddenPattern)` でアンカー検証。
+   - 既存 / 計画済の family: 1) measurement-fixture、2) optional metric producer、3) score-ladder、4) 文-level 凍結 literal、5) census-artifact 三方一致、6) stale-comment（計画）、7) type-narrow-as-any（計画）、8) any 漏出（計画）。
+2. **pin family registry**:
+   - 各 family の pin レベル（MW-001 からの連番）を `tests/guards/_registry.ts`（または同等の registry）で昇順管理。
+   - 5 chain で family 11 → 13 へ段階昇格、family 5/6/7 を labeling 待ち状態に。
+   - `design-interview.md` A126 §3 で `mutation-witness-ledger.md` appendix 4-row template と pin family の対応が追跡可能。
+3. **2 戦略並行運用（confirmed-zero + audit-driven 撲滅同梱）**:
+   - **confirmed-zero**: guard test 先行追加 → run で残件数 n を計測 → n=0 なら撲滅 commit 同梱なしで spec 更新のみ。
+   - **audit-driven 撲滅同梱**: 同 run で n>0 → 発見 site を同一 commit で 0 件化。MW ledger に n family pin として記録。
+   - 5 REQ で両戦略併用実績（REQ-391/394 = confirmed-zero、REQ-392/393/395 = audit-driven）。**REQ-395 census-artifact guard 初回 run で spec ↔ roster drift 2 件発見訂正**（REQ-391 ALLOWED 38→37、REQ-392 ROSTER 32/LIVE 27→34/29、7 files）が戦略併用機能の証跡。
+
+### 適用範囲と終端条件
+
+- **適用済 facets**: measurement-fixture（9 site 撲滅・Phase 189）、optional metric producer（4 dead leg・Phase 190）、score-ladder 凍結小数（10 site・Phase 191）、文-level 凍結 literal（残件 0・Phase 192）、census-artifact 三方一致（+ ratchet 解体手順・Phase 193）。
+- **計画中 facets**: stale-comment / type-narrow-as-any / any 漏出（paired 3 guard 想定・family 5/6/7）。
+- **終端条件**（A126 で立式）:
+  1. guard test のみ先行追加 → run で残件数 n を計測
+  2. n=0 → confirmed-zero（spec 更新のみ）
+  3. n>0 → audit-driven 撲滅 commit 同梱
+  4. ledger appendix 行で family 番号昇順管理
+- **ratchet 解体手順**（REQ-395 で固定）: 解体 ≠ 削除。spec の「終了条件」が満たされた ratchet は、対応する pin を ledger に記録の上で guard test を無効化（spec 自体には残す）→ 別 family として再利用しない。
+
+### 関連文書
+
+- **統合検証記録**: [design-interview.md A126](./design-interview.md#a126-第217回検証--audit-pass-first-census-システムの統合検証--req-396397-facet-5-計画具体化2026-08-23)
+- **第 6 facet 計画 spec**: [audit-pass-first-census-facet-5/requirements.md](../audit-pass-first-census-facet-5/requirements.md)（5d098b8b で新設）
+- **MW ledger**: [mutation-witness-ledger.md](./mutation-witness-ledger.md)（MW-055〜059・family 11-13 pin 昇格記録）
+
+**信頼性**: 🔵 *5 commit chain の構造同一性（commit message・差分構造の 1:1 対応）*
+
 ## ディレクトリ構造 🔵
 
 **信頼性**: 🔵 *note.md・既存プロジェクト構造より*
