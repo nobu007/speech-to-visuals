@@ -395,7 +395,7 @@ class HealthCheckService {
     // `successRate` / `avgProcessingTime` (browser-shape fields can be
     // undefined) or return non-finite values when the pipeline backend's
     // internal state trips. Without this guard, undefined fed into
-    // `successRate > 0.95` is `false` AND `NaN < 60000` is `false`, routing
+    // `successRate >= 0.95` is `false` AND `NaN < 60000` is `false`, routing
     // every missing-field case to the `else` branch and the fabricated
     // "Pipeline is experiencing issues (NaN% success rate)" verdict that
     // `generateRecommendations` escalates to a CRITICAL recommendation for an
@@ -431,10 +431,17 @@ class HealthCheckService {
     let status: 'healthy' | 'degraded' | 'unhealthy';
     let message: string;
 
-    if (successRate > 0.95 && avgProcessingTime < 60000) {
+    // REQ-403 (Phase 203): both success gates are boundary-INCLUSIVE.
+    // The /health route (api/routes/monitoring.ts) already gated
+    // `>= 0.95` healthy and iteration-manager gates `>= 0.8`; with the
+    // strict spelling here, an exactly-at-threshold ratio (19/20 = 0.95,
+    // 4/5 = 0.8 — a single correctly-rounded division EQUALS the
+    // decimal literal) reported healthy on one endpoint and degraded on
+    // the other. Same convention as GOOD_DETECTION_CONFIDENCE_THRESHOLD.
+    if (successRate >= 0.95 && avgProcessingTime < 60000) {
       status = 'healthy';
       message = `Pipeline is operating normally (${(successRate * 100).toFixed(1)}% success rate)`;
-    } else if (successRate > 0.80 && avgProcessingTime < 120000) {
+    } else if (successRate >= 0.80 && avgProcessingTime < 120000) {
       status = 'degraded';
       message = `Pipeline performance is degraded (${(successRate * 100).toFixed(1)}% success rate)`;
     } else {

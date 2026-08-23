@@ -1034,7 +1034,10 @@ export class DiagramDetector {
 
     const successCriteria = {
       hasStructure: metrics.hasValidStructure,
-      goodConfidence: metrics.confidence > 0.5,
+      // REQ-403 (Phase 203): boundary-inclusive, matching the
+      // high-confidence-types filter below (allScores `>= 0.5`) and the
+      // detector test suite's toBeGreaterThanOrEqual pins.
+      goodConfidence: metrics.confidence >= 0.5,
       hasContent: metrics.nodeCount > 0
     };
 

@@ -129,6 +129,15 @@ const THREE_WAY: ThreeWayRow[] = [
       { block: 'ERADICATED', build: (n) => `ERADICATED ${n} key` },
     ],
   },
+  {
+    req: 'REQ-403',
+    guard: 'tests/guards/boundary-operator-census.test.ts',
+    requirementsPath: 'specs/boundary-operator-census/requirements.md',
+    phrases: [
+      { block: 'ALLOWED', build: (n) => `ALLOWED ${n} key` },
+      { block: 'ERADICATED', build: (n) => `ERADICATED ${n} key` },
+    ],
+  },
 ];
 
 /**
@@ -180,7 +189,7 @@ describe('census-artifact three-way match (REQ-395)', () => {
   };
 
   it('has authority: the table covers the census-guard family', () => {
-    expect(THREE_WAY.length).toBeGreaterThanOrEqual(7);
+    expect(THREE_WAY.length).toBeGreaterThanOrEqual(8);
     expect(THREE_WAY.map((r) => r.req)).toEqual([
       'REQ-391',
       'REQ-392',
@@ -189,6 +198,7 @@ describe('census-artifact three-way match (REQ-395)', () => {
       'REQ-396',
       'REQ-397 (type-narrow-as-any)',
       'REQ-397 (any-annotate)',
+      'REQ-403',
     ]);
   });
 

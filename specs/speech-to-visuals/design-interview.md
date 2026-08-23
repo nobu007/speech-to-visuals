@@ -4594,5 +4594,6 @@ interfaces.ts には既にこれらの主要型が反映済み。
 - [table-driven ガードハーネス抽出と fold 収束 census 自動分析記録](../guard-harness-fold-census/interview-record.md)
 - [audit-pass-first census 第5 facet — 自動分析記録](../audit-pass-first-census-facet-5/interview-record.md)
 - [spine edge 双方向 census — 自動分析記録](../spine-edge-bidirectional-census/interview-record.md)
+- [boundary strictness census — 自動分析記録](../boundary-operator-census/interview-record.md)
 
 <!-- spine:children:end -->

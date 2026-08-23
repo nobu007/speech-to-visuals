@@ -390,7 +390,7 @@ describe('HealthCheckService (REQ-122)', () => {
   // =========================================================================
 
   describe('pipeline health check', () => {
-    test('should report healthy when successRate > 0.95 and processing time < 60s', async () => {
+    test('should report healthy when successRate >= 0.95 (REQ-403 boundary-inclusive) and processing time < 60s', async () => {
       const result = await healthCheckService.performHealthCheck();
 
       expect(result.checks.pipeline.status).toBe('healthy');
@@ -989,7 +989,7 @@ describe('HealthCheckService (REQ-122)', () => {
 
       // The 6 gate-fed fields must be EXPLICIT null in the fallback shape.
       // A fabricated 0 here would silently route the
-      //   successRate > 0.95 / avgProcessingTime < 60000 / cacheHitRate > 0.4
+      //   successRate >= 0.95 (REQ-403) / avgProcessingTime < 60000 / cacheHitRate > 0.4
       //   activeRequests > 10 / errorRate < WARNING / recoveryRate > 0.80
       // gates to fabricated verdicts for an UNKNOWN observation window.
       expect(result.metrics.pipeline.successRate).toBeNull();
