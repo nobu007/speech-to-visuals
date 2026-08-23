@@ -180,5 +180,6 @@ src/
 - [audit-pass-first census 第5 facet — Context Note](../audit-pass-first-census-facet-5/note.md)
 - [spine edge 双方向 census — Context Note](../spine-edge-bidirectional-census/note.md)
 - [boundary strictness census — Context Note](../boundary-operator-census/note.md)
+- [rounding-mode census — Context Note](../rounding-mode-census/note.md)
 
 <!-- spine:references:end -->

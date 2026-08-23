@@ -960,6 +960,8 @@ make-run steering feedback「371 → next-target delta is auditable without re-r
 - [spine-edge-bidirectional-census タスク概要](../spine-edge-bidirectional-census/tasks/overview.md)
 - [boundary strictness（混在演算子）census 要件定義書（軽量版）](../boundary-operator-census/requirements.md)
 - [boundary-operator-census タスク概要](../boundary-operator-census/tasks/overview.md)
+- [rounding-mode（混在丸め）census 要件定義書（軽量版）](../rounding-mode-census/requirements.md)
+- [rounding-mode-census タスク概要](../rounding-mode-census/tasks/overview.md)
 
 <!-- spine:children:end -->
 

@@ -138,6 +138,15 @@ const THREE_WAY: ThreeWayRow[] = [
       { block: 'ERADICATED', build: (n) => `ERADICATED ${n} key` },
     ],
   },
+  {
+    req: 'REQ-404',
+    guard: 'tests/guards/rounding-mode-census.test.ts',
+    requirementsPath: 'specs/rounding-mode-census/requirements.md',
+    phrases: [
+      { block: 'ALLOWED', build: (n) => `ALLOWED ${n} key` },
+      { block: 'ERADICATED', build: (n) => `ERADICATED ${n} key` },
+    ],
+  },
 ];
 
 /**
@@ -199,6 +208,7 @@ describe('census-artifact three-way match (REQ-395)', () => {
       'REQ-397 (type-narrow-as-any)',
       'REQ-397 (any-annotate)',
       'REQ-403',
+      'REQ-404',
     ]);
   });
 
