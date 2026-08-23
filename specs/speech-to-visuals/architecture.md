@@ -954,6 +954,8 @@ make-run steering feedback「371 → next-target delta is auditable without re-r
 - [table-driven ガードハーネス抽出と fold 収束 census データフロー設計](../guard-harness-fold-census/dataflow.md)
 - [table-driven ガードハーネス抽出と fold 収束 census 要件定義書](../guard-harness-fold-census/requirements.md)
 - [guard-harness-fold-census タスク概要](../guard-harness-fold-census/tasks/overview.md)
+- [audit-pass-first census 第5 facet（stale-comment・type-narrow-as-any・any 漏出）要件定義書（軽量版）](../audit-pass-first-census-facet-5/requirements.md)
+- [audit-pass-first-census-facet-5 タスク概要](../audit-pass-first-census-facet-5/tasks/overview.md)
 
 <!-- spine:children:end -->
 

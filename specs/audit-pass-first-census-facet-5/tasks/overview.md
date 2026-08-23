@@ -1,9 +1,9 @@
 # audit-pass-first-census-facet-5 タスク概要
 
 <!-- spine:anchor:begin -->
-> **Spine anchor**: [audit-pass-first-census-facet-5 要件定義](requirements.md)
+> **Spine anchor**: [speech-to-visuals アーキテクチャ設計](../../speech-to-visuals/architecture.md)
 >
-> - parent: `audit-pass-first-census-facet-5/requirements.md` (REQ-396/397 census family)
+> - parent: `speech-to-visuals/architecture.md`
 > - role: `detailed`
 > - status: `canonical_child`
 <!-- spine:anchor:end -->

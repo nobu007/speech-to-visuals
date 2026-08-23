@@ -1,9 +1,9 @@
 # audit-pass-first census 第5 facet（stale-comment・type-narrow-as-any・any 漏出）要件定義書（軽量版）
 
 <!-- spine:anchor:begin -->
-> **Spine anchor**: [speech-to-visuals メイン要件定義書](../speech-to-visuals/requirements.md) REQ-391〜395 audit-pass-first census series
+> **Spine anchor**: [speech-to-visuals アーキテクチャ設計](../speech-to-visuals/architecture.md)
 >
-> - parent: `speech-to-visuals/requirements.md` (REQ-391〜395 census family)
+> - parent: `speech-to-visuals/architecture.md`
 > - role: `detailed`
 > - status: `canonical_child`
 <!-- spine:anchor:end -->

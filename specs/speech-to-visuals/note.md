@@ -172,3 +172,11 @@ src/
 - 手動編集機能・ユーザー管理・SNS連携等は禁止
 - 総ファイル数25以下（憲法制定時、現在は拡張済み）
 - 1ファイル150行以下（憲法制定時、現在は拡張済み）
+
+
+<!-- spine:references:begin -->
+## Spine: external references
+
+- [audit-pass-first census 第5 facet — Context Note](../audit-pass-first-census-facet-5/note.md)
+
+<!-- spine:references:end -->
