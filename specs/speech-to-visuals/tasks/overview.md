@@ -3034,9 +3034,10 @@ bonus/violation の witness fixture は DEFECT-9 cap（measured quality なし �
 - 全 1 タスク 🔵（steering 2 bullet の直接実装・guard 初回 run が実 drift 2 件を発見したことで昇格の必要性自体を実証・解体手順は requirements の要件文として固定）
 
 
+<!-- spine:references:begin -->
 ## Spine: external references
 
-- [speech-to-visuals API エンドポイント仕様](/home/jinno/speech-to-visuals/specs/speech-to-visuals/api-endpoints.md)
+- [speech-to-visuals API エンドポイント仕様](../api-endpoints.md)
 - [TASK-0119: ESLint回帰修正: Workerテストのno-explicit-any解消](TASK-0119.md)
 - [TASK-0122: コード規模90K制限への適合と不要コード除去](TASK-0122.md)
 - [TASK-0123: SYSTEM_CONSTITUTION.md・overview.md メトリクス更新・第116回検証](TASK-0123.md)

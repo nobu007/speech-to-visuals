@@ -956,6 +956,8 @@ make-run steering feedback「371 → next-target delta is auditable without re-r
 - [guard-harness-fold-census タスク概要](../guard-harness-fold-census/tasks/overview.md)
 - [audit-pass-first census 第5 facet（stale-comment・type-narrow-as-any・any 漏出）要件定義書（軽量版）](../audit-pass-first-census-facet-5/requirements.md)
 - [audit-pass-first-census-facet-5 タスク概要](../audit-pass-first-census-facet-5/tasks/overview.md)
+- [spine edge 双方向 census（SPEC_LANDING_ATOMICITY 構造化）要件定義書（軽量版）](../spine-edge-bidirectional-census/requirements.md)
+- [spine-edge-bidirectional-census タスク概要](../spine-edge-bidirectional-census/tasks/overview.md)
 
 <!-- spine:children:end -->
 

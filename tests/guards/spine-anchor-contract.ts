@@ -321,7 +321,11 @@ export function relativeLink(fromFile: string, toFile: string): string {
   return ups === 0 ? downs : `${'../'.repeat(ups)}${downs}`;
 }
 
-function isTaskFile(specsRel: string): boolean {
+/**
+ * `specs/<feature>/tasks/TASK-\d+.md` shape 判定（単一実装 — spine-edge-contract
+ * の TASK exempt 判定もここに委譲。REQ-402）。
+ */
+export function isTaskFile(specsRel: string): boolean {
   const parts = specsRel.split('/');
   return parts.length === 3 && parts[1] === 'tasks' && /^TASK-\d+\.md$/.test(parts[2]);
 }
