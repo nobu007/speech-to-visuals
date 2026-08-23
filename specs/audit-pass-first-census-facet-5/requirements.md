@@ -252,11 +252,11 @@ src/ + `@stv-core/core-four` の surface を列挙済み
 - 4-space 継続行・comment 行の counter liveness は REQ-394 規約に準拠
 
 **テストケース**:
-- [ ] 正常系: 4 軸 regex がそれぞれ最低 1 site を hit する 🔵
-- [ ] 正常系: 検出 site が `walkProductionSurface` 列挙 surface の
+- [x] 正常系: 4 軸 regex がそれぞれ最低 1 site を hit する 🔵 *合成 fixture liveness + 実 surface 23 key が 4 軸とも分類済み*
+- [x] 正常系: 検出 site が `walkProductionSurface` 列挙 surface の
   範囲内に限定される（test 除外規約）🔵
-- [ ] 異常系: `/** */` doc-comment は検出されない 🔵
-- [ ] 異常系: 複数軸同時 hit する site は 1 度のみ計上される 🔵
+- [x] 異常系: `/** */` doc-comment は検出されない 🔵 *synthetic JSDoc 行 null pin*
+- [x] 異常系: 複数軸同時 hit する site は 1 度のみ計上される 🔵 *firstAxis first-win*
 
 ### REQ-397-001: type-narrow-as-any census 検出ロジック 🔵
 
@@ -271,9 +271,9 @@ src/ + `@stv-core/core-four` の surface を列挙済み
 - ERADICATED 各 row は negative anchor regex で backup される
 
 **テストケース**:
-- [ ] 正常系: 47 site のうち ALLOWED 比率が事前 audit と一致 🔵
-- [ ] 異常系: ESM test mock の `as any` は test 除外で hit しない 🔵
-- [ ] 境界値: multiline cast（`as\n  any`）は discovery 上限で
+- [x] 正常系: 47 site のうち ALLOWED 比率が事前 audit と一致 🔵 *計画時「47 site」は src/ + test 合算の事前推定 — 実装の walkProductionSurface（test 除外）では production hit 0 件の confirmed-zero で確定し ALLOWED 0 key が実測と一致*
+- [x] 異常系: ESM test mock の `as any` は test 除外で hit しない 🔵
+- [x] 境界値: multiline cast（`as\n  any`）は discovery 上限で
   検出されない旨を header に明記 🔵
 
 ### REQ-397-003: any-annotate census 検出ロジック 🔵
@@ -287,9 +287,9 @@ src/ + `@stv-core/core-four` の surface を列挙済み
 - `unknown` 移行可能な ERADICATED 候補は個別 row で site 引用必須
 
 **テストケース**:
-- [ ] 正常系: 32 site のうち boundary 分類が事前 audit と一致 🔵
-- [ ] 異常系: `unknown` 注釈は any-annotate に hit しない 🔵
-- [ ] 境界値: `Record<string, any>` は `<any>` 軸で 1 度のみ計上 🔵
+- [x] 正常系: 32 site のうち boundary 分類が事前 audit と一致 🔵 *計画時「32 site」は src/ + test 合算の事前推定 — 実装では boundary（third-party-sdk）1 key・他 0 件で確定*
+- [x] 異常系: `unknown` 注釈は any-annotate に hit しない 🔵 *synthetic `: unknown` 行 null pin*
+- [x] 境界値: `Record<string, any>` は `<any>` 軸で 1 度のみ計上 🔵 *synthetic `Map<string, any>` lt-any-gt pin*
 
 ### REQ-205: REQ-395 three-way guard family registration 🔵
 
@@ -305,18 +305,25 @@ src/ + `@stv-core/core-four` の surface を列挙済み
   が各 guard の header に付与される
 
 **テストケース**:
-- [ ] 正常系: family 5/6/7 行が THREE_WAY table に存在 🔵
-- [ ] 異常系: roster を 1 件変更して spec 編集なし → RED 🔵
-- [ ] 異常系: spec 数値のみ更新して roster 未変更 → RED 🔵
+- [x] 正常系: family 5/6/7 行が THREE_WAY table に存在 🔵
+- [x] 異常系: roster を 1 件変更して spec 編集なし → RED 🔵 *MW-061(c) 実測（phantom row → `must declare "ALLOWED 2 key"`）+ MW-060(c)（stale-row 双方向）*
+- [x] 異常系: spec 数値のみ更新して roster 未変更 → RED 🔵 *MW-059(a) が同 mechanism で実測（REQ-391 38 再注入）*
 
 ### Initial roster counts (REQ-404/405 verbatim phrase declarations)
 
 stale-comment-census (REQ-396 family 5) は初回手動 audit 完了状態
 を confirmed-zero pin する。本 iteration で ship される ALLOWED
-台帳は手動 audit で拾った backward-compat documentation 26 件
-(descriptive `legacy`/`deprecated` の qualifier 付き言及 +
-dagre 上流 w/h 契約記述 + vendor-API config flag 4 件) で、
-ERADICATED は 0 件。type-narrow-as-any-census (REQ-397 family 6)
+台帳は backward-compat documentation + historical-fix narration の
+ALLOWED 23 key（descriptive `legacy`/`deprecated` qualifier 付き
+言及 17〔dagre 上流 w/h 契約記述 2 を含む〕+ section-header marker 3 +
+REQ-391 履歴 narration 3）で、ERADICATED は 0 件。**〔Phase 196
+訂正〕当初本節は「backward-compat documentation 26 件（… vendor-API
+config flag 4 件を含む）」と宣言して 656a0d58 で ship されたが、実
+roster は 23 key・vendor-API config flag row は存在しない（同一
+commit 内の宣言↔実装 drift — REQ-395 three-way guard が pin する
+のは "ALLOWED 23 key" verbatim phrase のみで prose 側の 26 は検査
+対象外だった。REQ-391 38→37 と同型の drift として実 roster 構成に
+訂正〕**。type-narrow-as-any-census (REQ-397 family 6)
 は production surface に `as any` / `as any as` / `@ts-ignore` の
 hit が 0 件で、ALLOWED 0 key / ERADICATED 0 key の confirmed-zero
 pin。any-annotate-census (REQ-397 family 7) は production surface
@@ -372,3 +379,8 @@ spec に要求する：
 - **コンテキストノート**: [note.md](note.md)
 - **親 census series**: REQ-391〜395 in [speech-to-visuals/requirements.md](../speech-to-visuals/requirements.md)
 - **直近 predecessor**: [TASK-0277](../speech-to-visuals/tasks/TASK-0277.md)（REQ-395 three-way guard + ratchet teardown）
+
+## 実装状況
+
+- **REQ-396/397（3 guard 新設 + family 5/6/7 登録）**: ✅実装済 *Phase 194・656a0d58 — stale-comment-census 7/7・type-narrow-as-any-census 8/8・any-annotate-census 9/9 GREEN・REQ-395 three-way 10/10 GREEN・tsc 両 config 0。いずれも confirmed-zero pin（F5: ALLOWED 23 / F6: 0 / F7: 1）*
+- **MW-060/061 mutation 検証（guard commit から分離実施）**: ✅実装済 *Phase 196・TASK-0280 — 3+3 独立 RED 実測（F5 completeness/anchor/stale-row 双方向・F6/F7 二重捕捉・EDGE-202 test-mock ban・three-way phrase）・各 revert GREEN 復元・副次発見として marker anchor filter の `fix` token を `\bfix\b` に厳格化（FIXME 部分一致の盲目解消）・mutation-witness ledger MW-060/061 + 監査 pin ≥61*

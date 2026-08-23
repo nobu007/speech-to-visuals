@@ -282,7 +282,10 @@ describe('stale-comment census (REQ-396)', () => {
         // resolved-state filter (removed / resolution / fix / resolves /
         // keep legacy / preserves the legacy) excludes the
         // historical-reference entries the ALLOWED roster already carries.
-        if (/removed|resolution|fix|resolves|keep legacy|preserves the legacy|REQ-\d+|replaces the|replaced the|horizontal-balance|frozen `0|publishes frozen|publish frozen|published frozen|simulated\)|`\d+\.\d+/i.test(line)) return;
+        // The `fix` token is word-bounded: a bare `fix` substring would
+        // substring-match "FIXME" itself and blind this anchor to the very
+        // marker shape it exists to back up (MW-060 mutation finding).
+        if (/removed|resolution|\bfix\b|resolves|keep legacy|preserves the legacy|REQ-\d+|replaces the|replaced the|horizontal-balance|frozen `0|publishes frozen|publish frozen|published frozen|simulated\)|`\d+\.\d+/i.test(line)) return;
         if (pattern.test(line)) offenders.push(`${rel}:${idx + 1}: ${line.trim()}`);
       });
     }
