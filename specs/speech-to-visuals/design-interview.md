@@ -4596,8 +4596,16 @@ interfaces.ts には既にこれらの主要型が反映済み。
 - [boundary strictness census — 自動分析記録](../boundary-operator-census/interview-record.md)
 - [rounding-mode census — 自動分析記録](../rounding-mode-census/interview-record.md)
 - [spine edge 双方向 census — 自動分析記録](../spine-edge-bidirectional-census/interview-record.md)
-- [fallback-default census — 自動分析記録](../fallback-default-census/interview-record.md)
 - [spine registry title-sync census — 自動分析記録](../spine-registry-title-sync/interview-record.md)
-- [sort-receiver-mutation census — 自動分析記録](../sort-receiver-mutation-census/interview-record.md)
 
 <!-- spine:children:end -->
+
+
+<!-- spine:references:begin -->
+## Spine: external references
+
+- [speech-to-visuals API エンドポイント仕様](api-endpoints.md)
+- [fallback-default census — 自動分析記録](../fallback-default-census/interview-record.md)
+- [sort-receiver-mutation census — 自動分析記録](../sort-receiver-mutation-census/interview-record.md)
+
+<!-- spine:references:end -->

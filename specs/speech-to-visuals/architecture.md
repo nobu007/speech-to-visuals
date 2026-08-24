@@ -964,10 +964,10 @@ make-run steering feedback「371 → next-target delta is auditable without re-r
 - [spine-edge-bidirectional-census タスク概要](../spine-edge-bidirectional-census/tasks/overview.md)
 - [fallback-default census（同一 chain への primitive literal fallback 混在）要件定義書（軽量版）](../fallback-default-census/requirements.md)
 - [fallback-default-census タスク概要](../fallback-default-census/tasks/overview.md)
-- [spine registry title-sync census（親 index 表題 ↔ 対象 doc H1 一致）要件定義書（軽量版）](../spine-registry-title-sync/requirements.md)
-- [spine-registry-title-sync タスク概要](../spine-registry-title-sync/tasks/overview.md)
 - [sort-receiver-mutation census（破壊的配列操作の receiver 判別）要件定義書（軽量版）](../sort-receiver-mutation-census/requirements.md)
 - [sort-receiver-mutation-census タスク概要](../sort-receiver-mutation-census/tasks/overview.md)
+- [spine registry title-sync census（親 index 表題 ↔ 対象 doc H1 一致）要件定義書（軽量版）](../spine-registry-title-sync/requirements.md)
+- [spine-registry-title-sync タスク概要](../spine-registry-title-sync/tasks/overview.md)
 
 <!-- spine:children:end -->
 
