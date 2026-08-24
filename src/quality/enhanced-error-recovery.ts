@@ -1296,7 +1296,12 @@ export class EnhancedErrorRecovery {
     const component = options?.component ?? 'stage-boundary';
     const severity = options?.severity ?? 'medium';
 
-    // Phase 1: Retry with backoff
+    // Phase 1: Retry with backoff — stage boundaries run a deliberately TIGHTER
+    // profile than the retryWithBackoff engine default (2 tries / 2s cap vs
+    // 3 / 5s): a stage that keeps failing should surface to recovery routing
+    // sooner. REQ-405 classifies this divergence (same `maxRetries` token,
+    // different default by entry point) as a legitimate per-domain profile,
+    // not drift — this comment is the documented intent behind the split.
     const retryResult = await this.retryWithBackoff(operation, {
       maxRetries: options?.maxRetries ?? 2,
       initialDelayMs: 100,

@@ -190,7 +190,9 @@ describe('WebSocket Handler — Auth Middleware', () => {
     expect(nextError).toBeUndefined();
     expect(socket.data.user.id).toBe('');
     expect(socket.data.user.email).toBe('');
-    expect(socket.data.user.role).toBe('');
+    // REQ-405: a missing role claim defaults to 'authenticated' — the same
+    // tier the HTTP auth middleware assigns for the identical decoded.role.
+    expect(socket.data.user.role).toBe('authenticated');
   });
 });
 

@@ -138,7 +138,10 @@ export function createWsAuthMiddleware() {
       socket.data.user = {
         id: decoded.sub ?? '',
         email: decoded.email ?? '',
-        role: decoded.role ?? '',
+        // Same JWT claim default as the HTTP auth middleware (auth.ts):
+        // a verified token carries the 'authenticated' tier even without a
+        // role claim (REQ-405 — the two user objects must not disagree).
+        role: decoded.role ?? 'authenticated',
       };
 
       next();

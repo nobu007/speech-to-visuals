@@ -152,15 +152,17 @@ describe('ActualVideoRenderer duration integration: known scene timings', () => 
     expect(frames).toBe(1800);
   });
 
-  test('scenes with zero durationMs default to 10000ms', async () => {
+  test('scenes with zero durationMs default to the canonical 5000ms', async () => {
     const scenes = [
       makeRealisticScene('zero1', 0, 0, 'Zero duration scene 1'),
       makeRealisticScene('zero2', 0, 0, 'Zero duration scene 2'),
     ];
 
     const frames = await getDurationInFrames(renderer, scenes);
-    // 0 || 10000 → 10000 + 10000 = 20000ms → 600 frames
-    expect(frames).toBe(600);
+    // 0 || DEFAULT_SCENE_DURATION_MS → 5000 + 5000 = 10000ms → 300 frames.
+    // REQ-405: the render path substitutes the same canonical default as the
+    // orchestrator/smoke/video-generator paths (was an ad-hoc || 10000).
+    expect(frames).toBe(300);
   });
 
   test('varying durations produce proportionally correct total', async () => {

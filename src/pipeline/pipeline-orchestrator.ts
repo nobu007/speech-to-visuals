@@ -844,9 +844,11 @@ export class PipelineOrchestrator {
     for (const gate of gates) {
       const gateResult = gate.validate(result);
       if (!gateResult.passed) {
-        // Emit failed progress
+        // Emit failed progress — the same `gateResult.reason ?? 'unknown'`
+        // default the thrown QualityGateError below uses (REQ-405): a missing
+        // reason must surface identically in the progress event and the error.
         this.emitProgress(cb, stageIndex + 1, STAGE_NAMES[stageIndex], 0, 'failed',
-          gateResult.reason ?? 'Quality gate failed');
+          gateResult.reason ?? 'unknown');
 
         // Quality gate failed – try fallbacks
         const fallbackResult = await this.tryFallbacks(

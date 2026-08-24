@@ -962,6 +962,8 @@ make-run steering feedback「371 → next-target delta is auditable without re-r
 - [rounding-mode-census タスク概要](../rounding-mode-census/tasks/overview.md)
 - [spine edge 双方向 census（SPEC_LANDING_ATOMICITY 構造化）要件定義書（軽量版）](../spine-edge-bidirectional-census/requirements.md)
 - [spine-edge-bidirectional-census タスク概要](../spine-edge-bidirectional-census/tasks/overview.md)
+- [fallback-default census（同一 chain への primitive literal fallback 混在）要件定義書（軽量版）](../fallback-default-census/requirements.md)
+- [fallback-default-census タスク概要](../fallback-default-census/tasks/overview.md)
 
 <!-- spine:children:end -->
 

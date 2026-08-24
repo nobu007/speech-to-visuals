@@ -10,6 +10,7 @@ import { SceneGraph } from '@stv/core/types/diagram';
 import { COMPOSITION_ID } from '@/remotion/composition-id';
 import { DEFAULT_FPS } from '@/remotion/scene-synchronizer';
 import { RenderingError } from '@/pipeline/pipeline-errors';
+import { DEFAULT_SCENE_DURATION_MS } from '@/pipeline/scene-duration-limits';
 import path from 'path';
 import os from 'os';
 import fs from 'fs';
@@ -216,10 +217,14 @@ export class ActualVideoRenderer {
     fps?: number
   ) {
 
-    // シーンから合計時間を計算 — prefer durationMs (always present) over optional startTime/endTime
+    // シーンから合計時間を計算 — prefer durationMs (always present) over optional startTime/endTime.
+    // A falsy durationMs here is a scene-builder contract violation; substitute the
+    // canonical DEFAULT_SCENE_DURATION_MS (REQ-405) so the render path's composition
+    // length agrees with the orchestrator/smoke/video-generator paths instead of the
+    // ad-hoc 10000 it previously invented (double the canonical substitute).
     const totalDurationMs = scenes.length > 0
-      ? scenes.reduce((acc, scene) => acc + (scene.durationMs || 10000), 0)
-      : 10000;
+      ? scenes.reduce((acc, scene) => acc + (scene.durationMs || DEFAULT_SCENE_DURATION_MS), 0)
+      : DEFAULT_SCENE_DURATION_MS * 2;
 
     // Honor the caller-requested fps instead of hardcoding 30, so 24/60 fps
     // requests render at the requested rate. Previously a fixed `const fps = 30`
