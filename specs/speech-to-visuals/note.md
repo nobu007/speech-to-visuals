@@ -183,5 +183,6 @@ src/
 - [rounding-mode census — Context Note](../rounding-mode-census/note.md)
 - [fallback-default census — Context Note](../fallback-default-census/note.md)
 - [spine registry title-sync census — Context Note](../spine-registry-title-sync/note.md)
+- [sort-receiver-mutation census — Context Note](../sort-receiver-mutation-census/note.md)
 
 <!-- spine:references:end -->
