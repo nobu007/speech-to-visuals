@@ -182,5 +182,6 @@ src/
 - [boundary strictness census — Context Note](../boundary-operator-census/note.md)
 - [rounding-mode census — Context Note](../rounding-mode-census/note.md)
 - [fallback-default census — Context Note](../fallback-default-census/note.md)
+- [spine registry title-sync census — Context Note](../spine-registry-title-sync/note.md)
 
 <!-- spine:references:end -->

@@ -36,10 +36,20 @@
  *   3. marker 構造 — begin/end marker の不一致（REGISTRY_BLOCK_UNCLOSED）。
  *      未閉鎖 block は parser から entries が silent drop され covenant の
  *      視野外になるため、件数不一致そのものを違反化する。
+ *   4. 表題 sync（Phase 209 / REQ-406 追加）— children/references entry の
+ *      `- [title](link)` の title は対象 doc の**最初の H1 見出し**と一致
+ *      すること（REGISTRY_TITLE_DRIFT）。90c924db → 47d71cd5 の事故
+ *      （子 spec の改題に親 index 側の表題更新を同梱し忘れ、正規化が
+ *      `chore(make-run): commit 2 remaining change(s)` という後付け sweep
+ *      commit に分離した）の class を構造的に RED 化する: 改題と index
+ *      同期が同一 tree に揃わない限り guard は GREEN にならない = 当該
+ *      class の sweep commit 根絶。H1 を持たない対象は検証不能として
+ *      別 kind（REGISTRY_TARGET_H1_MISSING）で違反化する。
  *
  * 実在 tree（c818286f 修復後）は violations 0: anchor 318 / registry entry 86
  * （children 26 + references 60）/ feature-level 30 anchor 中 28 登録済み
- * （26 children + 2 references）+ root 2 件 exempt。
+ * （26 children + 2 references）+ root 2 件 exempt。表題 sync は 2026-08-25
+ * 実測で 112 entry 中 drift 0（REQ-406 の初回 run = confirmed-zero pin）。
  *
  * REQ-388 と同じ構成: 純関数 module（書き込みなし）+ census test が実 tree
  * を readFileSync で sweep。anchor block の解析は REQ-388 の
@@ -175,7 +185,11 @@ export type SpineEdgeViolationKind =
   /** children entry の対象が holder を parent として anchor 宣言していない（双方向 tree edge の破壊）*/
   | 'CHILD_BACK_ANCHOR_MISSING'
   /** begin/end marker の件数不一致 */
-  | 'REGISTRY_BLOCK_UNCLOSED';
+  | 'REGISTRY_BLOCK_UNCLOSED'
+  /** entry の表題が対象 doc の最初の H1 と不一致（= 47d71cd5 が sweep 修復した stale 表題 class）*/
+  | 'REGISTRY_TITLE_DRIFT'
+  /** entry の対象 doc が H1 見出しを持たない（表題 sync の検証不能）*/
+  | 'REGISTRY_TARGET_H1_MISSING';
 
 export interface SpineEdgeViolation {
   kind: SpineEdgeViolationKind;
@@ -188,7 +202,21 @@ export interface SpineEdgeCensusReport {
   anchorEdges: number;
   /** children + references entry の総数 */
   registryEntries: number;
+  /** 表題 sync を検証した entry 数（対象が存在した entry）。検証が silent skip すると減る */
+  titleChecked: number;
   violations: SpineEdgeViolation[];
+}
+
+/**
+ * doc の最初の `# ` 見出しの text（前後空白を除去）。H1 が無い／空 の場合は
+ * null — 呼び出し側は REGISTRY_TARGET_H1_MISSING として違反化する。
+ */
+export function firstHeading(content: string): string | null {
+  for (const line of content.split('\n')) {
+    const m = line.match(/^#\s+(.+)$/);
+    if (m !== null) return m[1].trim();
+  }
+  return null;
 }
 
 /**
@@ -201,10 +229,13 @@ export function auditSpineEdges(
 ): SpineEdgeCensusReport {
   const violations: SpineEdgeViolation[] = [];
   const fileSet = new Set(files.map(f => f.rel));
+  /** rel → content（表題 sync の検証対象読み。walk 結果の重複 rel は後勝ち）*/
+  const contentByRel = new Map(files.map(f => [f.rel, f.content] as const));
   /** file → その file の各 anchor block が宣言した parent の list */
   const anchorParents = new Map<string, string[]>();
   const registries: SpineRegistryEntry[] = [];
   let anchorEdges = 0;
+  let titleChecked = 0;
 
   for (const { rel, content } of files) {
     for (const block of parseAnchorBlocks(content)) {
@@ -234,6 +265,27 @@ export function auditSpineEdges(
         detail: `${entry.holderRel}:${entry.startLine}: ${entry.kind} entry \`${entry.link}\` の対象 \`${entry.targetRel}\` が specs/ に存在しない`,
       });
       continue;
+    }
+    // 表題 sync（REQ-406）— entry title は対象 doc の最初の H1 と一致する。
+    // children / references 両方に適用する同一規則（entry は閲覧入口であり、
+    // 表題の stale 化は片方向・双方向を問わない閲覧事故）。
+    // 検証した entry 数は titleChecked として報告し、floor pin が
+    // 検証の silent skip（対象の見逃し）を差し戻す。
+    const targetContent = contentByRel.get(entry.targetRel);
+    if (targetContent !== undefined) {
+      titleChecked += 1;
+      const h1 = firstHeading(targetContent);
+      if (h1 === null) {
+        violations.push({
+          kind: 'REGISTRY_TARGET_H1_MISSING',
+          detail: `${entry.holderRel}:${entry.startLine}: ${entry.kind} entry \`${entry.link}\` の対象 \`${entry.targetRel}\` が H1 見出しを持たない（表題 sync の検証不能）`,
+        });
+      } else if (h1 !== entry.title) {
+        violations.push({
+          kind: 'REGISTRY_TITLE_DRIFT',
+          detail: `${entry.holderRel}:${entry.startLine}: ${entry.kind} entry の表題 \`${entry.title}\` が対象 \`${entry.targetRel}\` の H1 \`${h1}\` と不一致（子の改題を親 index に同一 commit で同期すること — 47d71cd5 sweep 分離 class）`,
+        });
+      }
     }
     const arr = registeredOn.get(entry.targetRel) ?? [];
     arr.push({ holderRel: entry.holderRel, kind: entry.kind });
@@ -283,6 +335,7 @@ export function auditSpineEdges(
     filesChecked: files.length,
     anchorEdges,
     registryEntries: registries.length,
+    titleChecked,
     violations,
   };
 }

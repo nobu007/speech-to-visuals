@@ -1,11 +1,18 @@
 /**
  * Spine edge 双方向 census — Phase 201 / TASK-0285 / REQ-402 / MW-066.
+ * 表題 sync 拡張 — Phase 209 / TASK-0293 / REQ-406 / MW-070.
  *
  * anchor parent 宣言（child → parent）と parent 側 spine:children /
  * spine:references 登録（parent → child）の **edge 両端** が一致することを
  * exact sweep で担保する。656a0d58/bb844a0f → c818286f の事故（parent 側
  * 登録を同梱しない spec landing が GREEN で通り、修復が sweep commit に分離）
  * の再発を構造的に阻止する — make-run steering: SPEC_LANDING_ATOMICITY。
+ *
+ * REQ-406 は同じ事故 class の**表題面**を閉じる: 90c924db が子 spec の改題に
+ * 親 index 側の表題更新を同梱せず、`chore(make-run): commit 2 remaining
+ * change(s)`（47d71cd5）に正規化が分離した。entry 表題 ↔ 対象 doc の最初の
+ * H1 の一致を exact sweep で強制することで、改題と index 同期が同一 tree に
+ * 揃わない限り GREEN にならない（= 当該 class の sweep commit 根絶）。
  *
  * 構成は REQ-388（spine-anchor-role-census）と同じ: 純関数 module
  * （tests/guards/spine-edge-contract.ts）の合成 fixture 検出 + 実 specs tree
@@ -17,6 +24,7 @@ import { join } from 'node:path';
 import { parseAnchorBlocks } from './spine-anchor-contract';
 import {
   auditSpineEdges,
+  firstHeading,
   parseSpineRegistries,
   resolveSpecsLink,
   type SpineEdgeViolation,
@@ -61,29 +69,30 @@ function anchorBlock(parentRel: string, link: string): string {
   ].join('\n');
 }
 
-function childrenBlock(links: string[]): string {
+function childrenBlock(entries: Array<[string, string]>): string {
   return [
     '<!-- spine:children:begin -->',
     '## Spine: child documents',
     '',
-    ...links.map(l => `- [t](${l})`),
+    ...entries.map(([title, link]) => `- [${title}](${link})`),
     '',
     '<!-- spine:children:end -->',
   ].join('\n');
 }
 
-function referencesBlock(links: string[]): string {
+function referencesBlock(entries: Array<[string, string]>): string {
   return [
     '<!-- spine:references:begin -->',
     '## Spine: external references',
     '',
-    ...links.map(l => `- [t](${l})`),
+    ...entries.map(([title, link]) => `- [${title}](${link})`),
     '',
     '<!-- spine:references:end -->',
   ].join('\n');
 }
 
-/** 正規形の最小 tree（violations 0）。各検出 test はこれを 1 点だけ壊す。 */
+/** 正規形の最小 tree（violations 0）。各検出 test はこれを 1 点だけ壊す。
+ * 表題は対象 doc の H1 と完全一致（REQ-406 の表題 sync も正規形の一部）。 */
 function canonicalTree(): Array<{ rel: string; content: string }> {
   return [
     {
@@ -92,7 +101,7 @@ function canonicalTree(): Array<{ rel: string; content: string }> {
         '# arch\n\n' +
         anchorBlock('SYSTEM_CONSTITUTION.md', '../../SYSTEM_CONSTITUTION.md') +
         '\n\n' +
-        childrenBlock(['requirements.md', 'tasks/overview.md']),
+        childrenBlock([['req', 'requirements.md'], ['ov', 'tasks/overview.md']]),
     },
     {
       rel: 'speech-to-visuals/requirements.md',
@@ -137,6 +146,20 @@ describe('spine edge 双方向 census — 実 tree exact-0（REQ-402-005）', ()
     expect(report.registryEntries).toBeGreaterThanOrEqual(100);
   });
 
+  it('表題 sync（REQ-406-002）: 全 registry entry の表題が対象 doc の H1 と一致（exact-0 + 検証数 floor）', () => {
+    const report = auditSpineEdges(readSpecsTree());
+    const titleViolations = report.violations.filter(
+      v => v.kind === 'REGISTRY_TITLE_DRIFT' || v.kind === 'REGISTRY_TARGET_H1_MISSING',
+    );
+    // exact-0: 子の改題 / 親 index 側の表題編集のどちらかが単独で land したら
+    // 即 RED（= 47d71cd5 class の sweep commit 根絶）。2026-08-25 実測 baseline
+    // は 112 entry 中 drift 0（confirmed-zero pin・ landing 前測定）。
+    expect(titleViolations).toEqual([]);
+    // titleChecked は「対象が存在し表題比較まで走った entry 数」。検証の
+    // silent skip（対象読み rot・比較除外の拡大）はこの計数の落下として検出。
+    expect(report.titleChecked).toBeGreaterThanOrEqual(112);
+  });
+
   it('bare parent（repo root 直下 doc）の観測集合は SYSTEM_CONSTITUTION.md のみ（exact pin）', () => {
     const bare = new Set<string>();
     for (const { rel, content } of readSpecsTree()) {
@@ -170,6 +193,7 @@ describe('auditSpineEdges — 合成 fixture で 6 violation kind を検出（RE
     expect(report.violations).toEqual([]);
     expect(report.anchorEdges).toBe(3);
     expect(report.registryEntries).toBe(2);
+    expect(report.titleChecked).toBe(2);
   });
 
   it('c818286f~1 事故 shape: children block を持たない doc への parent 宣言 → PARENT_UNREGISTERED', () => {
@@ -215,7 +239,7 @@ describe('auditSpineEdges — 合成 fixture で 6 violation kind を検出（RE
   it('children entry の対象が存在しない → REGISTRY_TARGET_MISSING（phantom 登録）', () => {
     const files = canonicalTree().map(f =>
       f.rel === 'speech-to-visuals/architecture.md'
-        ? { ...f, content: f.content.replace('- [t](requirements.md)', '- [t](requirements.md)\n- [t](../ghost-feature/requirements.md)') }
+        ? { ...f, content: f.content.replace('- [req](requirements.md)', '- [req](requirements.md)\n- [t](../ghost-feature/requirements.md)') }
         : f,
     );
     const report = auditSpineEdges(files);
@@ -228,7 +252,7 @@ describe('auditSpineEdges — 合成 fixture で 6 violation kind を検出（RE
   it('registry link が specs-relative でない → REGISTRY_LINK_UNSUPPORTED', () => {
     const files = canonicalTree().map(f =>
       f.rel === 'speech-to-visuals/architecture.md'
-        ? { ...f, content: f.content + '\n' + referencesBlock(['https://example.com/x.md', '../../README.md']) }
+        ? { ...f, content: f.content + '\n' + referencesBlock([['t', 'https://example.com/x.md'], ['t', '../../README.md']]) }
         : f,
     );
     const report = auditSpineEdges(files);
@@ -244,7 +268,7 @@ describe('auditSpineEdges — 合成 fixture で 6 violation kind を検出（RE
     const files = [
       ...canonicalTree().map(f =>
         f.rel === 'speech-to-visuals/architecture.md'
-          ? { ...f, content: f.content.replace('- [t](requirements.md)', '- [t](requirements.md)\n- [t](dataflow.md)') }
+          ? { ...f, content: f.content.replace('- [req](requirements.md)', '- [req](requirements.md)\n- [d](dataflow.md)') }
           : f,
       ),
       {
@@ -253,7 +277,7 @@ describe('auditSpineEdges — 合成 fixture で 6 violation kind を検出（RE
           '# req\n\n' +
           anchorBlock('speech-to-visuals/architecture.md', 'architecture.md') +
           '\n\n' +
-          referencesBlock(['dataflow.md']),
+          referencesBlock([['d', 'dataflow.md']]),
       },
       {
         rel: 'speech-to-visuals/dataflow.md',
@@ -281,7 +305,7 @@ describe('auditSpineEdges — 合成 fixture で 6 violation kind を検出（RE
     const files = [
       ...canonicalTree().map(f =>
         f.rel === 'speech-to-visuals/architecture.md'
-          ? { ...f, content: f.content.replace('- [t](tasks/overview.md)', '- [t](tasks/overview.md)\n- [t](../audit-pass-first-census-facet-5/requirements.md)') }
+          ? { ...f, content: f.content.replace('- [ov](tasks/overview.md)', '- [ov](tasks/overview.md)\n- [f5](../audit-pass-first-census-facet-5/requirements.md)') }
           : f,
       ),
       {
@@ -292,6 +316,53 @@ describe('auditSpineEdges — 合成 fixture で 6 violation kind を検出（RE
       },
     ];
     expect(auditSpineEdges(files).violations).toEqual([]);
+  });
+
+  it('47d71cd5 事故 shape: 子 doc の改題だけ land し親 index の表題が旧まま → REGISTRY_TITLE_DRIFT（REQ-406-001）', () => {
+    // 90c924db の実事故: 子 spec が改題され、親 architecture.md children の
+    // 表題更新が同 commit に入らず 47d71cd5 の sweep commit に分離した。
+    // 本 guard では 90c924db の tree state が RED になる。
+    const retitled = canonicalTree().map(f =>
+      f.rel === 'speech-to-visuals/requirements.md'
+        ? { ...f, content: f.content.replace('# req\n', '# req v2（改題後）\n') }
+        : f,
+    );
+    const report = auditSpineEdges(retitled);
+    expect(kindsOf(report.violations)).toEqual(['REGISTRY_TITLE_DRIFT']);
+    const v = firstOfKind(report.violations, 'REGISTRY_TITLE_DRIFT');
+    expect(v.detail).toContain('speech-to-visuals/architecture.md');
+    expect(v.detail).toContain('req v2（改題後）');
+    // 修復 = 親 index 側の表題を新 H1 に同期（同一 tree に揃える）。
+    const repaired = retitled.map(f =>
+      f.rel === 'speech-to-visuals/architecture.md'
+        ? { ...f, content: f.content.replace('- [req](requirements.md)', '- [req v2（改題後）](requirements.md)') }
+        : f,
+    );
+    expect(auditSpineEdges(repaired).violations).toEqual([]);
+  });
+
+  it('親 index 側の表題 typo（対象は不変）も同一違反 → REGISTRY_TITLE_DRIFT', () => {
+    const files = canonicalTree().map(f =>
+      f.rel === 'speech-to-visuals/architecture.md'
+        ? { ...f, content: f.content.replace('- [ov](tasks/overview.md)', '- [overview（旧表題）](tasks/overview.md)') }
+        : f,
+    );
+    const report = auditSpineEdges(files);
+    expect(kindsOf(report.violations)).toEqual(['REGISTRY_TITLE_DRIFT']);
+    expect(report.titleChecked).toBe(2);
+  });
+
+  it('対象 doc が H1 を持たない → REGISTRY_TARGET_H1_MISSING（表題 sync の検証不能）', () => {
+    const files = canonicalTree().map(f =>
+      f.rel === 'speech-to-visuals/requirements.md'
+        ? { ...f, content: '## h2 しかない doc\n\n' + anchorBlock('speech-to-visuals/architecture.md', 'architecture.md') }
+        : f,
+    );
+    const report = auditSpineEdges(files);
+    expect(kindsOf(report.violations)).toEqual(['REGISTRY_TARGET_H1_MISSING']);
+    expect(firstOfKind(report.violations, 'REGISTRY_TARGET_H1_MISSING').detail).toContain(
+      'speech-to-visuals/requirements.md',
+    );
   });
 });
 
@@ -319,11 +390,11 @@ describe('resolveSpecsLink / parseSpineRegistries（純関数の境界）', () =
       '',
       '- [block 外](requirements.md)',
       '',
-      childrenBlock(['a.md', './b.md']),
+      childrenBlock([['t', 'a.md'], ['t', './b.md']]),
       '',
       '- [x] checkbox は entry でない',
       '',
-      referencesBlock(['../c.md']),
+      referencesBlock([['t', '../c.md']]),
     ].join('\n');
     const entries = parseSpineRegistries('speech-to-visuals/architecture.md', content);
     expect(entries.map(e => [e.kind, e.targetRel])).toEqual([
@@ -331,5 +402,16 @@ describe('resolveSpecsLink / parseSpineRegistries（純関数の境界）', () =
       ['children', 'speech-to-visuals/b.md'],
       ['references', 'c.md'],
     ]);
+  });
+
+  it.each([
+    ['# title\nbody', 'title'],
+    ['前言あり\n\n# 後出し title\n', '後出し title'],
+    ['  # インデント付きは H1 とみなさない（行頭 strict）', null],
+    ['## h2 のみ\n', null],
+    ['# \n空 H1 のみ', null],
+    ['body のみ（見出し無し）', null],
+  ])('firstHeading(%j) = %j', (content, expected) => {
+    expect(firstHeading(content)).toBe(expected);
   });
 });
