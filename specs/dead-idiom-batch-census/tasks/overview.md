@@ -11,7 +11,7 @@
 **作成日**: 2026-08-25
 **プロジェクト期間**: 2026-08-25 - 2026-08-25（全 phase 完了）
 **推定工数**: 4h（REQ-410 batch guard + unify 2 site + three-way family 19 登録 + atomic dogfood landing + MW-074 mutation 検証 — **単一 phase・単一 TASK の batch 形式**）
-**総タスク数**: 2件
+**総タスク数**: 3件
 
 > **形式 note（family 19 の差分）**: steering ROI 指示（REQ-405 採点後）に
 > より、violation が少量（2 site）かつ class 多数が confirmed-zero の
@@ -33,11 +33,12 @@
 |---------|------|--------|----------|------|-----------|
 | Phase 217 | 2026-08-25 | REQ-410 dead-idiom batch census guard（kind registry 7 entry）+ coercing-isnan 2 site unify + three-way family 19 登録 + 本 spec 一式の atomic landing + MW-074 mutation 検証 | 1 | 4h | ✅完了 |
 | Phase 218 | 2026-08-25 | REQ-411 第二回 sweep — 同一 guard へ 9 kind 追加（7→16 entry）+ json-clone 1 site ALLOWED（structuredClone jest 欠落の実 probe 根拠）+ 2 class pin 前棄却（with/arguments.callee・tsc strict 重複）+ MW-075 mutation 検証 | 1 | 3h | ✅完了 |
+| Phase 219 | 2026-08-25 | REQ-412 第三回 sweep — 同一 guard へ 12 kind 追加（16→28 entry）+ parseint-no-radix 5 site unify（ProductionDashboard・radix 10）+ from-char-code 5 site / proto-key-literal 1 site ALLOWED（byte-domain・sanitizer blocklist 実コード根拠）+ Math.pow pin 前棄却（`**` と挙動完全一致）+ MW-076 mutation 検証 | 1 | 3h | ✅完了 |
 
 ## タスク番号管理
 
-**使用済みタスク番号**: TASK-0301〜0302
-**次回開始番号**: TASK-0303
+**使用済みタスク番号**: TASK-0301〜0303
+**次回開始番号**: TASK-0304
 
 （参考: TASK-0297〜0300 は parallel branch の family 17/18 が使用 —
 `git log --all` で衝突確認済み）
@@ -46,6 +47,7 @@
 
 - [x] Phase 217: REQ-410 batch guard + unify 2 site + three-way family 19 登録 + MW-074
 - [x] Phase 218: REQ-411 sweep #2 — 9 kind 追加 + json-clone ALLOWED + MW-075
+- [x] Phase 219: REQ-412 sweep #3 — 12 kind 追加 + parseint-no-radix 5 site unify + MW-076
 
 ## マイルストーン
 
@@ -91,3 +93,25 @@ guard にまとめ、coercing 述語の黙判反転面を構造的に遮断す�
 - Phase 217 の `IDIOM_KINDS` registry と discovery primitive に直接追記
   （新規 guard file なし — batch 契約の趣旨）
 - structuredClone 利用可否は jest 環境の実 probe で判定（型だけでは判断しない）
+
+---
+
+## Phase 219: REQ-412 第三回 discovery sweep（parseint-no-radix unify 同梱）
+
+**目標**: batch 契約（kind 追加 = 1 entry）の 3 回目の適用。13 candidate
+を計測し、10 class を exact-0 pin、Math.pow を挙動等価根拠で pin 前棄却、
+唯一の VIOLATION cluster（parseint-no-radix 5 site・同一 file 同一 shape）を
+unify、from-char-code / proto-key-literal の実測 site は引数域・由来を
+実コード読みで確認して ALLOWED roster 化。
+**成果物**: guard 12 kind 追加 + src 5 site unify + ALLOWED 6 key / ERADICATED 5 key + fixture (r)〜(w) + spec 同梱更新 + MW-076
+
+### タスク一覧
+
+- [x] [TASK-0303: 第三回 discovery sweep — 同一 batch guard へ 12 kind 追加 + parseint-no-radix 5 site unify + 2 class ALLOWED + MW-076 mutation 検証](TASK-0303.md) - 3h (TDD) 🔵 ✅完了
+
+### 依存関係
+
+- Phase 217/218 の `IDIOM_KINDS` registry と discovery primitive に直接追記
+  （新規 guard file なし — batch 契約の趣旨）
+- byte-domain / blocklist 判定は引数域を実コード読みで確認
+  （型だけでは判断しない — Phase 218 の structuredClone probe と同系列）

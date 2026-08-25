@@ -21,6 +21,14 @@
  * registry (this is the steering contract working: adding a kind is the
  * whole cost of a confirmed-zero class):
  *
+ * The 2026-08-25 THIRD discovery sweep (REQ-412 / Phase 219, same walk)
+ * measured THIRTEEN more candidate classes. One was rejected BEFORE
+ * pinning — `Math.pow(a, b)` is behavior-identical to `a ** b` (both
+ * return NaN for a negative base with a fractional exponent; neither
+ * deopts), so its 13 measured sites carry zero incident shape and a pin
+ * would be permanent ALLOWED-roster noise for a style preference. The
+ * remaining TWELVE joined the registry:
+ *
  *   kind                          measured  verdict
  *   ----------------------------- --------- -------------------------------
  *   direct-eval                   0         exact-0 pin
@@ -41,6 +49,52 @@
  *   empty-catch                   0         exact-0 pin (single-line shape)
  *   legacy-substr                 0         exact-0 pin
  *   escape-unescape               0         exact-0 pin
+ *
+ *   kind                          measured  verdict
+ *   ----------------------------- --------- -------------------------------
+ *   parseint-no-radix             5 (src)   VIOLATION — unified in-commit:
+ *                                             all five are the SAME shape
+ *                                             in ProductionDashboard.tsx
+ *                                             number-input handlers
+ *                                             (`parseInt(e.target.value)`),
+ *                                             now `parseInt(…, 10)` — the
+ *                                             repo-canonical spelling (api/
+ *                                             routes/monitoring.ts:34 etc.)
+ *                                             and hex-prefix hardening
+ *                                             (`parseInt('0x10') === 16`
+ *                                             without a radix)
+ *   bitwise-truncation            0         exact-0 pin (`~~` / `| 0`;
+ *                                             `>>> 0` unsigned-coercion is
+ *                                             REQUIRED hash math — CRC32 /
+ *                                             mulberry32 — and out of class)
+ *   legacy-push-apply             0         exact-0 pin
+ *   apply-null-spread             0         exact-0 pin
+ *   new-function-ctor             0         exact-0 pin
+ *   deprecated-date-api           0         exact-0 pin
+ *   debugger-statement            0         exact-0 pin
+ *   document-write                0         exact-0 pin
+ *   arraylike-slice-call          0         exact-0 pin
+ *   constructor-index-access      0         exact-0 pin
+ *   from-char-code                5 (src)   ALLOWED — every measured site is
+ *                                             BYTE-DOMAIN (Uint8Array
+ *                                             element reads for PNG/APNG
+ *                                             chunk types and GIF version,
+ *                                             and the RLE marker where
+ *                                             `count` is capped at 255 by
+ *                                             the `count < 255` loop guard);
+ *                                             fromCharCode is exact for
+ *                                             0..255. Teeth stay live: a
+ *                                             NEW site passing a code point
+ *                                             > 0xFFFF silently truncates
+ *                                             (ToUint16 wrap) and is an
+ *                                             unrostered RED
+ *   proto-key-literal             1 (src)   ALLOWED — the hit is the
+ *                                             sanitizer's OWN blocklist
+ *                                             (`PROTOTYPE_POLLUTION_KEYS`
+ *                                             string data, not an object
+ *                                             literal key); a real
+ *                                             `__proto__:` key/assignment
+ *                                             elsewhere is an unrostered RED
  *
  *   kind                          measured  verdict
  *   ----------------------------- --------- -------------------------------
@@ -214,6 +268,40 @@ export const IDIOM_KINDS: readonly IdiomKind[] = [
   { id: 'legacy-substr', detect: /\.substr\s*\(/ },
   // escape/unescape are deprecated globals with non-UTF-8 semantics.
   { id: 'escape-unescape', detect: /(?<![.\w$])(?:un)?escape\s*\(/ },
+  // --- REQ-412 third sweep (twelve kinds, all measured on 2026-08-25) ---
+  // `parseInt(s)` without a radix: hex-prefixed strings coerce
+  // (`parseInt('0x10') === 16`); radix-less is also the non-canonical
+  // spelling repo-wide (api/ routes all pass `, 10`). Simple single-arg
+  // operands only — as-cast / nested-call operands escape (documented
+  // ceiling). The lookbehind keeps `Number.parseInt(v, 10)` out.
+  { id: 'parseint-no-radix', detect: /(?<![.\w$])parseInt\(\s*[\w$.]+\s*\)/ },
+  // `~~x` / `x | 0` are dead truncation idioms: they wrap at 2^31, keep
+  // `-0`, and hide Math.trunc intent. `>>> 0` (unsigned coercion) is
+  // REQUIRED bit math (CRC32 / mulberry32) and deliberately out of class.
+  { id: 'bitwise-truncation', detect: /~~|(?<!\|)\|\s*0\b/ },
+  // `xs.push.apply(xs, ys)` is the pre-spread concatenation idiom.
+  { id: 'legacy-push-apply', detect: /\.push\.apply\(/ },
+  // `f.apply(null, args)` is the pre-spread call idiom (and loses `this`).
+  { id: 'apply-null-spread', detect: /\.apply\(\s*(?:null|undefined)\s*,/ },
+  // `new Function(…)` compiles a string body — eval in disguise.
+  { id: 'new-function-ctor', detect: /\bnew\s+Function\s*\(/ },
+  // getYear/setYear/toGMTString are deprecated Date members (2-digit years).
+  { id: 'deprecated-date-api', detect: /\.(?:getYear|setYear|toGMTString)\(/ },
+  // A stray `debugger` halts every devtools session that opens the app.
+  { id: 'debugger-statement', detect: /^\s*debugger\b/ },
+  // document.write blows away the document tree after load.
+  { id: 'document-write', detect: /document\.write(?:ln)?\(/ },
+  // `Array.prototype.slice.call(…)` is the pre-ES2015 array-like conversion.
+  { id: 'arraylike-slice-call', detect: /\.slice\.call\(|Array\.prototype\.slice\b/ },
+  // `x.constructor` is the prototype-pollution escape hatch
+  // (`x.constructor.constructor('return 1')()` reaches the Function ctor).
+  { id: 'constructor-index-access', detect: /\.constructor\b/ },
+  // String.fromCharCode applies ToUint16 — code points > 0xFFFF wrap
+  // silently (fromCharCode(65536) === '\0'); fromCodePoint does not.
+  { id: 'from-char-code', detect: /fromCharCode\(/ },
+  // A `__proto__` key/assignment is the prototype-pollution shape itself;
+  // the sanitizer's own blocklist string is the one rostered data site.
+  { id: 'proto-key-literal', detect: /__proto__/ },
 ];
 
 /** One discovered idiom site, classified against its kind's context rule. */
@@ -277,6 +365,30 @@ const ALLOWED: Record<string, string> = {
   // (Date/Map/Set/undefined) joins the interface.
   'src/optimization/adaptive-content-processor.ts:185':
     'JSON-SAFE — ProcessingStrategy is string/number/enum-literal only (lossless round-trip) and structuredClone is unavailable in the jest vm context; re-judge if a non-JSON field joins the interface.',
+  // [from-char-code] all five sites operate on BYTES (0..255), where
+  // fromCharCode is exact: apng-encoder/export-verifier build PNG/APNG/GIF
+  // chunk-type and version strings from Uint8Array element reads;
+  // intelligent-cache's RLE emits the fixed 255 marker and a `count` that
+  // the `count < 255` loop guard caps in range. fromCodePoint is the
+  // equivalent spelling here — swapping is fine but must shed the roster
+  // row in the same commit (stale-row test). A NEW site passing a code
+  // point > 0xFFFF is an unrostered RED (ToUint16 wraps silently).
+  'src/export/apng-encoder.ts:275':
+    'BYTE-DOMAIN — chunk type from Uint8Array element reads (apng[pos+4..7]), 0..255 where fromCharCode is exact.',
+  'src/export/export-verifier.ts:198':
+    'BYTE-DOMAIN — GIF version bytes view[3..5], 0..255 where fromCharCode is exact.',
+  'src/export/export-verifier.ts:363':
+    'BYTE-DOMAIN — PNG chunk-type bytes view[offset+4..7], 0..255 where fromCharCode is exact.',
+  'src/performance/intelligent-cache.ts:153':
+    'BYTE-DOMAIN — fixed 255 marker and `count` capped at 255 by the `count < 255` loop guard; 0..255 where fromCharCode is exact.',
+  'src/performance/intelligent-cache.ts:163':
+    'BYTE-DOMAIN — trailing-run flush of the same 255-capped RLE marker/count pair; 0..255 where fromCharCode is exact.',
+  // [proto-key-literal] the hit is the sanitizer's OWN blocklist — string
+  // data the defense compares keys against, not an object-literal key.
+  // Every other `__proto__` occurrence on the surface is a comment line
+  // (skipped by discovery).
+  'src/analysis/untrusted-json-core.ts:38':
+    'SANITIZER-DATA — PROTOTYPE_POLLUTION_KEYS is the blocklist the defense matches against (string data, not a key literal); any real `__proto__:` key or assignment is an unrostered RED.',
 };
 
 /**
@@ -288,6 +400,16 @@ const ERADICATED: Record<string, string> = {
     'unified 2026-08-25 (REQ-410) — global isNaN → Number.isNaN; the parseInt(…, 10) result is always a number so semantics are identical, the coercing spelling is gone.',
   'src/pipeline/quality-monitor.ts:637':
     'unified 2026-08-25 (REQ-410) — !isNaN → !Number.isNaN inside the REQ-375 typeof-number filter (kept: Number.isNaN(null) is false too, so the typeof guard stays load-bearing).',
+  'src/components/ProductionDashboard.tsx:156':
+    'unified 2026-08-25 (REQ-412) — parseInt(v) → parseInt(v, 10): decimal input strings parse identically (radix 10 is the default except for 0x/legacy-0 prefixes), the spelling joins the repo-canonical form (api/routes/monitoring.ts:34), and a hex-prefixed value no longer coerces (parseInt("0x10") === 16 without a radix).',
+  'src/components/ProductionDashboard.tsx:170':
+    'unified 2026-08-25 (REQ-412) — parseInt(v) → parseInt(v, 10) in the memoryLimit number-input handler; identical for decimal strings, hex-prefix hardening, canonical spelling.',
+  'src/components/ProductionDashboard.tsx:187':
+    'unified 2026-08-25 (REQ-412) — parseInt(v) → parseInt(v, 10) in the timeoutMs number-input handler; identical for decimal strings, hex-prefix hardening, canonical spelling.',
+  'src/components/ProductionDashboard.tsx:320':
+    'unified 2026-08-25 (REQ-412) — parseInt(v) → parseInt(v, 10) in the metricsCollectionInterval number-input handler; identical for decimal strings, hex-prefix hardening, canonical spelling.',
+  'src/components/ProductionDashboard.tsx:359':
+    'unified 2026-08-25 (REQ-412) — parseInt(v) → parseInt(v, 10) in the alertThresholds.responseTime handler; identical for decimal strings, hex-prefix hardening, canonical spelling.',
 };
 
 describe('dead-idiom batch census (REQ-410)', () => {
@@ -306,6 +428,8 @@ describe('dead-idiom batch census (REQ-410)', () => {
     expect(sites.filter((s) => s.kind === 'coercing-isfinite').length).toBeGreaterThanOrEqual(1);
     expect(sites.filter((s) => s.kind === 'unguarded-for-in').length).toBeGreaterThanOrEqual(1);
     expect(sites.filter((s) => s.kind === 'json-clone-idiom').length).toBeGreaterThanOrEqual(1);
+    expect(sites.filter((s) => s.kind === 'from-char-code').length).toBeGreaterThanOrEqual(3);
+    expect(sites.filter((s) => s.kind === 'proto-key-literal').length).toBeGreaterThanOrEqual(1);
     // The kind registry is the steering contract — shrinking it is RED.
     expect(IDIOM_KINDS.map((k) => k.id)).toEqual([
       'coercing-isnan',
@@ -324,6 +448,18 @@ describe('dead-idiom batch census (REQ-410)', () => {
       'empty-catch',
       'legacy-substr',
       'escape-unescape',
+      'parseint-no-radix',
+      'bitwise-truncation',
+      'legacy-push-apply',
+      'apply-null-spread',
+      'new-function-ctor',
+      'deprecated-date-api',
+      'debugger-statement',
+      'document-write',
+      'arraylike-slice-call',
+      'constructor-index-access',
+      'from-char-code',
+      'proto-key-literal',
     ]);
   });
 
@@ -398,10 +534,30 @@ describe('dead-idiom batch census (REQ-410)', () => {
         'src/optimization/adaptive-content-processor.ts',
         /JSON\.parse\(JSON\.stringify\(baseStrategy\)\)/,
       ],
+      // The five unified parseInt sites keep the radix spelling — and all
+      // five stay unified (a partial revert fails this count).
+      ['src/components/ProductionDashboard.tsx', /maxConcurrentJobs: parseInt\(e\.target\.value, 10\) \|\| 1/],
+      // The rostered byte-domain fromCharCode sites keep the judged
+      // spelling (swapping to fromCodePoint is fine — it makes the row
+      // stale, forcing the roster to shed it in the same change).
+      ['src/export/apng-encoder.ts', /const type = String\.fromCharCode\(/],
+      // The rostered proto-key site keeps being the sanitizer's blocklist.
+      [
+        'src/analysis/untrusted-json-core.ts',
+        /PROTOTYPE_POLLUTION_KEYS = new Set\(\['__proto__', 'constructor', 'prototype'\]\)/,
+      ],
     ];
     for (const [file, pattern] of anchors) {
       expect(`${file}: ${readSource(file)}`).toMatch(pattern);
     }
+    // All five unified handlers carry the radix at once — the per-anchor
+    // patterns above pin the spelling, this count pins the completeness
+    // of the unify (4-of-5 is a silent partial regression otherwise).
+    expect(
+      (readSource('src/components/ProductionDashboard.tsx').match(
+        /parseInt\(e\.target\.value, 10\)/g,
+      ) ?? []).length,
+    ).toBe(5);
   });
 
   it('liveness: synthetic fixtures prove every kind detects its incident shape', () => {
@@ -548,6 +704,76 @@ describe('dead-idiom batch census (REQ-410)', () => {
     ).toHaveLength(2);
     expect(
       discoverIdiomSites('f.ts', 'const a = encodeURIComponent(u); const b = decodeURIComponent(u);'),
+    ).toEqual([]);
+
+    // (r) radix-less parseInt flagged; the radix form not.
+    expect(discoverIdiomSites('f.ts', 'const n = parseInt(v);')).toHaveLength(1);
+    expect(
+      discoverIdiomSites('f.ts', 'const n = parseInt(v, 10); const m = Number.parseInt(v, 10);'),
+    ).toEqual([]);
+
+    // (s) `~~` and `| 0` truncation flagged; `|| 0` falsy-guard and the
+    // `>>> 0` unsigned-coercion (required CRC/PRNG math) are not the class.
+    expect(
+      discoverIdiomSites('f.ts', 'const t = ~~x;\nconst u = x | 0;'),
+    ).toHaveLength(2);
+    expect(
+      discoverIdiomSites('f.ts', 'const a = xs.get(k) || 0; const b = crc >>> 0; const c = q >> 1;'),
+    ).toEqual([]);
+
+    // (t) legacy apply-spread forms flagged; spread/Function.apply-this not.
+    expect(
+      discoverIdiomSites('f.ts', 'xs.push.apply(xs, ys);'),
+    ).toHaveLength(1);
+    expect(
+      discoverIdiomSites('f.ts', 'Math.max.apply(null, xs);'),
+    ).toHaveLength(1);
+    expect(
+      discoverIdiomSites('f.ts', 'xs.push(...ys); const m = Math.max(...xs); fn.apply(this, args);'),
+    ).toEqual([]);
+
+    // (u) new Function / debugger / document.write / deprecated Date API
+    // flagged; their safe counterparts not.
+    expect(
+      discoverIdiomSites('f.ts', 'const f = new Function("a", "return a");'),
+    ).toHaveLength(1);
+    expect(discoverIdiomSites('f.ts', '  debugger;')).toHaveLength(1);
+    expect(
+      discoverIdiomSites('f.ts', 'document.write("<b>hi</b>");'),
+    ).toHaveLength(1);
+    expect(
+      discoverIdiomSites('f.ts', 'const y = d.getYear();'),
+    ).toHaveLength(1);
+    expect(
+      discoverIdiomSites(
+        'f.ts',
+        'const f = () => 1; const y = d.getFullYear(); const el = document.createElement("b"); const debuggerX = 1;',
+      ),
+    ).toEqual([]);
+
+    // (v) array-like slice.call and .constructor escape hatch flagged;
+    // Array.from and quoted data not. (One line matching several
+    // alternatives of ONE kind is a single hit — discovery is line×kind.)
+    expect(
+      discoverIdiomSites('f.ts', 'const xs = Array.prototype.slice.call(args);'),
+    ).toHaveLength(1);
+    expect(
+      discoverIdiomSites('f.ts', 'const proto = obj.constructor;'),
+    ).toHaveLength(1);
+    expect(
+      discoverIdiomSites('f.ts', "const xs = Array.from(args); const keys = ['constructor', 'prototype'];"),
+    ).toEqual([]);
+
+    // (w) fromCharCode and __proto__ flagged; fromCodePoint and comment
+    // lines not.
+    expect(
+      discoverIdiomSites('f.ts', 'const s = String.fromCharCode(cp);'),
+    ).toHaveLength(1);
+    expect(
+      discoverIdiomSites('f.ts', 'const merged = { __proto__: base, extra: 1 };'),
+    ).toHaveLength(1);
+    expect(
+      discoverIdiomSites('f.ts', 'const s = String.fromCodePoint(cp);\n// __proto__ comment line'),
     ).toEqual([]);
   });
 });

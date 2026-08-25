@@ -46,7 +46,27 @@
 ## 関連実装
 
 - guard: `tests/guards/dead-idiom-batch-census.test.ts`（kind registry +
-  liveness fixture (a)〜(h)）
+  liveness fixture (a)〜(w)）
 - 測定 script: `/tmp/measure.mjs`（walk = walkProductionSurface と同一）
 - 先行 family: REQ-405（fallback-default）・REQ-407（sort-receiver）/
   REQ-409（reduce-initial-value・parallel branch）
+
+## REQ-412 sweep #3（2026-08-25・Phase 219）
+
+- **計測**: 13 candidate class を detector 最終形と同一 regex で 331 file
+  に計測（`parseint-no-radix` の lookbehind `(?<![.\w$])` 追加は
+  `Number.parseInt(v, 10)` 誤検出の除外 — fixture 作成時に発見）。
+- **評決の内訳**: exact-0 pin 10 kind / VIOLATION unify 1 kind
+  （parseint-no-radix 5 site — 同一 file・同一 shape の cluster）/
+  ALLOWED 2 kind（from-char-code 5 site byte-domain・proto-key-literal
+  1 site sanitizer blocklist）/ pin 前棄却 1 class（Math.pow — `**` と
+  挙動完全一致のため style 嗜好の noise のみ）。
+- **byte-domain 判定の根拠**: fromCharCode は ToUint16 で code point
+  > 0xFFFF を黙って wrap するが、実測 5 site は PNG/APNG/GIF chunk-type・
+  version 構築（Uint8Array 要素読み 0..255）と RLE marker
+  （`count < 255` guard で上限）で fromCharCode が厳密に等価。
+  `fromCodePoint` 置換は可（stale-row で同一 commit の roster 更新を強制）。
+- **`>>> 0` の class 外 scoping**: CRC32（apng-encoder）と mulberry32
+  （layout-rng）は unsigned coercion として `>>> 0` を**要求**する
+  （32-bit unsigned accumulator）。bitwise-truncation kind は `~~` / `| 0`
+  のみを管轄 — bit 演算の正当利用を false-positive にしない scoping。

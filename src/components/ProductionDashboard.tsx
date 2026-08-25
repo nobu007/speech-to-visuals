@@ -153,7 +153,7 @@ export const ProductionDashboard: React.FC = () => {
               onChange={(e) => handleConfigUpdate({
                 performance: {
                   ...config.performance,
-                  maxConcurrentJobs: parseInt(e.target.value) || 1
+                  maxConcurrentJobs: parseInt(e.target.value, 10) || 1
                 }
               })}
             />
@@ -167,7 +167,7 @@ export const ProductionDashboard: React.FC = () => {
               onChange={(e) => handleConfigUpdate({
                 performance: {
                   ...config.performance,
-                  memoryLimit: parseInt(e.target.value) || 512
+                  memoryLimit: parseInt(e.target.value, 10) || 512
                 }
               })}
             />
@@ -184,7 +184,7 @@ export const ProductionDashboard: React.FC = () => {
               onChange={(e) => handleConfigUpdate({
                 performance: {
                   ...config.performance,
-                  timeoutMs: parseInt(e.target.value) || 60000
+                  timeoutMs: parseInt(e.target.value, 10) || 60000
                 }
               })}
             />
@@ -317,7 +317,7 @@ export const ProductionDashboard: React.FC = () => {
               onChange={(e) => handleConfigUpdate({
                 monitoring: {
                   ...config.monitoring,
-                  metricsCollectionInterval: parseInt(e.target.value) || 5000
+                  metricsCollectionInterval: parseInt(e.target.value, 10) || 5000
                 }
               })}
             />
@@ -356,7 +356,7 @@ export const ProductionDashboard: React.FC = () => {
                     ...config.monitoring,
                     alertThresholds: {
                       ...config.monitoring.alertThresholds,
-                      responseTime: parseInt(e.target.value) || 2000
+                      responseTime: parseInt(e.target.value, 10) || 2000
                     }
                   }
                 })}

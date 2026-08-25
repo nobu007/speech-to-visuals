@@ -9,7 +9,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-08-25
-**要件ID**: REQ-410（Phase 217 / TASK-0301・audit-pass-first census series family 19・**batch 形式**）→ **REQ-411 で sweep #2 拡張**（Phase 218 / TASK-0302）
+**要件ID**: REQ-410（Phase 217 / TASK-0301・audit-pass-first census series family 19・**batch 形式**）→ **REQ-411 で sweep #2 拡張**（Phase 218 / TASK-0302）→ **REQ-412 で sweep #3 拡張**（Phase 219 / TASK-0303）
 
 ## 概要
 
@@ -64,6 +64,34 @@ test-performance）は前回 Phase 217 に続き本 sweep でも再確認: 当�
 は本 repo に存在せず（`grep -rn "TASK-0378\|_TOL_" specs docs tests src` 0 件・
 Makefile 不在・npm scripts 運用）、**cross-repo contamination で本 repo には
 適用不能**（interview-record.md REQ-411 分析を参照）。
+
+## REQ-412: 第三回 discovery sweep（parseint-no-radix 5 site unify 同梱）
+
+steering 契約の 3 回目の適用。2026-08-25 の**第三回 discovery sweep** は
+同一 production surface（331 file）で **13 candidate class** を計測
+（detector 最終形と同一 regex・comment 行 skip は guard と同一実装）。
+このうち 1 class（`Math.pow(a, b)`）は **pin 前に棄却** — `a ** b` と
+挙動が完全一致し（負底の小数指数は両方 NaN・非 deopt も同じ）13 実測
+site に incident shape がゼロのため、pin は style 嗜好の恒久 roster
+noise になるのみ。残る **12 kind を registry に追加**（確認済み実測）:
+
+| kind | 実測 | 判定 |
+|------|------|------|
+| parseint-no-radix（radix なし `parseInt(s)`） | **5 site（src・同一 file）** | **VIOLATION — 同梱 unify**（`parseInt(…, 10)` 化・下記 REQ-412-002） |
+| bitwise-truncation（`~~` / `\| 0`） | 0 | exact-0 pin（`>>> 0` は CRC32/mulberry32 の必須 bit 演算で class 外） |
+| legacy-push-apply（`xs.push.apply(xs, ys)`） | 0 | exact-0 pin |
+| apply-null-spread（`f.apply(null, args)`） | 0 | exact-0 pin |
+| new-function-ctor（`new Function(…)`） | 0 | exact-0 pin |
+| deprecated-date-api（getYear/setYear/toGMTString） | 0 | exact-0 pin |
+| debugger-statement（stray `debugger`） | 0 | exact-0 pin |
+| document-write（`document.write(ln)?(`） | 0 | exact-0 pin |
+| arraylike-slice-call（`Array.prototype.slice.call`） | 0 | exact-0 pin |
+| constructor-index-access（`.constructor`） | 0 | exact-0 pin |
+| from-char-code（`String.fromCharCode(`） | **5 site（src）** | ALLOWED — 全 site が byte-domain（下記 REQ-412-003） |
+| proto-key-literal（`__proto__` 出現） | **1 site（src）** | ALLOWED — sanitizer blocklist 自身（REQ-412-004） |
+
+registry は **28 entry**（16 + 12・REQ-412 時点）。roster は **ALLOWED 9 key** /
+**ERADICATED 7 key**（REQ-395 census-artifact three-way 句・実測から build）。
 
 **信頼性レベル凡例**: 🔵 実測・既存正典・実 tree 観測から確実 / 🟡 拡張仮説・妥当な推測 / 🔴 未測定
 
@@ -153,6 +181,42 @@ Makefile 不在・npm scripts 運用）、**cross-repo contamination で本 repo
   `.sort()` 注入（comparator-less-sort 単独発火）、(c) rostered json-clone
   行の改変（negative anchor + stale-row 二段発火）— で RED を実測し、
   mutation-witness ledger に section を追記すること 🔵 *Phase 197 確立の単一 commit 同梱規約*
+- REQ-412-001: 第三回 sweep の 12 kind を同一 registry に追加すること
+  （class 追加 = 1 entry・新 spec dir も新 family も作らない・16→28 entry）。
+  各 kind の detector は liveness fixture (r)〜(w) で検出・非検出の両面を
+  検証すること（`Number.parseInt(v, 10)` 除外 lookbehind・`|| 0` falsy-guard
+  と `>>> 0` 必須 bit 演算の除外・`fn.apply(this, args)` 除外・
+  `getFullYear`/`createElement` 除外・`Array.from` 除外・`fromCodePoint`
+  除外を含む）🔵 *fixture (r) parseint・(s) bitwise・(t) apply-spread・(u) ctor/debugger/document/deprecated・(v) slice-call/constructor・(w) fromCharCode/__proto__*
+- REQ-412-002: parseint-no-radix の 5 site（`src/components/ProductionDashboard.tsx`
+  :156/:170/:187/:320/:359 — すべて同一 shape `parseInt(e.target.value) || N`
+  の number-input handler）は**同一 commit で `parseInt(…, 10)` に unify**
+  すること。decimal 文字列の parse 結果は等価（radix 10 は `0x`/legacy `0`
+  prefix 以外の default）・spelling は repo 正典形（`api/routes/monitoring.ts:34`
+  等）に合流・`parseInt('0x10') === 16` の hex 誘導面を構造的に遮断。
+  anchor は 5 site の spelling pin に加え**「5 件すべてが radix 形である
+  こと」の count 検証**を含むこと（4/5 の部分 regress を捕捉）🔵 *該当 suite 17/17 GREEN・tsc 両 config 0*
+- REQ-412-003: from-char-code の 5 site は **ALLOWED 判断**とすること。
+  根拠: 全 site が byte-domain — apng-encoder/export-verifier は PNG/APNG/GIF
+  の chunk-type・version 文字列を Uint8Array 要素読み（0..255）から構築し、
+  intelligent-cache は RLE marker として固定 255 と `count < 255` loop guard
+  で上限された count を渡す。fromCharCode は 0..255 で厳密。**teeth は生存**:
+  `String.fromCharCode` は ToUint16 wrap するため code point > 0xFFFF は
+  黙って破損し（`fromCharCode(65536) === '\0'`）、新規 site は unrostered
+  RED として判断を強制される。`fromCodePoint` への置換は可（同一 commit で
+  roster 行を shed する stale-row 連動）🔵 *5 site すべて引数域を実コード読みで確認*
+- REQ-412-004: proto-key-literal の 1 site
+  （`src/analysis/untrusted-json-core.ts:38`）は **ALLOWED 判断**とすること。
+  根拠: hit は prototype-pollution 防御自身の blocklist
+  （`PROTOTYPE_POLLUTION_KEYS` の string data）であり object-literal key では
+  ない。surface 上の他の `__proto__` 出現は全て comment 行（discovery skip
+  対象）。実 `__proto__:` key/assignment は unrostered RED 🔵 *detector 実測 1 hit・残り 4 出現の comment 行確認*
+- REQ-412-005: pin 前棄却の記録（REQ-411-003 の系列）: `Math.pow(a, b)` は
+  `a ** b` と挙動完全一致のため **kind にしないこと**（13 実測 site は
+  backoff/exponent 計算の正当利用。pin は style 嗜好の恒久 ALLOWED noise
+  のみを生む）。また bitwise-truncation kind は `~~` / `| 0` のみを管轄し
+  `>>> 0`（CRC32/mulberry32 の unsigned coercion）は**意図的に class 外**
+  とすることを guard header と本要件に明記すること 🔵 *挙動等価の実証（負底小数指数 NaN・deopt なし）と class 外 scoping の明示*
 
 ### 基本的な制約
 
@@ -164,7 +228,11 @@ Makefile 不在・npm scripts 運用）、**cross-repo contamination で本 repo
   safe 方向の誤検出）、(d) 文字列 literal 内の idiom text は false-positive
   になり ALLOWED 判断を強制する（census の設計意図）、(e) `@stv/core` 側
   file の修正は in-tree 不可（roster の CORE-TYPED 判断は core 自身の CI
-  への移譲）🟡 *契約範囲の明示（sibling census と同じ誠実さの慣行）*
+  への移譲）、(f) **REQ-412 kind の行粒度 ceiling** — parseint-no-radix は
+  単純単一引数 operand のみ（as-cast・nested-call operand は死角）、
+  bitwise-truncation は `~~`/`| 0` のみ（`>> 0`/`<< 0` truncation 綴りと
+  regex literal の `|0` alternation は非検出/誤検出の境界にある — 現行
+  surface で該当なし）🟡 *契約範囲の明示（sibling census と同じ誠実さの慣行）*
 
 ## 簡易ユーザーストーリー
 
@@ -232,7 +300,27 @@ Makefile 不在・npm scripts 運用）、**cross-repo contamination で本 repo
 **When**: 3 独立 mutation（`eval(` 注入 / `.sort()` 注入 / rostered json-clone 行改変）を適用する
 **Then**: 各 mutation で対応面が RED・revert で GREEN 復元
 
+### REQ-412-001〜004: sweep #3 kind の検出と固定
+
+**Given（前提条件）**: production surface 331 file に 12 class を追加計測（10 class exact-0・parseint-no-radix 5 site unify・from-char-code 5 site / proto-key-literal 1 site ALLOWED）
+**When（実行条件）**: `NODE_OPTIONS='--experimental-vm-modules --max-old-space-size=4096' npx jest --config jest.config.cjs --testPathPatterns dead-idiom-batch-census` を実行する
+**Then（期待結果）**: 8 test GREEN（同一 guard 内で kind 28 entry ratchet・fixture (r)〜(w) 拡張・ALLOWED 9 key / ERADICATED 7 key・three-way 句一致）
+
+**テストケース**:
+
+- [x] **TC-412-01**: authority の kind ratchet 28 entry・from-char-code floor >= 3・proto-key-literal floor >= 1 🔵
+- [x] **TC-412-02**: liveness fixture (r)〜(w)（12 kind の検出・非検出境界）🔵
+- [x] **TC-412-03**: ALLOWED 9 key / ERADICATED 7 key の three-way 句一致 🔵
+- [x] **TC-412-04**: unify 5 site の negative anchor（spelling pin ×1 + **全 5 件の radix count 検証**）と rostered ALLOWED 2 anchor（apng fromCharCode・untrusted-json-core blocklist）🔵
+- [x] **TC-412-05**: ProductionDashboard suite 17/17 GREEN・tsc 両 config exit 0（unify の回帰なし）🔵
+
+### REQ-412-005: MW-076 mutation 検証
+
+**Given**: guard が GREEN の tree
+**When**: 4 独立 mutation（`~~(1.9)` 注入 / unify site の radix revert / rostered fromCharCode 行の fromCodePoint 化 / `__proto__` literal 注入）を適用する
+**Then**: 各 mutation で対応面が RED（completeness / eradicated-reappear / stale-row / anchor の独立 leg）・revert で GREEN 復元
+
 ## 最小限の非機能要件
 
 - **性能**: 追加検証は既存 walk の行 scan のみ（file 再読みなし・guard 実行 < 1s）
-- **保守性**: kind registry は純 data + 純関数 detector で export し合成 fixture で境界検証。src 変更は unify 2 site のみ（それ以外 read-only census）。REQ-411 sweep #2 は **src 変更ゼロ**（実測 1 site は ALLOWED 判断・spec/guard のみ）
+- **保守性**: kind registry は純 data + 純関数 detector で export し合成 fixture で境界検証。src 変更は REQ-410 unify 2 site + REQ-412 unify 5 site（同一 file・同一 shape）のみ（それ以外 read-only census）。REQ-411 sweep #2 は **src 変更ゼロ**（実測 1 site は ALLOWED 判断・spec/guard のみ）

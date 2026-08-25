@@ -212,3 +212,100 @@ module の test 実行を即座に破壊する、(c) repo に既存 deep-clone h
 ### 信頼性レベル分布（REQ-411 追計分）
 
 **分析後**: 🔵 5（REQ-411-001〜005）/ 🟡 0
+
+---
+
+# REQ-412（第三回 discovery sweep）分析記録 — 2026-08-25
+
+## A-412-1: 第三回 sweep の候補選定と評決内訳
+
+**背景**: steering 契約（REQ-410 確立・REQ-411 定着）の 3 回目の適用。
+sweep #1/#2 が述語・legacy spelling 中心だったのに対し、sweep #3 は
+ctor/abort 系 API・bit 演算・radix の 3 系統から 13 candidate を選定。
+
+**手法**: detector 最終形と同一 regex を `walkProductionSurface()`
+（331 file・repo src/ 296 + @stv/core core-four 35）に走らせて計測
+（comment 行 skip は `isCommentLine` と同一実装・手動 grep と計数一致）。
+
+**評決内訳**:
+
+| 評決 | class | 実測 |
+|------|-------|------|
+| exact-0 pin | bitwise-truncation（`~~`/`\| 0` のみ）・legacy-push-apply・apply-null-spread・new-function-ctor・deprecated-date-api・debugger-statement・document-write・arraylike-slice-call・constructor-index-access（10 kind 中 9）+ parseint unify 後 | 0 |
+| VIOLATION unify | parseint-no-radix | 5（同一 file・同一 shape） |
+| ALLOWED roster | from-char-code・proto-key-literal | 5 + 1 |
+| pin 前棄却 | Math.pow（`**` と挙動完全一致） | 13 |
+
+**根拠**: `/tmp/sweep3.ts`（tsx で guard helper を直接 import する計測
+script）の出力・ProductionDashboard.tsx :156/:170/:187/:320/:359 の
+read・fromCharCode 5 site の引数域 read（Uint8Array 要素読み・
+`count < 255` loop guard）・untrusted-json-core.ts:38 の blocklist 定義 read。
+
+**信頼性への影響**: REQ-412-001〜005 を追加（🔵・実測と実コード read 付き）。
+
+## A-412-2: Math.pow の pin 前棄却（REQ-411-003 系列の 2 例目）
+
+**背景**: Math.pow は 13 site と sweep #3 最大の cluster。pin すれば
+kind 追加 + 13 ALLOWED row が必要。
+
+**判断**: 棄却。`Math.pow(a, b)` と `a ** b` は**挙動完全一致**（負底の
+小数指数は両方 NaN・ToNumber は同じ・V8 で両方同等に扱われる）。deprecated
+でも legacy でもなく、incident shape（黙判反転・resource 破壊・inject 面）
+が一切ない。pin は style 嗜好（`**` 派）を恒久 roster に強制するのみ。
+
+**REQ-411-003 との対比**: 同じ「棄却にも根拠を残す」系列だが理由が違う —
+`with`/`arguments.callee` は「tsc が常時弾くので teeth が重複」、
+Math.pow は「teeth が無い（挙動差ゼロ）」。両方の棄却理由型を記録した
+ことで将来の候補は「tsc 重複型」「挙動等価型」のどちらかで判定できる。
+
+**信頼性への影響**: REQ-412-005 に棄却根拠を明記（🔵）。
+
+## A-412-3: fromCharCode 5 site の ALLOWED 判断（byte-domain の実証）
+
+**背景**: `String.fromCharCode` は ToUint16 を適用するため code point
+> 0xFFFF は黙って wrap する（`fromCharCode(65536) === '\0'`）。
+`fromCodePoint` との差は実際の incident shape（サロゲート対の破損）。
+
+**判断**: 5 site すべて ALLOWED（byte-domain）:
+
+- `apng-encoder.ts:275` — PNG chunk type を `apng[pos+4..7]`（Uint8Array
+  要素 = 0..255）から構築
+- `export-verifier.ts:198` — GIF version `view[3..5]`（同上）
+- `export-verifier.ts:363` — PNG chunk type `view[offset+4..7]`（同上）
+- `intelligent-cache.ts:153/:163` — RLE marker `fromCharCode(255)` 固定値 +
+  `count` は `count < 255` loop guard で 1..255 に上限
+
+0..255 では fromCharCode は fromCodePoint と厳密に等価（サロゲート領域に
+到達しない）。**teeth は生存**: 新規 site が code point > 0xFFFF を渡すと
+unrostered RED として判断を強制される。`fromCodePoint` への置換も可
+（stale-row で同一 commit の roster 更新を強制）。
+
+**proto-key-literal 1 site**: hit は `PROTOTYPE_POLLUTION_KEYS` blocklist
+自身（防御が照合する string data）で object-literal key ではない。surface
+上の他の 4 出現は全て comment 行（discovery skip 済みを計測 script で確認）。
+
+**信頼性への影響**: REQ-412-003/004 を追加（🔵・引数域 read 付き）。
+
+## 分析結果サマリー（REQ-412 分の追計）
+
+### 確認できた事項
+
+- 13 candidate class の実測（331 file・detector 最終形と同一 regex）
+- parseint-no-radix 5 site が同一 file・同一 shape の VIOLATION cluster
+  であること（decimal 入力で等価・hex prefix で黙変換）
+- fromCharCode 5 site の引数域が全て 0..255 に bounded であること
+- Math.pow と `**` の挙動完全一致
+
+### 追加/変更要件
+
+- REQ-412-001〜005（12 kind 追加・unify 5 site・ALLOWED 2 kind・棄却記録・MW-076）
+
+### 残課題
+
+- `>> 0` / `<< 0` truncation 綴りは bitwise-truncation kind の死角
+  （現行 surface で該当なし・REQ-410-008 (f) に明記）
+- 跨ぎ行 idiom は引き続き AST pass が必要（sweep #1 からの持ち越し）
+
+### 信頼性レベル分布（REQ-412 追計分）
+
+**分析後**: 🔵 5（REQ-412-001〜005）/ 🟡 0
