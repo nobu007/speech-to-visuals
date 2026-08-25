@@ -9,7 +9,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-08-25
-**要件ID**: REQ-410（Phase 217 / TASK-0301・audit-pass-first census series family 19・**batch 形式**）
+**要件ID**: REQ-410（Phase 217 / TASK-0301・audit-pass-first census series family 19・**batch 形式**）→ **REQ-411 で sweep #2 拡張**（Phase 218 / TASK-0302）
 
 ## 概要
 
@@ -34,9 +34,36 @@ surface（repo src/ + @stv/core core-four・331 file）で 7 candidate class を
 | bare-hasOwnProperty（`.hasOwnProperty(` 直呼び） | 0 | exact-0 pin |
 
 Guard は単一 file `tests/guards/dead-idiom-batch-census.test.ts` の
-**kind registry**（`IDIOM_KINDS` 7 entry）で、class 追加は 1 entry 追加のみ
-（steering 契約）。roster は **ALLOWED 2 key** / **ERADICATED 2 key**（REQ-395
-census-artifact three-way 句・実測から build）。
+**kind registry**（`IDIOM_KINDS` 16 entry — REQ-411 sweep #2 で +9）で、
+class 追加は 1 entry 追加のみ（steering 契約）。roster は **ALLOWED 3 key** /
+**ERADICATED 2 key**（REQ-395 census-artifact three-way 句・実測から build）。
+
+## REQ-411: 第二回 discovery sweep（同一 batch guard への kind 追加）
+
+steering 契約の 2 回目の適用。2026-08-25 の **第二回 discovery sweep** は
+同一 production surface（331 file）で **11 candidate class** を計測。
+このうち 2 class（`with (…)`・`arguments.callee`）は **pin 前に棄却** —
+TS/ESM strict では両方とも SyntaxError で tsc が常時弾くため、guard に
+tsc の及ばない teeth が無い（冗長 pin は契約の趣旨に反する）。残る
+**9 kind を registry に追加**（確認済み実測）:
+
+| kind | 実測 | 判定 |
+|------|------|------|
+| direct-eval（`eval(` 直接呼び出し） | 0 | exact-0 pin |
+| timer-string-arg（`setTimeout('…')` 文字列引数） | 0 | exact-0 pin |
+| typeof-impossible-tag（`typeof x === 'array'` 等の不可能 tag） | 0 | exact-0 pin |
+| json-clone-idiom（`JSON.parse(JSON.stringify(…))`） | **1 site（src）** | ALLOWED — 下記 REQ-411-002 |
+| comparator-less-sort（comparator なし `.sort()`） | 0 | exact-0 pin |
+| instanceof-array（`instanceof Array`） | 0 | exact-0 pin |
+| empty-catch（空 catch・単行 shape） | 0 | exact-0 pin |
+| legacy-substr（`.substr(`） | 0 | exact-0 pin |
+| escape-unescape（`escape(` / `unescape(`） | 0 | exact-0 pin |
+
+steering 第 2〜4 条（TASK-0378・`_TOL_*` 許容差・Fraction 鎖・Makefile
+test-performance）は前回 Phase 217 に続き本 sweep でも再確認: 当該シンボル
+は本 repo に存在せず（`grep -rn "TASK-0378\|_TOL_" specs docs tests src` 0 件・
+Makefile 不在・npm scripts 運用）、**cross-repo contamination で本 repo には
+適用不能**（interview-record.md REQ-411 分析を参照）。
 
 **信頼性レベル凡例**: 🔵 実測・既存正典・実 tree 観測から確実 / 🟡 拡張仮説・妥当な推測 / 🔴 未測定
 
@@ -63,7 +90,9 @@ census-artifact three-way 句・実測から build）。
   (a) 未 roster hit は completeness RED、(b) roster 行は live hit に対応
   （stale row RED）、(c) `guardedBy` 違反は **roster があっても RED**（roster
   は「書かれた site as-is」への判定で guard 削除を免除しない）、(d) 
-  ERADICATED key の再出現は RED。roster は **ALLOWED 2 key / ERADICATED 2 key** 🔵 *実測 331 file walk・baseline pin（files >= 300・isFinite/for-in 各 >= 1）*
+  ERADICATED key の再出現は RED。roster は **ALLOWED 3 key / ERADICATED 2
+  key**（REQ-411 で json-clone 1 key 追加）🔵 *実測 331 file walk・baseline
+  pin（files >= 300・isFinite/for-in/json-clone 各 >= 1）*
 - REQ-410-003: coercing-isnan の 2 site（`src/remotion/srt-parser.ts:98`・
   `src/pipeline/quality-monitor.ts:637`）は **同一 commit で `Number.isNaN` に
   unify** すること。両 site とも operand が常に number（`parseInt(…, 10)` の
@@ -95,8 +124,35 @@ census-artifact three-way 句・実測から build）。
   doc の H1 と全文一致）🔵 *REQ-403〜407-005/006/007 の踏襲*
 - REQ-410-007: census-artifact three-way へ family 19 を登録すること
   （REQ-410 行・requirementsPath = 本 spec・authority list 12 family）。本
-  spec は measured roster から build された句 `ALLOWED 2 key` /
-  `ERADICATED 2 key` を宣言すること 🔵 *REQ-395 promoted condition の適用*
+  spec は measured roster から build された句 `ALLOWED 3 key` /
+  `ERADICATED 2 key` を宣言すること（REQ-411 時点の roster 実測値）🔵 *REQ-395 promoted condition の適用*
+- REQ-411-001: 第二回 sweep の 9 kind を同一 registry に追加すること
+  （class 追加 = 1 entry・新 spec dir も新 family も作らない）。各 kind の
+  detector は liveness fixture (i)〜(q) で検出・非検出の両面を検証すること
+  🔵 *fixture (i) eval・(j) timer-string・(k) impossible-tag・(l) json-clone・(m) comparator-less・(n) instanceof・(o) empty-catch・(p) substr・(q) escape*
+- REQ-411-002: json-clone-idiom の 1 site
+  （`src/optimization/adaptive-content-processor.ts:185`）は **ALLOWED 判断**
+  とすること。根拠: (a) `ProcessingStrategy`（同 file :12）は
+  string/number/enum-literal のみで構成され round-trip は損失なし、(b)
+  `structuredClone` は Node 24 に存在するが **jest vm context には存在しない**
+  （2026-08-25 実測 probe: typeof structuredClone === 'undefined' で fail）ため
+  unify は test 基盤を破壊する、(c) repo に既存 deep-clone helper なし
+  （`structuredClone|deepClone|cloneDeep` production 0 件）。interface に
+  non-JSON field（Date/Map/Set/undefined）が加わった時点で再判断（専用
+  clone 導入 or helper 化）を要すること 🔵 *実測 probe・型定義読み・ALLOWED row 理由文*
+- REQ-411-003: pin 前棄却の記録: `with` 文と `arguments.callee` は
+  TS/ESM strict 下で SyntaxError のため **kind にしないこと**（tsc が常時
+  弾く class への guard は teeth が tsc と重複し冗長）。棄却判断は spec
+  と guard header に記録すること 🔵 *tsc 両 config が baseline 0 である運用（Phase 169）との整合*
+- REQ-411-004: empty-catch kind は**単行 shape のみ**を管轄すること
+  （`catch (e) {` の `}` が後続行に置かれる形式・inline comment 入り空
+  catch は行 detector の死角 — 現存 0 件を detector + `grep -A1` pass で
+  確認済み）。ceiling は guard header の Documented ceilings に明記すること 🔵
+- REQ-411-005: mutation 検証（MW-075）は新 kind を代表する 3 独立 mutation
+  — (a) production file への `eval(` 注入（direct-eval 単独発火）、(b)
+  `.sort()` 注入（comparator-less-sort 単独発火）、(c) rostered json-clone
+  行の改変（negative anchor + stale-row 二段発火）— で RED を実測し、
+  mutation-witness ledger に section を追記すること 🔵 *Phase 197 確立の単一 commit 同梱規約*
 
 ### 基本的な制約
 
@@ -157,7 +213,26 @@ census-artifact three-way 句・実測から build）。
 **When**: spine-edge census を実行する
 **Then**: `PARENT_UNREGISTERED` ×4 で RED → parent 側 4 登録（表題 = 対象 doc H1 と全文一致）を同 commit で追加すると GREEN
 
+### REQ-411-001〜004: sweep #2 kind の検出と固定
+
+**Given（前提条件）**: production surface 331 file に 9 class を追加計測（8 class exact-0・json-clone 1 site ALLOWED）
+**When（実行条件）**: `NODE_OPTIONS='--experimental-vm-modules --max-old-space-size=4096' npx jest --config jest.config.cjs --testPathPatterns dead-idiom-batch-census` を実行する
+**Then（期待結果）**: 8 test GREEN（同一 guard 内で kind 16 entry ratchet・fixture (i)〜(q) 拡張・ALLOWED 3 key・three-way phrase 一致）
+
+**テストケース**:
+
+- [x] **TC-411-01**: authority の kind ratchet 16 entry・json-clone floor >= 1 🔵
+- [x] **TC-411-02**: liveness fixture (i)〜(q)（9 kind の検出・非検出境界）🔵
+- [x] **TC-411-03**: ALLOWED 3 key / ERADICATED 2 key の three-way 句一致 🔵
+- [x] **TC-411-04**: json-clone ALLOWED row の negative anchor（spelling pin・stale-row 連動）🔵
+
+### REQ-411-005: MW-075 mutation 検証
+
+**Given**: guard が GREEN の tree
+**When**: 3 独立 mutation（`eval(` 注入 / `.sort()` 注入 / rostered json-clone 行改変）を適用する
+**Then**: 各 mutation で対応面が RED・revert で GREEN 復元
+
 ## 最小限の非機能要件
 
 - **性能**: 追加検証は既存 walk の行 scan のみ（file 再読みなし・guard 実行 < 1s）
-- **保守性**: kind registry は純 data + 純関数 detector で export し合成 fixture で境界検証。src 変更は unify 2 site のみ（それ以外 read-only census）
+- **保守性**: kind registry は純 data + 純関数 detector で export し合成 fixture で境界検証。src 変更は unify 2 site のみ（それ以外 read-only census）。REQ-411 sweep #2 は **src 変更ゼロ**（実測 1 site は ALLOWED 判断・spec/guard のみ）

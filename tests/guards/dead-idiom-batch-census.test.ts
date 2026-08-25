@@ -13,6 +13,35 @@
  * installed @stv/core core-four — same walkProductionSurface as every other
  * census guard; 331 files) and measured SEVEN candidate classes:
  *
+ * The 2026-08-25 SECOND discovery sweep (REQ-411 / Phase 218, same walk)
+ * measured ELEVEN more candidate classes with the exact detectors below.
+ * Two were rejected BEFORE pinning — `with (…) {}` and `arguments.callee`
+ * are SyntaxErrors under TS/ESM strict, so tsc already blocks them and a
+ * guard would have no teeth tsc does not; the remaining nine joined the
+ * registry (this is the steering contract working: adding a kind is the
+ * whole cost of a confirmed-zero class):
+ *
+ *   kind                          measured  verdict
+ *   ----------------------------- --------- -------------------------------
+ *   direct-eval                   0         exact-0 pin
+ *   timer-string-arg              0         exact-0 pin
+ *   typeof-impossible-tag         0         exact-0 pin
+ *   json-clone-idiom              1 (src)   ALLOWED — ProcessingStrategy
+ *                                             (adaptive-content-processor)
+ *                                             is string/number/enum-literal
+ *                                             only, so the round-trip is
+ *                                             lossless; structuredClone is
+ *                                             absent from the jest vm
+ *                                             context (probed 2026-08-25),
+ *                                             so unifying breaks the test
+ *                                             bed — re-judge if a non-JSON
+ *                                             field ever joins the shape
+ *   comparator-less-sort          0         exact-0 pin
+ *   instanceof-array              0         exact-0 pin
+ *   empty-catch                   0         exact-0 pin (single-line shape)
+ *   legacy-substr                 0         exact-0 pin
+ *   escape-unescape               0         exact-0 pin
+ *
  *   kind                          measured  verdict
  *   ----------------------------- --------- -------------------------------
  *   coercing-isnan                2 (src)   VIOLATION — unified in-commit:
@@ -73,6 +102,13 @@
  *   - kind regexes are line text: string literals containing the idiom
  *     (e.g. a message `'a == b'`) can false-positive; any such hit simply
  *     demands an ALLOWED judgment, which is the census working as designed.
+ *   - empty-catch detects the SINGLE-LINE shape only: a `catch (e) {` whose
+ *     `}` sits on a later line, or an empty catch carrying an inline
+ *     comment, is invisible to a line detector (no such site exists on the
+ *     surface — measured with the detector below plus a grep -A1 pass).
+ *   - typeof-impossible-tag is pinned to the typo tags that can NEVER be
+ *     produced (`array/int/float/bool/double/long/decimal`); the real tags
+ *     (object/function/bigint/…) are legitimate comparisons and excluded.
  */
 
 import { describe, it, expect } from '@jest/globals';
@@ -153,6 +189,31 @@ export const IDIOM_KINDS: readonly IdiomKind[] = [
     detect: /for\s*\(\s*(?:const|let|var)\s+\w+\s+in\s/,
     guardedBy: forInBodyHasOwnKeyFilter,
   },
+  // --- REQ-411 second sweep (nine kinds, all measured on 2026-08-25) ---
+  // Direct eval: the code-injection incident shape itself.
+  { id: 'direct-eval', detect: /(?<![.\w$])eval\s*\(/ },
+  // `setTimeout("…")` parses the string as code — eval in disguise.
+  { id: 'timer-string-arg', detect: /set(?:Timeout|Interval)\(\s*['"`]/ },
+  // `typeof x === 'array'` is never true: typeof cannot produce these tags.
+  {
+    id: 'typeof-impossible-tag',
+    detect: /typeof\s+\w+\s*(?:!==?|===?)\s*['"](array|int|float|bool|double|long|decimal)['"]/,
+  },
+  // `JSON.parse(JSON.stringify(x))` drops undefined, mangles Date/Map/Set.
+  { id: 'json-clone-idiom', detect: /JSON\.parse\(\s*JSON\.stringify\(/ },
+  // `.sort()` with no comparator sorts NUMBERS lexicographically.
+  { id: 'comparator-less-sort', detect: /\.sort\s*\(\s*\)/ },
+  // `instanceof Array` is false for cross-realm arrays; Array.isArray is not.
+  { id: 'instanceof-array', detect: /instanceof\s+Array\b/ },
+  // An empty catch swallows the error silently (single-line shape only).
+  {
+    id: 'empty-catch',
+    detect: /catch\s*(?:\(\s*\w+\s*\))?\s*\{\s*\}/,
+  },
+  // substr is legacy; its negative-index behavior is slice's opposite.
+  { id: 'legacy-substr', detect: /\.substr\s*\(/ },
+  // escape/unescape are deprecated globals with non-UTF-8 semantics.
+  { id: 'escape-unescape', detect: /(?<![.\w$])(?:un)?escape\s*\(/ },
 ];
 
 /** One discovered idiom site, classified against its kind's context rule. */
@@ -208,6 +269,14 @@ const ALLOWED: Record<string, string> = {
   // [unguarded-for-in] the body opens with the own-key filter.
   'src/optimization/smart-parameter-tuner.ts:332':
     'GUARDED — body opens with `if (key in result)`, so prototype-chain keys never reach the blend.',
+  // [json-clone-idiom] ProcessingStrategy (adaptive-content-processor.ts:12)
+  // is string/number/enum-literal fields only, so the round-trip is
+  // lossless; structuredClone is ABSENT from the jest vm context (probed
+  // 2026-08-25: Node 24 has it, the jest vm sandbox does not), so unifying
+  // would break the test bed. Re-judge the moment a non-JSON field
+  // (Date/Map/Set/undefined) joins the interface.
+  'src/optimization/adaptive-content-processor.ts:185':
+    'JSON-SAFE — ProcessingStrategy is string/number/enum-literal only (lossless round-trip) and structuredClone is unavailable in the jest vm context; re-judge if a non-JSON field joins the interface.',
 };
 
 /**
@@ -229,12 +298,14 @@ describe('dead-idiom batch census (REQ-410)', () => {
 
   it('discovery has authority (the walk traversed the production surface)', () => {
     // Floor pins against the 2026-08-25 baseline: 331 swept files, with
-    // the two rostered classes still represented (1 core isFinite + 1
-    // for-in). A collapse means the walk rotted, not that the tree got
-    // cleaner. The five exact-0 kinds have no floor — zero is their pin.
+    // the three rostered classes still represented (1 core isFinite +
+    // 1 for-in + 1 json-clone). A collapse means the walk rotted, not that
+    // the tree got cleaner. The exact-0 kinds have no floor — zero is
+    // their pin.
     expect(walkProductionSurface().length).toBeGreaterThanOrEqual(300);
     expect(sites.filter((s) => s.kind === 'coercing-isfinite').length).toBeGreaterThanOrEqual(1);
     expect(sites.filter((s) => s.kind === 'unguarded-for-in').length).toBeGreaterThanOrEqual(1);
+    expect(sites.filter((s) => s.kind === 'json-clone-idiom').length).toBeGreaterThanOrEqual(1);
     // The kind registry is the steering contract — shrinking it is RED.
     expect(IDIOM_KINDS.map((k) => k.id)).toEqual([
       'coercing-isnan',
@@ -244,6 +315,15 @@ describe('dead-idiom batch census (REQ-410)', () => {
       'loose-equality-nonnullish',
       'bare-hasOwnProperty',
       'unguarded-for-in',
+      'direct-eval',
+      'timer-string-arg',
+      'typeof-impossible-tag',
+      'json-clone-idiom',
+      'comparator-less-sort',
+      'instanceof-array',
+      'empty-catch',
+      'legacy-substr',
+      'escape-unescape',
     ]);
   });
 
@@ -310,6 +390,14 @@ describe('dead-idiom batch census (REQ-410)', () => {
       // flip to Number.isFinite is fine — it only makes this row stale,
       // which the stale-row test catches).
       ['src/utils/audio-duration.ts', /!isFinite\(seconds\)/],
+      // The rostered json-clone keeps the judged spelling; replacing it
+      // with a real clone (when the interface grows a non-JSON field) is
+      // the intended follow-up — that edit makes this row stale (RED),
+      // forcing the roster to shed the row in the same change.
+      [
+        'src/optimization/adaptive-content-processor.ts',
+        /JSON\.parse\(JSON\.stringify\(baseStrategy\)\)/,
+      ],
     ];
     for (const [file, pattern] of anchors) {
       expect(`${file}: ${readSource(file)}`).toMatch(pattern);
@@ -386,5 +474,80 @@ describe('dead-idiom batch census (REQ-410)', () => {
     const rogue = discoverIdiomSites('f.ts', 'const bad = !isFinite(v);');
     expect(rogue).toHaveLength(1);
     expect(rogue[0].kind).toBe('coercing-isfinite');
+
+    // (i) direct eval flagged; member/identifier-spelled eval not.
+    expect(discoverIdiomSites('f.ts', 'const v = eval(expr);')).toHaveLength(1);
+    expect(
+      discoverIdiomSites('f.ts', 'const v = safeEval(expr); const w = obj.eval(x);'),
+    ).toEqual([]);
+
+    // (j) timer-string-arg flagged; function callback not.
+    expect(
+      discoverIdiomSites('f.ts', "setTimeout('doX()', 100);"),
+    ).toHaveLength(1);
+    expect(
+      discoverIdiomSites('f.ts', 'setTimeout(() => doX(), 100); setInterval(tick, 50);'),
+    ).toEqual([]);
+
+    // (k) typeof vs an impossible tag flagged in both polarities; the real
+    // tags (object/bigint/…) are legitimate and not the class.
+    expect(
+      discoverIdiomSites('f.ts', "if (typeof x === 'array') run();"),
+    ).toHaveLength(1);
+    expect(
+      discoverIdiomSites('f.ts', "if (typeof x !== 'int') run();"),
+    ).toHaveLength(1);
+    expect(
+      discoverIdiomSites(
+        'f.ts',
+        "if (typeof x === 'object') run(); if (typeof x === 'bigint') run();",
+      ),
+    ).toEqual([]);
+
+    // (l) json-clone idiom flagged; plain JSON.parse is not the class.
+    expect(
+      discoverIdiomSites('f.ts', 'const c = JSON.parse(JSON.stringify(cfg));'),
+    ).toHaveLength(1);
+    expect(discoverIdiomSites('f.ts', 'const v = JSON.parse(text);')).toEqual([]);
+
+    // (m) comparator-less sort flagged; comparator and typed sorts not.
+    expect(discoverIdiomSites('f.ts', 'const s = xs.sort();')).toHaveLength(1);
+    expect(
+      discoverIdiomSites('f.ts', 'const s = xs.sort((a, b) => a - b);'),
+    ).toEqual([]);
+
+    // (n) instanceof Array flagged; ArrayBuffer (a different global) not.
+    expect(
+      discoverIdiomSites('f.ts', 'if (xs instanceof Array) run();'),
+    ).toHaveLength(1);
+    expect(
+      discoverIdiomSites('f.ts', 'if (buf instanceof ArrayBuffer) run();'),
+    ).toEqual([]);
+
+    // (o) empty catch flagged (with and without binding); a logging body
+    // is not empty.
+    expect(
+      discoverIdiomSites('f.ts', 'try { f(); } catch (e) {}'),
+    ).toHaveLength(1);
+    expect(discoverIdiomSites('f.ts', 'try { f(); } catch {}')).toHaveLength(1);
+    expect(
+      discoverIdiomSites('f.ts', 'try { f(); } catch (e) { log(e); }'),
+    ).toEqual([]);
+
+    // (p) substr flagged; the modern slice/substring spellings not.
+    expect(discoverIdiomSites('f.ts', 'const t = s.substr(0, 3);')).toHaveLength(1);
+    expect(
+      discoverIdiomSites('f.ts', 'const t = s.slice(0, 3); const u = s.substring(0, 3);'),
+    ).toEqual([]);
+
+    // (q) escape/unescape flagged; encodeURIComponent is the safe form.
+    // (two lines: discovery is line×kind, so one line holding both
+    // spellings yields one hit — the census reads a line as a unit)
+    expect(
+      discoverIdiomSites('f.ts', 'const a = escape(u);\nconst b = unescape(u);'),
+    ).toHaveLength(2);
+    expect(
+      discoverIdiomSites('f.ts', 'const a = encodeURIComponent(u); const b = decodeURIComponent(u);'),
+    ).toEqual([]);
   });
 });

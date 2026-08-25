@@ -125,3 +125,90 @@ tasks/overview.md の形式 note に明記
 - **要件定義書**: [requirements.md](requirements.md)
 - **コンテキストノート**: [note.md](note.md)
 - **タスク概要**: [tasks/overview.md](tasks/overview.md)
+
+---
+
+# REQ-411 追加分析（第二回 discovery sweep・2026-08-25）
+
+## A-411-1: steering 第 2〜4 条（TASK-0378 / _TOL_* / Fraction 鎖 / Makefile test-performance）の適用可否
+
+**分析日時**: 2026-08-25
+**カテゴリ**: 技術選択
+**背景**: make-run steering が TASK-0378・`_TOL_MEAN`/`_TOL_*` 許容差・
+Fraction 鎖（ランク和・Friedman ループ）・Makefile `test-performance` の
+実行時間上限を改善対象に挙げた。
+
+**判断**: **cross-repo contamination で本 repo には適用不能**（前回
+Phase 217 と同一の結論を再確認）。
+**根拠**: `TASK-0378` 0 件・`_TOL_` 0 件・Makefile 不在（npm scripts 運用）・
+統計 Fraction 鎖を担う module なし（`Fraction` の grep hit は
+`iteration-manager.ts` / `visualization/types.ts` の無関係 field 名のみ・
+Friedman/ランク和 0 件）。正格有理数境界 class 自体が本 repo に存在しない。
+
+**信頼性への影響**:
+
+- steering の適用対象は第 1 条（batch 契約の継続）のみであり、REQ-411 は
+  それに従う（影響なし・判断記録のみ）
+
+## A-411-2: 第二回 sweep の候補選定と pin 前棄却
+
+**分析日時**: 2026-08-25
+**カテゴリ**: アーキテクチャ（guard 設計）
+**背景**: steering 契約「要件化の前に discovery sweep を先走らせ」の
+2 回目。候補 11 class を detector 最終形で 331 file に計測した。
+
+**判断**: 9 kind を registry 追加（8 class exact-0・json-clone 1 site は
+ALLOWED）。**2 class を pin 前に棄却**: `with` 文と `arguments.callee` は
+TS/ESM strict で SyntaxError のため tsc が常時弾き、guard の teeth が
+tsc と重複する冗長 pin になる。
+**根拠**: `find src + core-four（331 file）` に対する最終 detector での
+計測（`/tmp/surface.txt` と同一の file 集合・xargs grep）。tsc baseline 0
+運用（Phase 169）により構文混入は CI で即座に FAIL する。
+
+**信頼性への影響**:
+
+- REQ-411-001（9 kind 追加）と REQ-411-003（棄却記録）を追加（🔵）
+
+## A-411-3: json-clone 1 site の ALLOWED 判断（unify 不採用の根拠）
+
+**分析日時**: 2026-08-25
+**カテゴリ**: データモデル
+**背景**: `src/optimization/adaptive-content-processor.ts:185` の
+`JSON.parse(JSON.stringify(baseStrategy)) // Deep copy` が唯一の実測 hit。
+structuredClone への unify を検討した。
+
+**判断**: **ALLOWED（src 変更しない）**。
+**根拠**: (a) `ProcessingStrategy`（:12）は string/number/enum-literal
+のみの JSON-safe 型で round-trip は損失なし、(b) `structuredClone` は
+Node 24（v24.11.1）の global に存在するが **jest vm context には存在
+しない**（2026-08-25 実測 probe: `typeof structuredClone` が 'undefined'
+で fail — ESM vm sandbox が Node global を注入しない）。unify は該当
+module の test 実行を即座に破壊する、(c) repo に既存 deep-clone helper
+なし。interface が non-JSON field を得た時点の再判断を ALLOWED row の
+理由文に明記（stale-row + negative anchor が spelling 変更を RED にし、
+同一 commit での roster 更新を強制する）。
+
+**信頼性への影響**:
+
+- REQ-411-002（ALLOWED 判断と再判断条件）を追加（🔵・probe 実測付き）
+
+## 分析結果サマリー（REQ-411 分の追計）
+
+### 確認できた事項
+
+- 11 candidate class の実測（331 file・detector 最終形と同一 regex）
+- steering 第 2〜4 条の phantom 再確認（前回判定と不変）
+- jest vm context の structuredClone 欠落を実 probe で確認
+
+### 追加/変更要件
+
+- REQ-411-001〜005（9 kind 追加・ALLOWED 1 key・棄却記録・ceiling・MW-075）
+
+### 残課題
+
+- 跨ぎ行 idiom・複行 empty-catch は引き続き AST pass が必要（現存 0 件）
+- core 側 `audio-duration.ts:47` の isFinite 化は引き続き core CI 移譲
+
+### 信頼性レベル分布（REQ-411 追計分）
+
+**分析後**: 🔵 5（REQ-411-001〜005）/ 🟡 0
