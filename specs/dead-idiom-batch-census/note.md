@@ -91,3 +91,37 @@
   `declare global {` で :497/:502 の `var X: { prototype; new (): T }`
   は ambient 型宣言（runtime emit ゼロ・DOM-lib 正典形）。
   runtime `var` の新規出現は unrostered RED。
+
+## REQ-414 sweep #5（2026-08-25・Phase 221）
+
+- **計測**: 17 candidate class を detector 最終形と同一 regex で 331 file
+  （src + core-four）に計測（REQ-413 と同じ手順・src 単独 grep と core 側
+  grep の両方を実施）。
+- **評決の内訳**: exact-0 pin 11 kind（nan-comparison /
+  bitwise-not-indexof / throw-string / legacy-endswith /
+  legacy-datetime-now / unary-plus-date / concat-empty-coercion /
+  deprecated-keycode / caller-callee-access / document-all /
+  array-prototype-generic-call）/ ALLOWED 3 kind 各 1 site
+  （console-debug-log は core logger :20・process-exit は api/index :64・
+  tolocalestring-bare は core guards :114）/ pin 前棄却 3 class
+  （charCodeAt は投資不釣合型・assignment-in-condition は検出不可能型・
+  charAt は挙動等価型 — REQ-412-005 / REQ-413-003 で確立した 3 理由型の
+  それぞれ 2 例目）。
+- **core-file ALLOWED の帰属**: ALLOWED 2 key（logger :20・guards :114）
+  は @stv/core 側 file。worktree の `src/utils/` に実在しない rel でも
+  `readSource` の core-four routing で hit が解決するため roster key は
+  `src/...` 形式のまま（coercing-isfinite の前例と同じ扱い）。
+- **detector scoping の設計**: (a) unary-plus-date は lookbehind
+  `(?<==|\(|return)` で `= +new Date` / `(+new Date` / `return +new Date`
+  形のみを捉え、binary 文字列連結（`'at ' + new Date()...`）を除外。
+  (b) legacy-datetime-now は getTime/getMilliseconds/valueOf のみを管轄 —
+  `getHours()` は timezone 未依存の正当な local-field API（唯一の raw hit
+  advanced-layouts.ts:236 は class 外）。(c) tolocalestring-bare は引数
+  ゼロ形式のみ（explicit-locale 指定は class 外）。(d) concat-empty-coercion
+  は `+ ''` / `+ ""` 形のみ（quote 文字の組み立て `'"'` は誤検出のため
+  除外済み・probe で実証）。
+- **process-exit の文脈 pin**: api/index.ts:64 は gracefulShutdown の
+  epilogue（全 background service 停止 log の後）。negative anchor は
+  「log → exit」の順序を正規表現で固定し、library / pipeline / component
+  code への process.exit 出現は unrostered RED（MW-078 (c) で
+  stale-row + floor の双方向 teeth を実証）。

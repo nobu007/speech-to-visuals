@@ -9,7 +9,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-08-25
-**要件ID**: REQ-410（Phase 217 / TASK-0301・audit-pass-first census series family 19・**batch 形式**）→ **REQ-411 で sweep #2 拡張**（Phase 218 / TASK-0302）→ **REQ-412 で sweep #3 拡張**（Phase 219 / TASK-0303）→ **REQ-413 で sweep #4 拡張**（Phase 220 / TASK-0304）
+**要件ID**: REQ-410（Phase 217 / TASK-0301・audit-pass-first census series family 19・**batch 形式**）→ **REQ-411 で sweep #2 拡張**（Phase 218 / TASK-0302）→ **REQ-412 で sweep #3 拡張**（Phase 219 / TASK-0303）→ **REQ-413 で sweep #4 拡張**（Phase 220 / TASK-0304）→ **REQ-414 で sweep #5 拡張**（Phase 221 / TASK-0305）
 
 ## 概要
 
@@ -118,6 +118,43 @@ spread-apply（25 site）は計測全 site が入力有界（segment group・nod
 | var-declaration（行頭 `var `） | **2 site（src・同一 file）** | ALLOWED — 両 site とも `declare global { … }` 内の**型のみの ambient 宣言**（REQ-413-002） |
 
 registry は **35 entry**（28 + 7・REQ-413 時点）。roster は **ALLOWED 11 key** /
+**ERADICATED 7 key**（REQ-395 census-artifact three-way 句・実測から build）。
+
+## REQ-414: 第五回 discovery sweep（logger・process-exit・toLocaleString の 3 site ALLOWED 同梱）
+
+steering 契約の 5 回目の適用。2026-08-25 の**第五回 discovery sweep** は
+同一 production surface（331 file）で **17 candidate class** を計測
+（detector 最終形と同一 regex・comment 行 skip は guard と同一実装）。
+このうち 3 class は **pin 前に棄却**（下記 REQ-414-003）:
+`.charCodeAt(`（15 src site・core 0）は計測全 site が code-unit-domain 正利用
+（kana range は BMP・PNG/GIF chunk/header byte は ASCII・octal-escape
+builder は Latin-1・security compare は code unit を要求）で fix ゼロ
+（`Math.max(...xs)` と同じ投資不釣合型 — astral-plane text math site の
+出現時点で再計測）、`if (x = y)` assignment-in-condition は計測 15 hit
+全てが condition paren 内の arrow（`=>`）か正典 `while ((m = re.exec(src))
+!== null)` loop で行 regex は arrow-fat と assignment-equals を区別でき
+ない（検出不可能型）、`.charAt()` は bracket access と挙動等価（out-of-range
+'' vs undefined — 両 falsy・incident shape なし・Math.pow と同じ挙動等価型）。
+残る **14 kind を registry に追加**（確認済み実測）:
+
+| kind | 実測 | 判定 |
+|------|------|------|
+| nan-comparison（`x === NaN` 双方向） | 0 | exact-0 pin |
+| bitwise-not-indexof（`~xs.indexOf(y)` 系） | 0 | exact-0 pin |
+| throw-string（`throw '…'` / `throw \`…\``） | 0 | exact-0 pin |
+| legacy-endswith（`.lastIndexOf(x) === s.length - 1`） | 0 | exact-0 pin |
+| legacy-datetime-now（`new Date().getTime()/.valueOf()`） | 0 | exact-0 pin |
+| unary-plus-date（`+new Date`） | 0 | exact-0 pin |
+| concat-empty-coercion（`x + ''`） | 0 | exact-0 pin |
+| deprecated-keycode（`.keyCode` / `.which`） | 0 | exact-0 pin |
+| caller-callee-access（`.caller` / `.callee`） | 0 | exact-0 pin |
+| document-all（`document.all`） | 0 | exact-0 pin |
+| array-prototype-generic-call（slice 以外の `Array.prototype.X.call`） | 0 | exact-0 pin |
+| console-debug-log（`console.log/debug(`） | **1 site（core）** | ALLOWED — logger 自身の level-gated transport（REQ-414-002） |
+| process-exit（`process.exit(`） | **1 site（src）** | ALLOWED — gracefulShutdown の epilogue（REQ-414-002） |
+| tolocalestring-bare（引数なし `.toLocaleString()`） | **1 site（core）** | ALLOWED — safeToLocaleString 自身の有限数 delegation（REQ-414-002） |
+
+registry は **49 entry**（35 + 14・REQ-414 時点）。roster は **ALLOWED 14 key** /
 **ERADICATED 7 key**（REQ-395 census-artifact three-way 句・実測から build）。
 
 **信頼性レベル凡例**: 🔵 実測・既存正典・実 tree 観測から確実 / 🟡 拡張仮説・妥当な推測 / 🔴 未測定
@@ -275,6 +312,45 @@ registry は **35 entry**（28 + 7・REQ-413 時点）。roster は **ALLOWED 11
   `var`→`let` 化（stale-row + var-declaration floor >= 2 の 2 面発火）、(d)
   `.split('.').join('-')` 注入（split-join-replaceall 単独発火）— で RED
   を実測し、mutation-witness ledger に section を追記すること 🔵 *4 mutation とも offender list で kind 帰着を確認・revert 後 8/8 GREEN*
+- REQ-414-001: 第五回 sweep の 14 kind を同一 registry に追加すること
+  （class 追加 = 1 entry・新 spec dir も新 family も作らない・35→49 entry）。
+  各 kind の detector は liveness fixture (y1)〜(y14) で検出・非検出の両面を
+  検証すること（`Object.is(x, NaN)` と `Number.isNaN` 除外・`includes` と
+  単独 `indexOf` 除外・`new Error` throw 除外・`endsWith` 除外・
+  `Date.now()`/`getHours()` 除外・binary 文字列連結 `+ new Date()` 除外・
+  `String(x)`/`+ 'px'` 除外・`e.key` 除外・`.call`/`.map` 除外・
+  `Array.from` と slice 形の kind 帰着・`console.info/warn/error` と
+  `logger.debug` 除外・`process.exitCode` 除外・explicit-locale と
+  helper 経由除外を含む）🔵 *fixture (y) REQ-414 block*
+- REQ-414-002: console-debug-log・process-exit・tolocalestring-bare の
+  各 1 site は **ALLOWED 判断**とすること。根拠: (a) core logger :20 は
+  logger 自身の debug transport で隣接行の level gate
+  （`currentLogLevel <= LogLevel.DEBUG`・monitoring.logLevel 駆動）が
+ 稼働、(b) `src/api/index.ts:64` は gracefulShutdown の epilogue で
+  全 background service 停止・log 済みの後に到達する deliberate な終端
+  （SIGTERM/SIGINT handler 経由）、(c) core guards :114 は
+  safeToLocaleString 自身の有限数 branch（typeof+Number.isFinite gate の
+  中）で helper の目的そのもの。**teeth は生存**: それ以外の surface での
+  `console.log/debug`（stray debug trace）・library/pipeline/component 内の
+  `process.exit`・bare locale-default formatting（特に export/CSV/PDF 経路
+  — locale comma は data corruption）は unrostered RED。各 row に
+  negative anchor（level gate 隣接・shutdown log 順序・finite branch 共存）
+  を付けること 🔵 *3 site とも実コード読みで文脈を確認*
+- REQ-414-003: pin 前棄却の記録（REQ-411-003・REQ-412-005・REQ-413-003 の
+  系列）: (a) `.charCodeAt(` は 15 src site 全て code-unit-domain 正利用のため
+  **kind にしないこと**（15 row の per-site prose は full family 相当の
+  投資 — astral-plane text math site 出現時点で再計測を guard header に
+  明記）、(b) assignment-in-condition は行 detector に不可視のため kind に
+  しないこと（arrow `=>` と assignment `=` の区別に paren-depth parse が
+  必要・計測 15 hit は全て arrow か正典 `while ((m = re.exec(src)))` loop）、
+  (c) `.charAt()` は bracket access と挙動等価のため kind にしないこと
+  （実測 0 site・incident shape なし）🔵 *3 class とも実測 site 全数を読んでの棄却根拠*
+- REQ-414-004: mutation 検証（MW-078）は 4 独立 mutation — (a) production
+  file 末尾への `+new Date` 注入（unary-plus-date 単独発火）、(b) `throw
+  'rogue'` 注入（throw-string 単独発火）、(c) rostered `process.exit(0)` の
+  `process.exitCode = 0` 化（stale-row + process-exit floor >= 1 の 2 面
+  発火）、(d) `!!~items.indexOf(x)` 注入（bitwise-not-indexof 単独発火）—
+  で RED を実測し、mutation-witness ledger に section を追記すること 🔵 *4 mutation とも offender list で kind 帰着を確認・revert 後 8/8 GREEN*
 
 ### 基本的な制約
 
@@ -295,7 +371,15 @@ registry は **35 entry**（28 + 7・REQ-413 時点）。roster は **ALLOWED 11
   死角）・regexp-literal-ctor は escaped-quote を含む完全 literal 文字列
   （`'\''` で早期終了し非検出）・label-statement は `for`/`while` の
   label 形式のみ（object key / ternary は構文的に不可能だが `default:`
-  行の誤検出境界）🟡 *契約範囲の明示（sibling census と同じ誠実さの慣行）*
+  行の誤検出境界）、(h) **REQ-414 kind の行粒度 ceiling** —
+  unary-plus-date は `=`/`(`/`return` 直後の unary 綴りのみ
+  （`y || +new Date` は死角・binary 文字列連結 `'…' + new Date()` は
+  lookbehind で除外済み）・concat-empty-coercion は `''`/`""` のみ
+  （template literal 連結は死角）・deprecated-keycode の `.which` は
+  正当な `which` property access も hit する（false-positive は ALLOWED
+  判断を強制する census の設計意図）・tolocalestring-bare は引数ゼロ呼び
+  出し形のみ・nan-comparison は演算子前後の空白込み一致
+  （`x===NaN` 無空白形も検出・跨ぎ行は従来通り死角）🟡 *契約範囲の明示（sibling census と同じ誠実さの慣行）*
 
 ## 簡易ユーザーストーリー
 
@@ -383,7 +467,45 @@ registry は **35 entry**（28 + 7・REQ-413 時点）。roster は **ALLOWED 11
 **When**: 4 独立 mutation（`~~(1.9)` 注入 / unify site の radix revert / rostered fromCharCode 行の fromCodePoint 化 / `__proto__` literal 注入）を適用する
 **Then**: 各 mutation で対応面が RED（completeness / eradicated-reappear / stale-row / anchor の独立 leg）・revert で GREEN 復元
 
+### REQ-413-001〜004: sweep #4 kind の検出と固定
+
+**Given（前提条件）**: production surface 331 file に 10 candidate class を追加計測（6 class exact-0・var-declaration 2 site ALLOWED・3 class pin 前棄却）
+**When（実行条件）**: `NODE_OPTIONS='--experimental-vm-modules --max-old-space-size=4096' npx jest --config jest.config.cjs --testPathPatterns dead-idiom-batch-census` を実行する
+**Then（期待結果）**: 8 test GREEN（同一 guard 内で kind 35 entry ratchet・fixture (x1)〜(x7) 拡張・ALLOWED 11 key / ERADICATED 7 key・three-way 句一致）
+
+**テストケース**:
+
+- [x] **TC-413-01**: authority の kind ratchet 35 entry・var-declaration floor >= 2 🔵
+- [x] **TC-413-02**: liveness fixture (x1)〜(x7)（7 kind の検出・非検出境界）🔵
+- [x] **TC-413-03**: ALLOWED 11 key / ERADICATED 7 key の three-way 句一致 🔵
+- [x] **TC-413-04**: var ambient 2 site の negative anchor（`declare global {` block 内共存 pin）🔵
+
+### REQ-413-004: MW-077 mutation 検証
+
+**Given**: guard が GREEN の tree
+**When**: 4 独立 mutation（runtime `var` 注入 / `new Number(5)` 注入 / rostered ambient var の `let` 化 / `.split().join()` 注入）を適用する
+**Then**: 各 mutation で対応面が RED（completeness / stale-row + floor の 2 面）・revert で GREEN 復元
+
+### REQ-414-001〜004: sweep #5 kind の検出と固定
+
+**Given（前提条件）**: production surface 331 file に 17 candidate class を追加計測（11 class exact-0・3 class 各 1 site ALLOWED・3 class pin 前棄却）
+**When（実行条件）**: `NODE_OPTIONS='--experimental-vm-modules --max-old-space-size=4096' npx jest --config jest.config.cjs --testPathPatterns dead-idiom-batch-census` を実行する
+**Then（期待結果）**: 8 test GREEN（同一 guard 内で kind 49 entry ratchet・fixture (y1)〜(y14) 拡張・ALLOWED 14 key / ERADICATED 7 key・three-way 句一致）
+
+**テストケース**:
+
+- [x] **TC-414-01**: authority の kind ratchet 49 entry・console-debug-log / process-exit / tolocalestring-bare floor 各 >= 1 🔵
+- [x] **TC-414-02**: liveness fixture (y1)〜(y14)（14 kind の検出・非検出境界・slice 形の kind 帰着を含む）🔵
+- [x] **TC-414-03**: ALLOWED 14 key / ERADICATED 7 key の three-way 句一致 🔵
+- [x] **TC-414-04**: ALLOWED 3 site の negative anchor（level gate 隣接・shutdown log → exit 順序・finite branch 共存）🔵
+
+### REQ-414-004: MW-078 mutation 検証
+
+**Given**: guard が GREEN の tree
+**When**: 4 独立 mutation（`+new Date` 注入 / `throw 'rogue'` 注入 / rostered process.exit の exitCode 化 / `!!~items.indexOf(x)` 注入）を適用する
+**Then**: 各 mutation で対応面が RED（completeness / stale-row + floor の 2 面）・revert で GREEN 復元
+
 ## 最小限の非機能要件
 
 - **性能**: 追加検証は既存 walk の行 scan のみ（file 再読みなし・guard 実行 < 1s）
-- **保守性**: kind registry は純 data + 純関数 detector で export し合成 fixture で境界検証。src 変更は REQ-410 unify 2 site + REQ-412 unify 5 site（同一 file・同一 shape）のみ（それ以外 read-only census）。REQ-411 sweep #2 は **src 変更ゼロ**（実測 1 site は ALLOWED 判断・spec/guard のみ）
+- **保守性**: kind registry は純 data + 純関数 detector で export し合成 fixture で境界検証。src 変更は REQ-410 unify 2 site + REQ-412 unify 5 site（同一 file・同一 shape）のみ（それ以外 read-only census）。REQ-411 sweep #2・REQ-413 sweep #4・REQ-414 sweep #5 は **src 変更ゼロ**（実測 site は ALLOWED 判断・spec/guard のみ）

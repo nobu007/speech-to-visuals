@@ -385,3 +385,98 @@ browser-transcriber.ts:449 の `declare global {` block 内であることを
 ### 信頼性レベル分布（REQ-413 追計分）
 
 **分析後**: 🔵 4（REQ-413-001〜004）/ 🟡 0
+
+## A-414-1: 第五回 discovery sweep の候補選定と計測（2026-08-25）
+
+**背景**: REQ-410〜413 で構文・API の legacy 領域を採掘済み。sweep #5 は
+「比較演算の恒偽形・legacy spelling 系・実行環境破壊系・locale 決定論
+系」を対象に候補を立て、前回同様 src 単独 grep と core-four grep の
+両方で計測した（console-debug-log / tolocalestring-bare は core 側のみ
+に site があった — 両方計測の価値の再実証）。
+
+**計測結果（17 candidate）**:
+
+| candidate | src | core | 備考 |
+|-----------|-----|------|------|
+| `x === NaN` 双方向 | 0 | 0 | 恒偽比較（Object.is が NaN-safe 形） |
+| `~xs.indexOf(y)` 系 | 0 | 0 | bitwise-trick membership |
+| `throw '…'` / `` throw `…` `` | 0（prod）| 0 | test fixture 4 件は off-walk |
+| `.lastIndexOf(x) === s.length - 1` | 0 | 0 | pre-endsWith |
+| `new Date().getTime()/.valueOf()` | 0 | 0 | pre-Date.now（getHours は正規 API で class 外） |
+| `+new Date`（unary） | 0 | 0 | binary 連結 `'…' + new Date()` は lookbehind で除外 |
+| `x + ''` | 0 | 0 | legacy string coercion |
+| `.keyCode` / `.which` | 0 | 0 | deprecated event member |
+| `.caller` / `.callee` | 0 | 0 | strict-mode 禁止 member |
+| `document.all` | 0 | 0 | IE 検出 idiom |
+| `Array.prototype.X.call(`（slice 以外） | 0 | 0 | arraylike-slice-call の一般形 |
+| `console.log/debug(` | 0 | 1 | core logger 自身 |
+| `process.exit(` | 1 | 0 | api/index gracefulShutdown |
+| `.toLocaleString()`（引数なし） | 0 | 1 | core safeToLocaleString 内 |
+| `.charCodeAt(` | 15 | 0 | 棄却 (a) |
+| `if (x = y)` 系 | 15 | — | 棄却 (b) |
+| `.charAt(` | 0（prod）| 0 | 棄却 (c) |
+
+**判断**: 11 class を exact-0 kind 化、3 class を各 1 site の ALLOWED
+roster 化。ALLOWED 3 site の文脈はすべて実コード読みで確認
+（logger :20 の level gate は隣接行・api/index :64 は全 service 停止 log
+の後の epilogue・guards :114 は typeof+Number.isFinite gate 内）。
+
+**信頼性への影響**: REQ-414-001/002 を追加（🔵）。
+
+## A-414-2: pin 前棄却 3 class の根拠（REQ-414-003）
+
+- **`.charCodeAt(`（15 src site・core 0）**: 計測全 site が code-unit-domain
+  正利用 — language-detector の kana range 判定は BMP（:73/:103/:120）・
+  security-admin の constant-time compare は code unit を要求（:61）・
+  layout-rng の hash は code unit 加算（:21）・apng-encoder /
+  export-verifier / intelligent-cache の chunk-type・header・RLE marker
+  byte は ASCII/255 域（:60-63/:274/:189-191）・multi-format-exporter の
+  octal/hex escape は Latin-1/BMP（:790/:844/:719）。
+  codePointAt との差は astral plane でのみ出るため、現状 site に fix は
+  ゼロ。15 row の per-site prose は full family 相当の投資（Math.max
+  前例）— **astral-plane text math site 出現時点で再計測**を guard header
+  に明記して棚上げ。
+- **`if (x = y)` 系（15 hit）**: 計測 hit 全てが condition paren 内の
+  arrow（`.some(kp => …)` 等・diagram-detector :384 等）か正典
+  `while ((match = RE.exec(text)) !== null)` loop（scene-segmenter :385
+  等）。行 regex は arrow-fat `=>` と assignment `=` を paren depth なし
+  には区別できず、区別なし pin は全 arrow 内部表現を誤検出する純 noise。
+  REQ-413 `.map(async)` と同じ「消費側/構文脈で可否が決まる」検出不可能型。
+- **`.charAt()`（production 0 site）**: bracket access と挙動等価
+  （in-range は同一値・out-of-range は '' vs undefined の falsy 差のみ）。
+  実測 0 件かつ incident shape なし — Math.pow と同じ挙動等価型。
+  style 嗜好の ratchet は guard の「load-bearing, not style」契約を希釈
+  するため採らない。
+
+**REQ-413-003 との対比**: 棄却理由型の再利用 — 「投資不釣合型」
+（charCodeAt・Math.max と同型）・「検出不可能型」（arrow/構文脈・
+`.map(async)` と同型）・「挙動等価型」（charAt・Math.pow と同型）。
+3 理由型すべてに 2 例目が揃い、sweep #6 以降の棄却判断はこの分類に
+帰着可能になった。
+
+**信頼性への影響**: REQ-414-003 を追加（🔵・全 site read 根拠付き）。
+
+## 分析結果サマリー（REQ-414 分の追計）
+
+### 確認できた事項
+
+- 17 candidate class の実測（src + core-four・331 file）
+- console-debug-log / tolocalestring-bare が core 側のみの site であること
+  （両側計測の必要性を再実証）
+- ALLOWED 3 site の文脈（level gate 隣接・shutdown log → exit 順序・
+  finite branch 共存）が実コード読みで確認できたこと
+- charCodeAt 15 site 全てが code-unit-domain 正利用であること
+
+### 追加/変更要件
+
+- REQ-414-001〜004（14 kind 追加・3 site ALLOWED・棄却 3 class 記録・MW-078）
+
+### 残課題
+
+- 跨ぎ行 idiom は引き続き AST pass が必要（sweep #1 からの持ち越し）
+- unary-plus-date は `=`/`(`/`return` 直後形のみ（`y || +new Date` は
+  死角 — REQ-410-008 (h) に明記・現行 0 件）
+
+### 信頼性レベル分布（REQ-414 追計分）
+
+**分析後**: 🔵 4（REQ-414-001〜004）/ 🟡 0

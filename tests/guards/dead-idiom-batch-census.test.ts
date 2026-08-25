@@ -130,6 +130,54 @@
  *                                           any runtime `var` is an
  *                                           unrostered RED
  *
+ * The 2026-08-25 FIFTH discovery sweep (REQ-414 / Phase 221, same walk)
+ * measured SEVENTEEN more candidate classes. Three more were rejected BEFORE
+ * pinning — `.charCodeAt(` (15 sites) is code-unit-domain CORRECT at every
+ * measured site (kana ranges are BMP, PNG/GIF chunk+header bytes are ASCII,
+ * the octal-escape builder is Latin-1, the security compare WANTS code
+ * units), so the class carries zero fixes and a 15-row prose roster is a
+ * full family's investment for nothing (the Math.max(...xs) precedent:
+ * re-run the census the moment a site does astral-plane text math);
+ * `if (x = y)` assignment-in-condition is line-undetectable here because
+ * every measured hit is an arrow (`=>`) inside the condition parens or the
+ * canonical `while ((m = re.exec(src)) !== null)` loop — a line regex cannot
+ * tell arrow-fat from assignment-equals without paren-depth parsing; and
+ * `.charAt()` is behavior-equivalent to bracket access for every in-range
+ * read (out-of-range: '' vs undefined — both falsy, no incident shape), the
+ * same "挙動等価型" rejection class as Math.pow. The remaining FOURTEEN
+ * joined the registry:
+ *
+ *   kind                          measured  verdict
+ *   ----------------------------- --------- -------------------------------
+ *   nan-comparison                0         exact-0 pin (`x === NaN` is
+ *                                           always false; Object.is is the
+ *                                           NaN-safe spelling)
+ *   bitwise-not-indexof           0         exact-0 pin (`~xs.indexOf(y)`)
+ *   throw-string                  0         exact-0 pin (no stack, not
+ *                                           instanceof Error, breaks
+ *                                           catch-typing)
+ *   legacy-endswith               0         exact-0 pin
+ *                                           (`.lastIndexOf(x) === s.length-1`)
+ *   legacy-datetime-now           0         exact-0 pin
+ *                                           (`new Date().getTime()/.valueOf()`)
+ *   unary-plus-date               0         exact-0 pin (`+new Date`)
+ *   concat-empty-coercion         0         exact-0 pin (`x + ''`)
+ *   deprecated-keycode            0         exact-0 pin (`.keyCode` /
+ *                                           `.which`)
+ *   caller-callee-access          0         exact-0 pin (strict-mode
+ *                                           forbidden members)
+ *   document-all                  0         exact-0 pin
+ *   array-prototype-generic-call  0         exact-0 pin (non-slice
+ *                                           spellings; slice stays the
+ *                                           arraylike-slice-call kind's
+ *                                           own row)
+ *   console-debug-log             1 (core)  ALLOWED — the logger's own
+ *                                           level-gated debug transport
+ *   process-exit                  1 (src)   ALLOWED — the API server's
+ *                                           graceful-shutdown epilogue
+ *   tolocalestring-bare           1 (core)  ALLOWED — safeToLocaleString's
+ *                                           own finite-number delegation
+ *
  *
  *   kind                          measured  verdict
  *   ----------------------------- --------- -------------------------------
@@ -175,7 +223,7 @@
  * ALLOWED / ERADICATED are the census-artifact three-way blocks (REQ-395):
  * the requirements prose must declare `ALLOWED 2 key` / `ERADICATED 2 key`.
  *
- *   <!-- census-pin:F19:dead-idiom-batch ALLOWED 2 key / ERADICATED 2 key -->
+ *   <!-- census-pin:F19:dead-idiom-batch ALLOWED 14 key / ERADICATED 7 key -->
  *
  * Documented ceilings (same honesty as the sibling censuses):
  *   - line-level detection sees one line at a time: a `==` split across a
@@ -372,6 +420,69 @@ export const IDIOM_KINDS: readonly IdiomKind[] = [
   // canonical TS spelling — and sit in the ALLOWED roster below; any other
   // `var` on the surface is a runtime one and an unrostered RED.
   { id: 'var-declaration', detect: /^\s*var\s+\w/ },
+  // --- REQ-414 fifth sweep (fourteen kinds, all measured on 2026-08-25) ---
+  // `x === NaN` / `NaN !== x` is always false/true — NaN is the one value
+  // unequal to itself; Object.is(x, NaN) is the NaN-safe spelling.
+  {
+    id: 'nan-comparison',
+    detect:
+      /\bNaN\s*(?:===?|!==?)\s*[^\s=]|[^\s=!<>]\s*(?:===?|!==?)\s*NaN\b/,
+  },
+  // `~xs.indexOf(y)` (and `!!~…`) is the bitwise-trick spelling of `>= 0`.
+  {
+    id: 'bitwise-not-indexof',
+    detect: /[!~]~[\w$.]+\.(?:indexOf|lastIndexOf)\(/,
+  },
+  // `throw 'message'` throws a string: no stack trace, not instanceof Error.
+  { id: 'throw-string', detect: /throw\s+['"`]/ },
+  // `.lastIndexOf(x) === s.length - 1` is the pre-endsWith spelling.
+  {
+    id: 'legacy-endswith',
+    detect:
+      /\.lastIndexOf\([^)]*\)\s*(?:!==?|===?)\s*[\w$.]+\.length\s*-\s*1/,
+  },
+  // `new Date().getTime()` / `.valueOf()` is the legacy spelling of
+  // Date.now() (getHours etc. are NOT the class — they read local fields).
+  {
+    id: 'legacy-datetime-now',
+    detect:
+      /new Date\(\)\.get(?:Time|Milliseconds)\(\)|new Date\(\)\.valueOf\(\)/,
+  },
+  // Unary `+new Date` coerces the date to a number — Date.now() is the form.
+  // The lookbehind keeps BINARY string concat (`'…' + new Date()`) out;
+  // other unary spellings (`y || +new Date`) are a documented ceiling.
+  {
+    id: 'unary-plus-date',
+    detect: /(?<==|\(|return)\s*\+\s*new\s+Date\b/,
+  },
+  // `x + ''` is the legacy string coercion — String(x) is the explicit form.
+  { id: 'concat-empty-coercion', detect: /\+\s*(?:''|"")/ },
+  // `.keyCode` / `.which` are the deprecated keyboard/mouse event spellings
+  // (`key` / `button` are the modern members).
+  { id: 'deprecated-keycode', detect: /\.(?:keyCode|which)\b/ },
+  // Function.prototype.caller / arguments.callee are forbidden in strict
+  // mode, block optimizations, and break inlining.
+  { id: 'caller-callee-access', detect: /\.(?:caller|callee)\b/ },
+  // `document.all` is the dead IE detection idiom (a falsy "truthy" object).
+  { id: 'document-all', detect: /document\.all\b/ },
+  // `Array.prototype.X.call(…)` generic-call spellings other than slice
+  // (the slice spelling is the arraylike-slice-call kind's own row).
+  {
+    id: 'array-prototype-generic-call',
+    detect: /Array\.prototype\.(?!slice\b)\w+\.call\(/,
+  },
+  // Stray debug tracing on the production surface: console.log /
+  // console.debug outside the logger itself (info/warn/error are
+  // operational logging, not the class).
+  { id: 'console-debug-log', detect: /console\.(?:log|debug)\s*\(/ },
+  // process.exit tears the process down mid-flight; the one measured site is
+  // the API server's deliberate graceful-shutdown exit.
+  { id: 'process-exit', detect: /process\.exit\s*\(/ },
+  // Bare `.toLocaleString()` formats with the RUNTIME's default locale —
+  // output drifting across environments (locale commas in CSV/PDF export
+  // would be data corruption); explicit-locale / helper-gated spellings are
+  // the form.
+  { id: 'tolocalestring-bare', detect: /\.toLocaleString\s*\(\s*\)/ },
 ];
 
 /** One discovered idiom site, classified against its kind's context rule. */
@@ -468,6 +579,25 @@ const ALLOWED: Record<string, string> = {
     'AMBIENT-SYNTAX — inside declare global: `var SpeechRecognition: {…}` is the canonical TS spelling of a global ambient constructor var (type-only, no runtime emit).',
   'src/transcription/browser-transcriber.ts:502':
     'AMBIENT-SYNTAX — webkit-prefixed constructor var in the same declare-global block (type-only, no runtime emit).',
+  // [console-debug-log] the core logger's own debug sink — the level gate
+  // (`currentLogLevel <= LogLevel.DEBUG`, monitoring.logLevel-driven) is the
+  // adjacent line and console.debug IS the transport. A console.log/debug
+  // anywhere else on the surface is a stray debug trace and an unrostered
+  // RED.
+  'src/utils/logger.ts:20':
+    'LOGGER-IMPL — the logger itself: the debug method level gate (currentLogLevel <= LogLevel.DEBUG) is the adjacent line and console.debug is the transport; every other console.log/debug on the surface is a stray debug trace.',
+  // [process-exit] the API server entrypoint's deliberate terminal act —
+  // gracefulShutdown has already stopped/logged every background service by
+  // the time this line runs (SIGTERM/SIGINT handlers route here).
+  'src/api/index.ts:64':
+    'SERVER-EXIT — gracefulShutdown epilogue after every background service is stopped and logged (SIGTERM/SIGINT route here); a process.exit in library/pipeline/component code is an unrostered RED.',
+  // [tolocalestring-bare] safeToLocaleString's own finite-number return
+  // path delegates to the native formatter — the null/NaN gate IS the
+  // helper's purpose. A bare locale-default call elsewhere (especially in
+  // export/CSV/PDF paths where locale commas corrupt deterministic output)
+  // is an unrostered RED.
+  'src/utils/guards.ts:114':
+    'HELPER-DELEGATION — safeToLocaleString finite-number branch (typeof+Number.isFinite gated one line up); bare locale-default formatting elsewhere — locale commas in export output would be data corruption — is an unrostered RED.',
 };
 
 /**
@@ -510,6 +640,9 @@ describe('dead-idiom batch census (REQ-410)', () => {
     expect(sites.filter((s) => s.kind === 'from-char-code').length).toBeGreaterThanOrEqual(3);
     expect(sites.filter((s) => s.kind === 'proto-key-literal').length).toBeGreaterThanOrEqual(1);
     expect(sites.filter((s) => s.kind === 'var-declaration').length).toBeGreaterThanOrEqual(2);
+    expect(sites.filter((s) => s.kind === 'console-debug-log').length).toBeGreaterThanOrEqual(1);
+    expect(sites.filter((s) => s.kind === 'process-exit').length).toBeGreaterThanOrEqual(1);
+    expect(sites.filter((s) => s.kind === 'tolocalestring-bare').length).toBeGreaterThanOrEqual(1);
     // The kind registry is the steering contract — shrinking it is RED.
     expect(IDIOM_KINDS.map((k) => k.id)).toEqual([
       'coercing-isnan',
@@ -547,6 +680,20 @@ describe('dead-idiom batch census (REQ-410)', () => {
       'label-statement',
       'bare-encodeuri',
       'var-declaration',
+      'nan-comparison',
+      'bitwise-not-indexof',
+      'throw-string',
+      'legacy-endswith',
+      'legacy-datetime-now',
+      'unary-plus-date',
+      'concat-empty-coercion',
+      'deprecated-keycode',
+      'caller-callee-access',
+      'document-all',
+      'array-prototype-generic-call',
+      'console-debug-log',
+      'process-exit',
+      'tolocalestring-bare',
     ]);
   });
 
@@ -640,6 +787,26 @@ describe('dead-idiom batch census (REQ-410)', () => {
       [
         'src/transcription/browser-transcriber.ts',
         /declare global \{[\s\S]*\n  var SpeechRecognition: \{/,
+      ],
+      // The rostered core logger site keeps its level gate on the adjacent
+      // line — an unconditional console.debug (gate deleted) flips this
+      // anchor, forcing the row to be re-judged in the same change.
+      [
+        'src/utils/logger.ts',
+        /currentLogLevel <= LogLevel\.DEBUG\) \{\s*\n\s*console\.debug\(/,
+      ],
+      // The rostered process-exit stays the graceful-shutdown epilogue: the
+      // services-stopped log precedes it. Moving it ahead of the shutdown
+      // work (or into library code) fails this anchor.
+      [
+        'src/api/index.ts',
+        /logger\.info\('All background services shut down'\);[\s\S]*\n\s*process\.exit\(0\);/,
+      ],
+      // The rostered toLocaleString site stays the finite-number branch of
+      // safeToLocaleString (the null/NaN gate is the helper's whole point).
+      [
+        'src/utils/guards.ts',
+        /Number\.isFinite\(value\)\) return value\.toLocaleString\(\);/,
       ],
     ];
     for (const [file, pattern] of anchors) {
@@ -921,6 +1088,98 @@ describe('dead-idiom batch census (REQ-410)', () => {
     expect(discoverIdiomSites('f.ts', 'var legacy = 1;')).toHaveLength(1);
     expect(
       discoverIdiomSites('f.ts', 'const a = 1; let b = 2;\n// var commented = 3;'),
+    ).toEqual([]);
+
+    // (y) REQ-414 fifth-sweep kinds: each flags its dead form and leaves
+    // the modern spellings alone.
+    // (y1) NaN comparison flagged in both directions; Object.is and the
+    // Number.isNaN spelling not.
+    expect(
+      discoverIdiomSites('f.ts', 'if (x === NaN) run();\nif (NaN !== x) run();'),
+    ).toHaveLength(2);
+    expect(
+      discoverIdiomSites('f.ts', 'const ok = Object.is(x, NaN); const bad = Number.isNaN(x);'),
+    ).toEqual([]);
+    // (y2) the ~indexOf trick flagged (both !!~ and bare ~); includes and a
+    // plain indexOf read not.
+    expect(discoverIdiomSites('f.ts', 'const found = !!~xs.indexOf(y);')).toHaveLength(1);
+    expect(
+      discoverIdiomSites('f.ts', 'const found = xs.includes(y); const i = xs.indexOf(y);'),
+    ).toEqual([]);
+    // (y3) string/template throws flagged; an Error throw not.
+    expect(
+      discoverIdiomSites('f.ts', "throw 'boom';\nthrow `boom`;"),
+    ).toHaveLength(2);
+    expect(discoverIdiomSites('f.ts', "throw new Error('boom');")).toEqual([]);
+    // (y4) the lastIndexOf endsWith legacy flagged; endsWith not.
+    expect(
+      discoverIdiomSites('f.ts', "if (name.lastIndexOf('/') === name.length - 1) run();"),
+    ).toHaveLength(1);
+    expect(discoverIdiomSites('f.ts', "if (name.endsWith('/')) run();")).toEqual([]);
+    // (y5) legacy Date.now spellings flagged; Date.now() and the legitimate
+    // local-field readers (getHours) not.
+    expect(
+      discoverIdiomSites('f.ts', 'const t = new Date().getTime();\nconst v = new Date().valueOf();'),
+    ).toHaveLength(2);
+    expect(
+      discoverIdiomSites('f.ts', 'const t = Date.now(); const h = new Date().getHours();'),
+    ).toEqual([]);
+    // (y6) unary +new Date flagged; binary string concat with a Date not.
+    expect(discoverIdiomSites('f.ts', 'const t = +new Date;')).toHaveLength(1);
+    expect(
+      discoverIdiomSites('f.ts', "const s = 'at ' + new Date().toISOString();"),
+    ).toEqual([]);
+    // (y7) the + '' coercion flagged; String(x) and real suffix concat not.
+    expect(discoverIdiomSites('f.ts', "const s = x + '';")).toHaveLength(1);
+    expect(
+      discoverIdiomSites('f.ts', "const s = String(x); const q = a + 'px';"),
+    ).toEqual([]);
+    // (y8) keyCode/which flagged; the modern `key` member not.
+    expect(
+      discoverIdiomSites('f.ts', "if (e.keyCode === 13) run();\nif (ev.which === 1) run();"),
+    ).toHaveLength(2);
+    expect(discoverIdiomSites('f.ts', "if (e.key === 'Enter') run();")).toEqual([]);
+    // (y9) caller/callee flagged; .call and .map not.
+    expect(
+      discoverIdiomSites('f.ts', 'const c = fn.caller;\nconst a = arguments.callee;'),
+    ).toHaveLength(2);
+    expect(
+      discoverIdiomSites('f.ts', 'const c = obj.call; const m = xs.map(fn);'),
+    ).toEqual([]);
+    // (y10) document.all flagged (word-boundary); a longer property not.
+    expect(discoverIdiomSites('f.ts', 'if (document.all) run();')).toHaveLength(1);
+    expect(discoverIdiomSites('f.ts', 'if (document.allSupported) run();')).toEqual([]);
+    // (y11) non-slice Array.prototype generic calls flagged; the slice
+    // spelling stays the arraylike-slice-call kind's own single hit.
+    expect(
+      discoverIdiomSites('f.ts', 'Array.prototype.forEach.call(list, fn);'),
+    ).toHaveLength(1);
+    expect(discoverIdiomSites('f.ts', 'const xs = Array.from(list);')).toEqual([]);
+    const sliceForm = discoverIdiomSites(
+      'f.ts',
+      'const xs = Array.prototype.slice.call(args);',
+    );
+    expect(sliceForm).toHaveLength(1);
+    expect(sliceForm[0].kind).toBe('arraylike-slice-call');
+    // (y12) console.log/debug flagged (one line × one kind = one hit);
+    // info/warn/error and the logger facade not.
+    expect(
+      discoverIdiomSites('f.ts', "console.log('x'); console.debug('y');"),
+    ).toHaveLength(1);
+    expect(
+      discoverIdiomSites(
+        'f.ts',
+        "console.info('z'); console.warn('w'); console.error('e'); logger.debug('m');",
+      ),
+    ).toEqual([]);
+    // (y13) process.exit(…) flagged; the exitCode assignment not.
+    expect(discoverIdiomSites('f.ts', 'process.exit(1);')).toHaveLength(1);
+    expect(discoverIdiomSites('f.ts', 'process.exitCode = 1;')).toEqual([]);
+    // (y14) bare locale-default toLocaleString flagged; explicit-locale and
+    // helper-gated spellings not.
+    expect(discoverIdiomSites('f.ts', 'const s = n.toLocaleString();')).toHaveLength(1);
+    expect(
+      discoverIdiomSites('f.ts', "const s = n.toLocaleString('ja-JP'); const t = safeToLocaleString(n);"),
     ).toEqual([]);
   });
 });
