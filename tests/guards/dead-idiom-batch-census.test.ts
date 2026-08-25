@@ -178,6 +178,64 @@
  *   tolocalestring-bare           1 (core)  ALLOWED — safeToLocaleString's
  *                                           own finite-number delegation
  *
+ * The 2026-08-25 SIXTH discovery sweep (REQ-415 / Phase 222, same walk)
+ * measured TWENTY-THREE more candidate classes. One was rejected BEFORE
+ * pinning — `.substring(` (23 src sites) is behavior-identical to slice at
+ * every measured site (0-start truncations and Math.min/Max-normalized
+ * spans cannot hit the indexA>indexB swap that is the class's only incident
+ * shape), so the class carries zero fixes and a 23-row per-site prose
+ * roster is a full family's investment for nothing — the 投資不釣合型
+ * rejection (charCodeAt/Math.max(...xs) precedent, third example). The
+ * remaining TWENTY-TWO joined the registry:
+ *
+ *   kind                          measured  verdict
+ *   ----------------------------- --------- -------------------------------
+ *   legacy-trim-side              0         exact-0 pin (trimStart/trimEnd)
+ *   regexp-static-property        0         exact-0 pin (RegExp.$1 statics)
+ *   throw-object-literal          0         exact-0 pin (no stack / not
+ *                                           instanceof Error — throw-string's
+ *                                           own class)
+ *   throw-null                    0         exact-0 pin (same class)
+ *   javascript-url                0         exact-0 pin (inline-handler
+ *                                           vector / CSP violation)
+ *   blocking-dialog               1 (src)   ALLOWED — the GuardMetrics
+ *                                           reset button's destructive-action
+ *                                           confirm gate
+ *   legacy-xhr                    0         exact-0 pin (fetch is the form)
+ *   minified-boolean-literal      0         exact-0 pin (!0 / !1)
+ *   esm-require-call              0         exact-0 pin (`"type": "module"`
+ *                                           repo — CJS spellings are
+ *                                           runtime crashes; scripts/ tsx
+ *                                           shims are off-walk)
+ *   esm-module-exports            0         exact-0 pin
+ *   esm-cjs-global                0         exact-0 pin (__dirname etc.)
+ *   node-global-identifier        5 (src)   VIOLATION — unified in-commit:
+ *                                           `global.gc` → `globalThis.gc` at
+ *                                           all five lines (three spelling
+ *                                           shapes of ONE feature check);
+ *                                           `global` is undefined in
+ *                                           browsers/ESM bundles, so the two
+ *                                           unguarded sites were latent
+ *                                           ReferenceErrors and the typeof-
+ *                                           guarded site was a third spelling
+ *   direct-cookie-access          0         exact-0 pin
+ *   useragent-sniffing            3 (src)   ALLOWED — all three measured
+ *                                           sites REPORT the UA (telemetry
+ *                                           context / browser-name
+ *                                           diagnostics); none branches
+ *                                           behavior on it
+ *   localecompare-bare            0         exact-0 pin (default-locale sort
+ *                                           drift — tolocalestring-bare's
+ *                                           ordering twin)
+ *   intl-bare-default-locale      0         exact-0 pin
+ *   inner-html-assignment         0         exact-0 pin (the XSS sink)
+ *   window-implicit-event         0         exact-0 pin (IE event model)
+ *   event-returnvalue             0         exact-0 pin
+ *   string-html-method            0         exact-0 pin (Annex B wrappers)
+ *   legacy-define-getter          0         exact-0 pin (pre-ES5 accessors)
+ *   locale-sensitive-bare         0         exact-0 pin (locale-default
+ *                                           case conversion)
+ *
  *
  *   kind                          measured  verdict
  *   ----------------------------- --------- -------------------------------
@@ -223,7 +281,7 @@
  * ALLOWED / ERADICATED are the census-artifact three-way blocks (REQ-395):
  * the requirements prose must declare `ALLOWED 2 key` / `ERADICATED 2 key`.
  *
- *   <!-- census-pin:F19:dead-idiom-batch ALLOWED 14 key / ERADICATED 7 key -->
+ *   <!-- census-pin:F19:dead-idiom-batch ALLOWED 18 key / ERADICATED 12 key -->
  *
  * Documented ceilings (same honesty as the sibling censuses):
  *   - line-level detection sees one line at a time: a `==` split across a
@@ -483,6 +541,76 @@ export const IDIOM_KINDS: readonly IdiomKind[] = [
   // would be data corruption); explicit-locale / helper-gated spellings are
   // the form.
   { id: 'tolocalestring-bare', detect: /\.toLocaleString\s*\(\s*\)/ },
+  // --- REQ-415 sixth sweep (twenty-two kinds, all measured on 2026-08-25) ---
+  // trimLeft/trimRight are the Annex-B spellings; trimStart/trimEnd are ES2019.
+  { id: 'legacy-trim-side', detect: /\.trim(?:Left|Right)\s*\(/ },
+  // RegExp.$1 / lastMatch statics are Annex-B legacy and per-thread mutable.
+  {
+    id: 'regexp-static-property',
+    detect: /RegExp\s*[.[]\s*(?:\$\d|lastMatch|lastParen|input|\$[&+`])/,
+  },
+  // `throw {…}` shares throw-string's class: no stack, not instanceof Error,
+  // breaks catch-typing (throw-null is the same class's degenerate form).
+  { id: 'throw-object-literal', detect: /throw\s*\{/ },
+  { id: 'throw-null', detect: /throw\s+null\b/ },
+  // A `javascript:` URL is the inline-event-handler vector (and a CSP
+  // violation in any sandboxed deployment).
+  { id: 'javascript-url', detect: /['"`]javascript:/i },
+  // alert/confirm/prompt block the main thread for the WHOLE page and are
+  // silently no-ops in sandboxed iframes without allow-modals.
+  {
+    id: 'blocking-dialog',
+    detect: /(?<![.\w$])(?:window\.)?(?:alert|confirm|prompt)\s*\(/,
+  },
+  // XMLHttpRequest is the pre-fetch transport (callback hell, no streams).
+  { id: 'legacy-xhr', detect: /XMLHttpRequest/ },
+  // `!0` / `!1` minified booleans are unreadable in handwritten source.
+  {
+    id: 'minified-boolean-literal',
+    detect: /[=,({[?:;&|<>+\-*\/%^~]\s*!\s*[01]\b|^\s*!\s*[01]\b/,
+  },
+  // require()/module.exports/__dirname/__filename are CJS spellings; this
+  // repo is `"type": "module"`, so they are ReferenceError/undefined at
+  // runtime in ESM and browser contexts (scripts/ tsx shims are off-walk).
+  { id: 'esm-require-call', detect: /(?<![.\w$])require\s*\(/ },
+  { id: 'esm-module-exports', detect: /module\.exports|(^|\s)exports\.\w+\s*=/ },
+  { id: 'esm-cjs-global', detect: /__dirname|__filename/ },
+  // `global.` is the Node-only identifier — undefined in browsers and Vite
+  // ESM bundles (ReferenceError); globalThis is the portable spelling. The
+  // five measured sites were unified in-commit (see ERADICATED below).
+  { id: 'node-global-identifier', detect: /(?<![.\w$])global\s*\./ },
+  // document.cookie bypasses every storage abstraction the repo has.
+  { id: 'direct-cookie-access', detect: /document\.cookie/ },
+  // navigator.userAgent BRANCHING is the legacy capability check; feature
+  // detection is the form. The three measured sites are report-only.
+  { id: 'useragent-sniffing', detect: /navigator\.userAgent(?!\w)/ },
+  // Single-arg `.localeCompare(x)` compares with the RUNTIME default locale —
+  // sort order drifts across environments (the tolocalestring-bare drift
+  // class, applied to ordering); explicit-locale args are the form.
+  { id: 'localecompare-bare', detect: /\.localeCompare\s*\(\s*[\w$.'"]+\s*\)/ },
+  // A no-arg Intl ctor formats with the runtime default locale.
+  { id: 'intl-bare-default-locale', detect: /new\s+Intl\.\w+\s*\(\s*\)/ },
+  // `.innerHTML =` is THE XSS sink; dangerouslySetInnerHTML is React's form.
+  { id: 'inner-html-assignment', detect: /\.innerHTML\s*=/ },
+  // window.event / `.returnValue =` are the IE legacy event model.
+  { id: 'window-implicit-event', detect: /window\.event\b/ },
+  { id: 'event-returnvalue', detect: /\.returnValue\s*=/ },
+  // String's HTML wrapper methods (Annex B) build markup from strings.
+  {
+    id: 'string-html-method',
+    detect: /\.(?:anchor|big|blink|bold|fixed|fontcolor|fontsize|italics|link|small|strike|sub|sup)\s*\(/,
+  },
+  // __defineGetter__ / __lookupGetter__ are the pre-ES5 accessor spellings.
+  {
+    id: 'legacy-define-getter',
+    detect: /__define(?:Getter|Setter)__|__lookup(?:Getter|Setter)__/,
+  },
+  // Bare toLocaleUpperCase/toLocaleLowerCase case-fold with the runtime
+  // default locale (same drift class as tolocalestring-bare).
+  {
+    id: 'locale-sensitive-bare',
+    detect: /\.to(?:LocaleUpperCase|LocaleLowerCase)\s*\(\s*\)/,
+  },
 ];
 
 /** One discovered idiom site, classified against its kind's context rule. */
@@ -598,6 +726,22 @@ const ALLOWED: Record<string, string> = {
   // is an unrostered RED.
   'src/utils/guards.ts:114':
     'HELPER-DELEGATION — safeToLocaleString finite-number branch (typeof+Number.isFinite gated one line up); bare locale-default formatting elsewhere — locale commas in export output would be data corruption — is an unrostered RED.',
+  // [blocking-dialog] the dashboard reset button's deliberate
+  // destructive-action gate — confirm() IS the confirmation UX here (a
+  // blocking modal before wiping accumulated security metrics). A blocking
+  // dialog in any library/pipeline code path is an unrostered RED.
+  'src/components/GuardMetricsDashboard.tsx:90':
+    'CONFIRM-GATE — the reset button arms its destructive action with confirm(Reset all security metrics?) before reset(); blocking dialogs in non-UI flow (pipeline/library/api code) are an unrostered RED.',
+  // [useragent-sniffing] all three measured sites REPORT the UA (telemetry
+  // context / browser-name diagnostics) — none branches behavior on it. The
+  // capability decision in browser-transcriber is the feature detection one
+  // line up (`isRecognitionSupported`), not the UA string.
+  'src/monitoring/production-error-handler.ts:271':
+    'REPORT-ONLY — getBrowserInfo() fills a telemetry context object (userAgent/language/platform fields); no behavior branches on the string.',
+  'src/monitoring/production-error-handler.ts:461':
+    'REPORT-ONLY — telemetry payload field for error correlation; no behavior branches on the string.',
+  'src/transcription/browser-transcriber.ts:257':
+    'REPORT-ONLY — getBrowserCompatibility() diagnostics; the capability verdict is the feature detection (`isRecognitionSupported`), not the UA parse; a UA BRANCH is an unrostered RED.',
 };
 
 /**
@@ -619,6 +763,23 @@ const ERADICATED: Record<string, string> = {
     'unified 2026-08-25 (REQ-412) — parseInt(v) → parseInt(v, 10) in the metricsCollectionInterval number-input handler; identical for decimal strings, hex-prefix hardening, canonical spelling.',
   'src/components/ProductionDashboard.tsx:359':
     'unified 2026-08-25 (REQ-412) — parseInt(v) → parseInt(v, 10) in the alertThresholds.responseTime handler; identical for decimal strings, hex-prefix hardening, canonical spelling.',
+  // [node-global-identifier] `global` is the Node-only identifier: undefined
+  // in browsers and Vite ESM bundles, so the three unguarded sites
+  // (performance-dashboard :419, enhanced-error-recovery :284) were latent
+  // ReferenceErrors in any browser-reachable path, and main-pipeline's
+  // typeof-global spelling was a fourth spelling of one feature check.
+  // globalThis is defined in BOTH realms (ES2020) and gc presence stays a
+  // runtime feature check (--expose-gc), so semantics are identical.
+  'src/monitoring/performance-dashboard.ts:419':
+    'unified 2026-08-25 (REQ-415) — `if (global.gc) {` → `if (globalThis.gc) {`: globalThis exists in browsers too, so the memory-optimization branch no longer ReferenceErrors off-Node; the gc feature check is unchanged.',
+  'src/monitoring/performance-dashboard.ts:420':
+    'unified 2026-08-25 (REQ-415) — `global.gc();` → `globalThis.gc();` (same site as :419).',
+  'src/pipeline/main-pipeline.ts:1428':
+    'unified 2026-08-25 (REQ-415) — `if (typeof global !== "undefined" && global.gc)` → `if (globalThis.gc)`: the typeof guard existed only because `global` is browser-undefined; globalThis needs no guard and the spelling joins the two other sites.',
+  'src/pipeline/main-pipeline.ts:1429':
+    'unified 2026-08-25 (REQ-415) — `global.gc();` → `globalThis.gc();` (same site as :1428).',
+  'src/quality/enhanced-error-recovery.ts:284':
+    'unified 2026-08-25 (REQ-415) — `if (global.gc) global.gc();` → `if (globalThis.gc) globalThis.gc();`: unguarded `global` in the memory_cleanup preventive action was a latent browser ReferenceError; the feature check is unchanged.',
 };
 
 describe('dead-idiom batch census (REQ-410)', () => {
@@ -643,6 +804,8 @@ describe('dead-idiom batch census (REQ-410)', () => {
     expect(sites.filter((s) => s.kind === 'console-debug-log').length).toBeGreaterThanOrEqual(1);
     expect(sites.filter((s) => s.kind === 'process-exit').length).toBeGreaterThanOrEqual(1);
     expect(sites.filter((s) => s.kind === 'tolocalestring-bare').length).toBeGreaterThanOrEqual(1);
+    expect(sites.filter((s) => s.kind === 'blocking-dialog').length).toBeGreaterThanOrEqual(1);
+    expect(sites.filter((s) => s.kind === 'useragent-sniffing').length).toBeGreaterThanOrEqual(3);
     // The kind registry is the steering contract — shrinking it is RED.
     expect(IDIOM_KINDS.map((k) => k.id)).toEqual([
       'coercing-isnan',
@@ -694,6 +857,28 @@ describe('dead-idiom batch census (REQ-410)', () => {
       'console-debug-log',
       'process-exit',
       'tolocalestring-bare',
+      'legacy-trim-side',
+      'regexp-static-property',
+      'throw-object-literal',
+      'throw-null',
+      'javascript-url',
+      'blocking-dialog',
+      'legacy-xhr',
+      'minified-boolean-literal',
+      'esm-require-call',
+      'esm-module-exports',
+      'esm-cjs-global',
+      'node-global-identifier',
+      'direct-cookie-access',
+      'useragent-sniffing',
+      'localecompare-bare',
+      'intl-bare-default-locale',
+      'inner-html-assignment',
+      'window-implicit-event',
+      'event-returnvalue',
+      'string-html-method',
+      'legacy-define-getter',
+      'locale-sensitive-bare',
     ]);
   });
 
@@ -808,6 +993,25 @@ describe('dead-idiom batch census (REQ-410)', () => {
         'src/utils/guards.ts',
         /Number\.isFinite\(value\)\) return value\.toLocaleString\(\);/,
       ],
+      // The rostered confirm gate keeps arming the destructive reset — a
+      // direct reset() (gate deleted) fails this anchor, the stale-row test,
+      // AND the authority floor, forcing re-judgment in the same change.
+      [
+        'src/components/GuardMetricsDashboard.tsx',
+        /if \(confirm\('Reset all security metrics\?'\)\) reset\(\);/,
+      ],
+      // The rostered UA sites stay REPORT-ONLY (telemetry field /
+      // diagnostics read). A behavior branch on the UA string is not the
+      // rostered shape — it reads as a new site and lands in the offender
+      // list; swapping to a feature-detection report makes the rows stale.
+      ['src/monitoring/production-error-handler.ts', /userAgent: navigator\.userAgent,/],
+      ['src/transcription/browser-transcriber.ts', /const ua = navigator\.userAgent;/],
+      // The three unified gc sites keep the globalThis spelling — `global`
+      // is undefined in browsers/ESM bundles, so a revert is a latent
+      // ReferenceError AND an eradicated-reappear RED.
+      ['src/monitoring/performance-dashboard.ts', /if \(globalThis\.gc\) \{\s*\n\s*globalThis\.gc\(\);/],
+      ['src/pipeline/main-pipeline.ts', /if \(globalThis\.gc\) \{\s*\n\s*globalThis\.gc\(\);/],
+      ['src/quality/enhanced-error-recovery.ts', /if \(globalThis\.gc\) globalThis\.gc\(\);/],
     ];
     for (const [file, pattern] of anchors) {
       expect(`${file}: ${readSource(file)}`).toMatch(pattern);
@@ -820,6 +1024,20 @@ describe('dead-idiom batch census (REQ-410)', () => {
         /parseInt\(e\.target\.value, 10\)/g,
       ) ?? []).length,
     ).toBe(5);
+    // Same completeness pin for the globalThis unify: all five unified
+    // lines (six occurrences — the one-line recovery site carries two)
+    // across the three files at once.
+    expect(
+      [
+        'src/monitoring/performance-dashboard.ts',
+        'src/pipeline/main-pipeline.ts',
+        'src/quality/enhanced-error-recovery.ts',
+      ].reduce(
+        (sum, f) =>
+          sum + (readSource(f).match(/globalThis\.gc/g) ?? []).length,
+        0,
+      ),
+    ).toBe(6);
   });
 
   it('liveness: synthetic fixtures prove every kind detects its incident shape', () => {
@@ -1180,6 +1398,119 @@ describe('dead-idiom batch census (REQ-410)', () => {
     expect(discoverIdiomSites('f.ts', 'const s = n.toLocaleString();')).toHaveLength(1);
     expect(
       discoverIdiomSites('f.ts', "const s = n.toLocaleString('ja-JP'); const t = safeToLocaleString(n);"),
+    ).toEqual([]);
+
+    // (z) REQ-415 sixth-sweep kinds: each flags its dead form and leaves
+    // the modern spellings alone.
+    // (z1) trimLeft/trimRight flagged; trimStart/trimEnd not.
+    expect(
+      discoverIdiomSites('f.ts', 'const a = s.trimLeft();\nconst b = s.trimRight();'),
+    ).toHaveLength(2);
+    expect(
+      discoverIdiomSites('f.ts', 'const a = s.trimStart(); const b = s.trimEnd();'),
+    ).toEqual([]);
+    // (z2) RegExp statics flagged; match-array access not.
+    expect(discoverIdiomSites('f.ts', 'const m = RegExp.$1;')).toHaveLength(1);
+    expect(discoverIdiomSites('f.ts', 'const m = match[1]; const re = /x/;')).toEqual([]);
+    // (z3) throw of a literal / null flagged; Error throws not.
+    expect(
+      discoverIdiomSites('f.ts', 'throw { code: 1 };\nthrow null;'),
+    ).toHaveLength(2);
+    expect(discoverIdiomSites('f.ts', "throw new Error('x');")).toEqual([]);
+    // (z4) javascript: URL flagged; http(s)/data URLs not.
+    expect(
+      discoverIdiomSites('f.ts', "const u = 'javascript:void(0)';"),
+    ).toHaveLength(1);
+    expect(
+      discoverIdiomSites('f.ts', "const u = 'https://x.test/a'; const d = 'data:text/plain,hi';"),
+    ).toEqual([]);
+    // (z5) blocking dialogs flagged (bare and window-spelled); member and
+    // custom-spelled forms not.
+    expect(
+      discoverIdiomSites('f.ts', "if (confirm('ok?')) reset();\nwindow.alert('x');"),
+    ).toHaveLength(2);
+    expect(
+      discoverIdiomSites('f.ts', 'const v = myConfirm(x); dialogs.confirm = f;'),
+    ).toEqual([]);
+    // (z6) XMLHttpRequest flagged; fetch not.
+    expect(
+      discoverIdiomSites('f.ts', 'const x = new XMLHttpRequest();'),
+    ).toHaveLength(1);
+    expect(discoverIdiomSites('f.ts', 'const x = fetch(u);')).toEqual([]);
+    // (z7) minified booleans flagged; true/false and !== 0 not.
+    expect(
+      discoverIdiomSites('f.ts', 'const ok = !0;\nconst no = !1;'),
+    ).toHaveLength(2);
+    expect(
+      discoverIdiomSites('f.ts', 'const ok = true; const same = x !== 0; const diff = a !== 1;'),
+    ).toEqual([]);
+    // (z8) CJS spellings flagged (require / module.exports / __dirname /
+    // __filename); ESM spellings not.
+    expect(
+      discoverIdiomSites('f.ts', "const fs = require('fs');\nmodule.exports = run;\nconst d = __dirname;\nconst f = __filename;"),
+    ).toHaveLength(4);
+    expect(
+      discoverIdiomSites('f.ts', "import fs from 'node:fs';\nexport default run;\nconst here = import.meta.url;"),
+    ).toEqual([]);
+    // (z9) Node `global.` flagged; globalThis (the portable spelling) not.
+    expect(discoverIdiomSites('f.ts', 'if (global.gc) run();')).toHaveLength(1);
+    expect(discoverIdiomSites('f.ts', 'if (globalThis.gc) run(); const g = myGlobal.x;')).toEqual([]);
+    // (z10) document.cookie flagged; storage abstractions not.
+    expect(discoverIdiomSites('f.ts', 'const c = document.cookie;')).toHaveLength(1);
+    expect(discoverIdiomSites('f.ts', 'const c = localStorage.getItem(k);')).toEqual([]);
+    // (z11) navigator.userAgent flagged; feature detection not.
+    expect(
+      discoverIdiomSites('f.ts', 'const ua = navigator.userAgent;'),
+    ).toHaveLength(1);
+    expect(
+      discoverIdiomSites('f.ts', "if (typeof window.speechSynthesis !== 'undefined') run();"),
+    ).toEqual([]);
+    // (z12) single-arg default-locale localeCompare flagged; explicit-locale
+    // two-arg form not.
+    expect(
+      discoverIdiomSites('f.ts', 'const ord = a.localeCompare(b);'),
+    ).toHaveLength(1);
+    expect(
+      discoverIdiomSites('f.ts', "const ord = a.localeCompare(b, 'en');"),
+    ).toEqual([]);
+    // (z13) no-arg Intl ctor flagged; explicit-locale construction not.
+    expect(
+      discoverIdiomSites('f.ts', 'const fmt = new Intl.NumberFormat();'),
+    ).toHaveLength(1);
+    expect(
+      discoverIdiomSites('f.ts', "const fmt = new Intl.NumberFormat('ja-JP');"),
+    ).toEqual([]);
+    // (z14) innerHTML assignment flagged; textContent and React's
+    // dangerouslySetInnerHTML prop not.
+    expect(discoverIdiomSites('f.ts', 'el.innerHTML = html;')).toHaveLength(1);
+    expect(
+      discoverIdiomSites('f.ts', 'el.textContent = text; const r = <div dangerouslySetInnerHTML={{ __html: h }} />;'),
+    ).toEqual([]);
+    // (z15) window.event / .returnValue flagged; the standard event members
+    // (target, preventDefault) not.
+    expect(
+      discoverIdiomSites('f.ts', 'const t = window.event.type;\nel.returnValue = false;'),
+    ).toHaveLength(2);
+    expect(
+      discoverIdiomSites('f.ts', 'const t = e.target.value; e.preventDefault();'),
+    ).toEqual([]);
+    // (z16) String HTML wrapper methods flagged; real formatting calls not.
+    expect(discoverIdiomSites('f.ts', 'const h = name.bold();')).toHaveLength(1);
+    expect(
+      discoverIdiomSites('f.ts', 'const h = name.toUpperCase(); const l = xs.length;'),
+    ).toEqual([]);
+    // (z17) __defineGetter__/__lookupGetter__ flagged; defineProperty not.
+    expect(
+      discoverIdiomSites('f.ts', "obj.__defineGetter__('x', fn);"),
+    ).toHaveLength(1);
+    expect(
+      discoverIdiomSites('f.ts', "Object.defineProperty(obj, 'x', { get: fn });"),
+    ).toEqual([]);
+    // (z18) bare locale-default case conversion flagged; explicit-locale and
+    // locale-free forms not.
+    expect(discoverIdiomSites('f.ts', 'const a = s.toLocaleUpperCase();')).toHaveLength(1);
+    expect(
+      discoverIdiomSites('f.ts', "const a = s.toLocaleUpperCase('de'); const b = s.toUpperCase();"),
     ).toEqual([]);
   });
 });

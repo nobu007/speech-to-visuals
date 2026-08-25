@@ -125,3 +125,45 @@
   「log → exit」の順序を正規表現で固定し、library / pipeline / component
   code への process.exit 出現は unrostered RED（MW-078 (c) で
   stale-row + floor の双方向 teeth を実証）。
+
+## REQ-415 sweep #6（2026-08-25・Phase 222）
+
+- **計測**: 23 candidate class を detector 最終形と同一 regex で 331 file
+  （src + core-four）に計測。detector 改善（minified-boolean-literal の
+  前置演算子文脈 class + 行頭形・blocking-dialog の `window.` 修飾形式
+  取り込み・useragent-sniffing の `userAgentData` 除外 lookahead）の
+  たびに全候補を再計測し、最終形の hit 数で評決した。
+- **評決の内訳**: exact-0 pin 19 kind / **unify 1 kind 5 site**
+  （node-global-identifier — batch 形式初の VIOLATION cluster・
+  `global.gc` → `globalThis.gc`）/ ALLOWED 2 kind 4 site
+  （blocking-dialog は GuardMetricsDashboard :90 の confirm gate・
+  useragent-sniffing は production-error-handler :271/:461 と
+  browser-transcriber :257 の UA report-only）/ pin 前棄却 1 class
+  （legacy-substring 23 site — 投資不釣合型 3 例目）。
+- **`global.gc` unify の根拠**: Node では `global === globalThis`・
+  browser/ESM では `global` 未定義のため unguarded 2 site は潜在
+  ReferenceError。main-pipeline の `typeof global !== 'undefined'` guard
+  は `global` 綴りの workaround で `globalThis` では不要 — 3 file を
+  同一 shape に統一し anchor + count pin（合計 6 出現）で固定。
+  MW-079 (b) で revert が completeness + eradicated-reappear +
+  negative anchor の 3 独立面 RED を発火することを実測。
+- **blocking-dialog ALLOWED の条件**: confirm が破壊操作（security
+  metrics の全 reset）の直前 gate であることを anchor で固定。
+  gate 削除は MW-079 (c) で stale-row + floor + anchor の 3 面 RED。
+  UI flow 外（pipeline / library / api）の blocking dialog は
+  unrostered RED のまま。
+- **useragent-sniffing ALLOWED の条件**: 3 site とも UA の**参照**は
+  telemetry field / diagnostics 表示で**挙動分岐なし**。能力判定は
+  feature detection（`isRecognitionSupported` 等）が担っており、
+  UA 値による分岐復活は unrostered RED（negative anchor は
+  report-only 形を固定）。
+- **legacy-substring 棄却の根拠**: 23 site 全て `substring(0, N)`（0-start
+  切り詰め）か Math.min/max 正規化 span で、class 唯一の incident shape
+  （indexA > indexB の引数 swap）に到達不能。charCodeAt・Math.max(...xs)
+  と同型の投資不釣合 — swap 可能形出現時の再計測を guard header に明示。
+- **CJS 綴り 4 kind（esm-require-call / esm-module-exports /
+  esm-cjs-global / node-global-identifier）の位置づけ**: 本 repo は
+  ESM 統一のため src 側 0 件が期待値。将来の CJS 取り込み（file copy-in・
+  vendoring）や bundler 設定変更で混入した場合に最初の 1 file で RED。
+  `.ts` 拡張 import（ESM loader 実行）との混同は `require(`/`module.exports`
+  の綴り判定で構造的に回避。

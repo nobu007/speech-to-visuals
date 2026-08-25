@@ -9,7 +9,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-08-25
-**要件ID**: REQ-410（Phase 217 / TASK-0301・audit-pass-first census series family 19・**batch 形式**）→ **REQ-411 で sweep #2 拡張**（Phase 218 / TASK-0302）→ **REQ-412 で sweep #3 拡張**（Phase 219 / TASK-0303）→ **REQ-413 で sweep #4 拡張**（Phase 220 / TASK-0304）→ **REQ-414 で sweep #5 拡張**（Phase 221 / TASK-0305）
+**要件ID**: REQ-410（Phase 217 / TASK-0301・audit-pass-first census series family 19・**batch 形式**）→ **REQ-411 で sweep #2 拡張**（Phase 218 / TASK-0302）→ **REQ-412 で sweep #3 拡張**（Phase 219 / TASK-0303）→ **REQ-413 で sweep #4 拡張**（Phase 220 / TASK-0304）→ **REQ-414 で sweep #5 拡張**（Phase 221 / TASK-0305）→ **REQ-415 で sweep #6 拡張**（Phase 222 / TASK-0306）
 
 ## 概要
 
@@ -153,9 +153,32 @@ builder は Latin-1・security compare は code unit を要求）で fix ゼロ
 | console-debug-log（`console.log/debug(`） | **1 site（core）** | ALLOWED — logger 自身の level-gated transport（REQ-414-002） |
 | process-exit（`process.exit(`） | **1 site（src）** | ALLOWED — gracefulShutdown の epilogue（REQ-414-002） |
 | tolocalestring-bare（引数なし `.toLocaleString()`） | **1 site（core）** | ALLOWED — safeToLocaleString 自身の有限数 delegation（REQ-414-002） |
+| legacy-trim-side（`.trimLeft/trimRight(`） | 0 | exact-0 pin（REQ-415-001） |
+| regexp-static-property（`RegExp.$1` 系 statics） | 0 | exact-0 pin |
+| throw-object-literal（`throw {…}`） | 0 | exact-0 pin（throw-string と同 class） |
+| throw-null（`throw null`） | 0 | exact-0 pin（同 class の退化形） |
+| javascript-url（`'javascript:'` literal） | 0 | exact-0 pin（inline-handler vector・CSP 違反） |
+| blocking-dialog（`alert/confirm/prompt(`） | **1 site（src）** | ALLOWED — GuardMetrics reset 破壊操作の confirm gate（REQ-415-002） |
+| legacy-xhr（`XMLHttpRequest`） | 0 | exact-0 pin（fetch が正典） |
+| minified-boolean-literal（`!0` / `!1`） | 0 | exact-0 pin |
+| esm-require-call（`require(`） | 0 | exact-0 pin（`"type": "module"`・CJS 綴りは runtime crash） |
+| esm-module-exports（`module.exports` / `exports.x =`） | 0 | exact-0 pin |
+| esm-cjs-global（`__dirname` / `__filename`） | 0 | exact-0 pin |
+| node-global-identifier（`global.`） | **5 site（src）** | **VIOLATION — 同梱 unify**（`global.gc` → `globalThis.gc` ×5 行・REQ-415-001） |
+| direct-cookie-access（`document.cookie`） | 0 | exact-0 pin |
+| useragent-sniffing（`navigator.userAgent`） | **3 site（src）** | ALLOWED — 全 site report-only（telemetry 文脈・browser 名 diagnostics・能力判定は feature detection・REQ-415-002） |
+| localecompare-bare（引数 1 つ `.localeCompare(x)`） | 0 | exact-0 pin（default-locale sort drift） |
+| intl-bare-default-locale（引数なし `new Intl.X()`） | 0 | exact-0 pin |
+| inner-html-assignment（`.innerHTML =`） | 0 | exact-0 pin（XSS sink） |
+| window-implicit-event（`window.event`） | 0 | exact-0 pin（IE event model） |
+| event-returnvalue（`.returnValue =`） | 0 | exact-0 pin |
+| string-html-method（`.bold()` 等 Annex B wrapper） | 0 | exact-0 pin |
+| legacy-define-getter（`__defineGetter__` 系） | 0 | exact-0 pin |
+| locale-sensitive-bare（引数なし `.toLocaleUpperCase/LowerCase()`） | 0 | exact-0 pin |
+| legacy-substring（`.substring(`） | **23 site（src）** | **pin 前棄却 — 投資不釣合型**（全 site が 0-start 切り詰めか min/max 正規化 span で indexA>indexB swap 不可能・fix ゼロ・REQ-415-003） |
 
-registry は **49 entry**（35 + 14・REQ-414 時点）。roster は **ALLOWED 14 key** /
-**ERADICATED 7 key**（REQ-395 census-artifact three-way 句・実測から build）。
+registry は **71 entry**（49 + 22・REQ-415 時点）。roster は **ALLOWED 18 key** /
+**ERADICATED 12 key**（REQ-395 census-artifact three-way 句・実測から build）。
 
 **信頼性レベル凡例**: 🔵 実測・既存正典・実 tree 観測から確実 / 🟡 拡張仮説・妥当な推測 / 🔴 未測定
 
@@ -505,7 +528,37 @@ registry は **49 entry**（35 + 14・REQ-414 時点）。roster は **ALLOWED 1
 **When**: 4 独立 mutation（`+new Date` 注入 / `throw 'rogue'` 注入 / rostered process.exit の exitCode 化 / `!!~items.indexOf(x)` 注入）を適用する
 **Then**: 各 mutation で対応面が RED（completeness / stale-row + floor の 2 面）・revert で GREEN 復元
 
+### REQ-415-001〜004: sweep #6 kind の検出と固定
+
+**Given（前提条件）**: production surface 331 file に 23 candidate class を追加計測（20 class exact-0・blocking-dialog 1 site / useragent-sniffing 3 site ALLOWED・node-global-identifier 5 site unify・legacy-substring 23 site は pin 前棄却）
+**When（実行条件）**: `NODE_OPTIONS='--experimental-vm-modules --max-old-space-size=4096' npx jest --config jest.config.cjs --testPathPatterns dead-idiom-batch-census` を実行する
+**Then（期待結果）**: 8 test GREEN（同一 guard 内で kind 71 entry ratchet・fixture (z1)〜(z18) 拡張・ALLOWED 18 key / ERADICATED 12 key・three-way 句一致）
+
+**テストケース**:
+
+- [x] **TC-415-01**: authority の kind ratchet 71 entry・blocking-dialog / useragent-sniffing floor（各 >= 1 / >= 3）🔵
+- [x] **TC-415-02**: liveness fixture (z1)〜(z18)（22 kind の検出・非検出境界・CJS 4 綴り一括と window 修飾形式を含む）🔵
+- [x] **TC-415-03**: ALLOWED 18 key / ERADICATED 12 key の three-way 句一致 🔵
+- [x] **TC-415-04**: ALLOWED 4 site の negative anchor（confirm gate の破壊操作隣接・UA report-only 形）と unify 5 site の anchor + globalThis 出現 6 回 count pin（部分 revert 検出）🔵
+
+### REQ-415-003: pin 前棄却 class の記録（投資不釣合型 3 例目）
+
+- **`.substring(`（23 src site）**: 計測全 site が `substring(0, N)` 形の
+  0-start 切り詰め（fallback label 40 字・summary truncate）か
+  `Math.min/ Math.max` で正規化済みの span（diagram-detector :884 の
+  contextText 抽出）であって、class 唯一の incident shape である
+  indexA > indexB 引数 swap に到達しうる site が存在しない。fix ゼロの
+  23 row per-site prose は full family 相当の投資（charCodeAt・
+  Math.max(...xs) と同じ「投資不釣合型」・3 例目）。swap 可能形の site
+  出現時点で再計測を guard header に明記して棚上げ。
+
+### REQ-415-004: MW-079 mutation 検証
+
+**Given**: guard が GREEN の tree
+**When**: 4 独立 mutation（`new XMLHttpRequest()` 注入 / unify site の `global.gc` revert / rostered confirm gate の direct reset() 化 / `document.cookie` 読み注入）を適用する
+**Then**: 各 mutation で対応面が RED（completeness / eradicated-reappear + anchor / stale-row + floor + anchor の 3 面）・revert で GREEN 復元
+
 ## 最小限の非機能要件
 
 - **性能**: 追加検証は既存 walk の行 scan のみ（file 再読みなし・guard 実行 < 1s）
-- **保守性**: kind registry は純 data + 純関数 detector で export し合成 fixture で境界検証。src 変更は REQ-410 unify 2 site + REQ-412 unify 5 site（同一 file・同一 shape）のみ（それ以外 read-only census）。REQ-411 sweep #2・REQ-413 sweep #4・REQ-414 sweep #5 は **src 変更ゼロ**（実測 site は ALLOWED 判断・spec/guard のみ）
+- **保守性**: kind registry は純 data + 純関数 detector で export し合成 fixture で境界検証。src 変更は REQ-410 unify 2 site + REQ-412 unify 5 site + REQ-415 unify 5 site（同一 feature check の綴り統一）のみ（それ以外 read-only census）。REQ-411 sweep #2・REQ-413 sweep #4・REQ-414 sweep #5 は **src 変更ゼロ**（実測 site は ALLOWED 判断・spec/guard のみ）

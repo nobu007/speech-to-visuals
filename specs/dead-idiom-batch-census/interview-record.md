@@ -480,3 +480,116 @@ roster 化。ALLOWED 3 site の文脈はすべて実コード読みで確認
 ### 信頼性レベル分布（REQ-414 追計分）
 
 **分析後**: 🔵 4（REQ-414-001〜004）/ 🟡 0
+
+## A-415-1: 第六回 discovery sweep の候補選定と計測（2026-08-25）
+
+**背景**: REQ-410〜414 で legacy 構文・比較恒偽形・API 系を採掘済み。
+sweep #6 は「browser/Node 移植性・CJS/ESM 綴り・非同期 dialog・
+locale・legacy HTML API」面を対象に候補を立て、detector 最終形 regex
+を確定してから src + core-four 両方で再計測した（detector 改善の
+たびに再計測 — minified-boolean-literal は前置演算子文脈 class +
+行頭形に改善、blocking-dialog は `window.` 修飾形式を取り込み、
+useragent-sniffing は `userAgentData` 除外 lookahead を追加）。
+
+**計測結果（23 candidate）**:
+
+| candidate | src | core | 備考 |
+|-----------|-----|------|------|
+| `.trimLeft/Right(` | 0 | 0 | trimStart/End が正規形 |
+| `RegExp.$1` 系 static | 0 | 0 | legacy match capture |
+| `throw {` | 0 | 0 | throw は Error 系のみ |
+| `throw null` | 0 | 0 | 同上 |
+| `javascript:` URL | 0 | 0 | test は off-walk |
+| `alert/confirm/prompt(` | 1 | 0 | ALLOWED（confirm gate） |
+| `XMLHttpRequest` | 0 | 0 | fetch 世代 |
+| `= !0` / `!1` minified 真偽 | 0 | 0 | tsc が生成しない綴り |
+| `require(` | 0 | 0 | ESM 統一 |
+| `module.exports` / `exports.x=` | 0 | 0 | 同上 |
+| `__dirname` / `__filename` | 0 | 0 | 同上 |
+| `global.` | 5 | 0 | **unify**（globalThis.gc） |
+| `document.cookie` | 0 | 0 | storage helper 経由 |
+| `navigator.userAgent` 参照 | 3 | 0 | ALLOWED（report-only ×3） |
+| `.localeCompare(x)`（引数 1 つ） | 0 | 0 | locale は明示指定 |
+| `new Intl.X()`（引数なし） | 0 | 0 | 同上 |
+| `.innerHTML =` | 0 | 0 | React は setInnerHTML helper / dangerouslySetInnerHTML |
+| `window.event` | 0 | 0 | DOM 2 世代以降不存在 |
+| `.returnValue =`（event） | 0 | 0 | preventDefault 世代 |
+| `.anchor()/.bold()` 等 HTML 生成 | 0 | 0 | string HTML method |
+| `__defineGetter__` 系 | 0 | 0 | defineProperty 世代 |
+| `.toLocaleUpperCase()`（引数なし） | 0 | 0 | locale 明示指定 |
+| `.substring(` | 23 | — | 棄却（投資不釣合型 3 例目） |
+
+**判断**: 19 class を exact-0 kind 化、`global.` 5 site を
+`globalThis.gc` へ unify（batch 形式初の VIOLATION cluster 同梱 —
+REQ-412 parseint-no-radix と同型）、2 class 計 4 site を ALLOWED
+roster 化。ALLOWED 4 site の文脈はすべて実コード読みで確認
+（GuardMetricsDashboard :90 は reset 前の confirm gate・
+production-error-handler :271/:461 は telemetry 文脈 object への
+field 代入・browser-transcriber :257 は browser 名 diagnostics で
+能力判定は直前の feature detection）。
+
+**信頼性への影響**: REQ-415-001/002 を追加（🔵）。
+
+## A-415-2: `global.gc` 5 site unify の等価性根拠（REQ-415-002）
+
+**計測**: `(?<![.\w$])global\s*\.` の 5 site / 6 出現は全て gc 呼び出し
+— performance-dashboard :419-420（`if (global.gc)` + `global.gc()`）・
+main-pipeline :1428-1429（`typeof global !== 'undefined' && global.gc`
+guard + `global.gc()`）・enhanced-error-recovery :284
+（`if (global.gc) global.gc();`）。
+
+**等価性**: Node では `global === globalThis`（同一 object・
+`--expose-gc` の gc は globalThis 直下に露出）、browser/ESM bundle では
+`global` は未定義（bundlers の shim 有無は構成依存）で `globalThis` のみ
+ES2020 標準。よって (a) Node 実行下は完全同一挙動、(b) browser では
+`global.gc` の unguarded 評価は ReferenceError（潜在 crash）だが
+`globalThis.gc` は feature-miss の falsy、(c) main-pipeline の
+`typeof global !== 'undefined'` guard は `global` 綴りが原因の
+workaround で `globalThis` では不要。semantic 等価の綴り統一として
+3 file を同一 shape に整え、anchor + count pin（3 file 合計 6 出現）で
+部分 revert を検出（MW-079 (b) で 3 面 RED を実測）。
+
+**信頼性への影響**: REQ-415-002 を追加（🔵・仕様ベース等価性 +
+unify 後 walk 再計測 exact-0）。
+
+## A-415-3: pin 前棄却 legacy-substring の根拠（REQ-415-003）
+
+- **`.substring(`（23 src site）**: class 本義の incident shape は
+  `substring(indexA, indexB)` の**引数 swap**（legacy 仕様: indexA >
+  indexB で引数を交換する — slice と異なる non-monotonic 挙動）。
+  計測全 23 site は (i) `substring(0, N)` 形の 0-start 切り詰め
+  （truncate 系 — swap 不可能）か (ii) `Math.min/Math.max` 正規化
+  済み span（swap が発生しない引数順に明示的に並べた形）。到達可能
+  な bug 形が存在せず、fix ゼロの 23 row per-site prose は
+  charCodeAt・Math.max(...xs) と同型の投資不釣合 — **swap 可能形
+  出現時点で再計測**を guard header に明記して棚上げ（投資不釣合型
+  3 例目）。
+
+**信頼性への影響**: REQ-415-003 を追加（🔵・全 23 site 分類根拠付き）。
+
+## 分析結果サマリー（REQ-415 分の追計）
+
+### 確認できた事項
+
+- 23 candidate class の実測（src + core-four・331 file・detector 最終形
+  regex で再計測）
+- `global.gc` 5 site / 3 file が batch 形式初の VIOLATION cluster で
+  あったこと（portability 面で unify 価値あり）
+- ALLOWED 4 site の文脈（confirm gate・UA report-only ×3）が実コード
+  読みで確認できたこと
+- legacy-substring 23 site 全てが swap 不可能形であること
+
+### 追加/変更要件
+
+- REQ-415-001〜004（22 kind 追加・5 site unify・4 site ALLOWED・棄却
+  1 class 記録・MW-079）
+
+### 残課題
+
+- 跨ぎ行 idiom は引き続き AST pass が必要（sweep #1 からの持ち越し）
+- minified-boolean-literal の行頭形は template literal 内 `!0` を
+  拾う可能性（現行 0 件 — 文字列内 hit 時に detector 精密化）
+
+### 信頼性レベル分布（REQ-415 追計分）
+
+**分析後**: 🔵 4（REQ-415-001〜004）/ 🟡 0
