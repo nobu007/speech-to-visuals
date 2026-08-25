@@ -115,3 +115,23 @@ unify、from-char-code / proto-key-literal の実測 site は引数域・由来�
   （新規 guard file なし — batch 契約の趣旨）
 - byte-domain / blocklist 判定は引数域を実コード読みで確認
   （型だけでは判断しない — Phase 218 の structuredClone probe と同系列）
+
+## Phase 220: REQ-413 第四回 discovery sweep（var ambient 2 site ALLOWED 同梱）
+
+**目標**: batch 契約（kind 追加 = 1 entry）の 4 回目の適用。10 candidate
+を計測し、6 class を exact-0 pin、var-declaration 2 site を ambient 宣言
+根拠で ALLOWED roster 化、3 class（`.map(async`・`new Array(n)`・
+`Math.max(...xs)` 系）を検出不可能型/投資不釣合型として pin 前棄却。
+**成果物**: guard 7 kind 追加 + ALLOWED 2 key + fixture (x1)〜(x7) +
+spec 同梱更新 + MW-077
+
+### タスク一覧
+
+- [x] [TASK-0304: 第四回 discovery sweep — 同一 batch guard へ 7 kind 追加 + var ambient 2 site ALLOWED + 3 class pin 前棄却 + MW-077 mutation 検証](TASK-0304.md) - 2.5h (TDD) 🔵 ✅完了
+
+### 依存関係
+
+- Phase 217〜219 の `IDIOM_KINDS` registry と discovery primitive に直接追記
+  （新規 guard file なし — batch 契約の趣旨）
+- `declare global` 判定は block 開始行（:449）を実コード読みで確認
+  （「var が 2 つある」だけでなく ambient 文脈を検証）

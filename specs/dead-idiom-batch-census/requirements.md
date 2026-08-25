@@ -9,7 +9,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-08-25
-**要件ID**: REQ-410（Phase 217 / TASK-0301・audit-pass-first census series family 19・**batch 形式**）→ **REQ-411 で sweep #2 拡張**（Phase 218 / TASK-0302）→ **REQ-412 で sweep #3 拡張**（Phase 219 / TASK-0303）
+**要件ID**: REQ-410（Phase 217 / TASK-0301・audit-pass-first census series family 19・**batch 形式**）→ **REQ-411 で sweep #2 拡張**（Phase 218 / TASK-0302）→ **REQ-412 で sweep #3 拡張**（Phase 219 / TASK-0303）→ **REQ-413 で sweep #4 拡張**（Phase 220 / TASK-0304）
 
 ## 概要
 
@@ -91,6 +91,33 @@ noise になるのみ。残る **12 kind を registry に追加**（確認済み
 | proto-key-literal（`__proto__` 出現） | **1 site（src）** | ALLOWED — sanitizer blocklist 自身（REQ-412-004） |
 
 registry は **28 entry**（16 + 12・REQ-412 時点）。roster は **ALLOWED 9 key** /
+**ERADICATED 7 key**（REQ-395 census-artifact three-way 句・実測から build）。
+
+## REQ-413: 第四回 discovery sweep（var ambient 宣言 2 site ALLOWED 同梱）
+
+steering 契約の 4 回目の適用。2026-08-25 の**第四回 discovery sweep** は
+同一 production surface（331 file）で **10 candidate class** を計測
+（detector 最終形と同一 regex・comment 行 skip は guard と同一実装）。
+このうち 3 class は **pin 前に棄却**（下記 REQ-413-003）:
+`.map(async …)` は可否が**消費側**で決まる（promise 配列が await される
+かを行 detector は見られない — pin は純 noise。drop 形の `.forEach(async`
+は既存 kind が管轄）、`new Array(n)` preallocation（7 src site）は
+sized-assign / `.fill` 済みで hole-read 経路なし、`Math.max(...xs)` 系
+spread-apply（25 site）は計測全 site が入力有界（segment group・node
+座標・level key — cardinality は ~65k spread-arg 限界より桁違いに小さい）。
+残る **7 kind を registry に追加**（確認済み実測）:
+
+| kind | 実測 | 判定 |
+|------|------|------|
+| primitive-wrapper-ctor（`new Number/String/Boolean(`） | 0 | exact-0 pin |
+| arguments-index-access（`arguments[`） | 0 | exact-0 pin |
+| regexp-literal-ctor（完全 literal 単一引数 `new RegExp('…')`） | 0 | exact-0 pin（動的構築は class 外） |
+| split-join-replaceall（`.split(sep).join(repl)`） | 0（production surface） | exact-0 pin（repo hit 2 件は off-walk `__tests__` fixture） |
+| label-statement（`outer: for (`） | 0 | exact-0 pin |
+| bare-encodeuri（裸 `encodeURI(`） | 0 | exact-0 pin |
+| var-declaration（行頭 `var `） | **2 site（src・同一 file）** | ALLOWED — 両 site とも `declare global { … }` 内の**型のみの ambient 宣言**（REQ-413-002） |
+
+registry は **35 entry**（28 + 7・REQ-413 時点）。roster は **ALLOWED 11 key** /
 **ERADICATED 7 key**（REQ-395 census-artifact three-way 句・実測から build）。
 
 **信頼性レベル凡例**: 🔵 実測・既存正典・実 tree 観測から確実 / 🟡 拡張仮説・妥当な推測 / 🔴 未測定
@@ -217,6 +244,37 @@ registry は **28 entry**（16 + 12・REQ-412 時点）。roster は **ALLOWED 9
   のみを生む）。また bitwise-truncation kind は `~~` / `| 0` のみを管轄し
   `>>> 0`（CRC32/mulberry32 の unsigned coercion）は**意図的に class 外**
   とすることを guard header と本要件に明記すること 🔵 *挙動等価の実証（負底小数指数 NaN・deopt なし）と class 外 scoping の明示*
+- REQ-413-001: 第四回 sweep の 7 kind を同一 registry に追加すること
+  （class 追加 = 1 entry・新 spec dir も新 family も作らない・28→35 entry）。
+  各 kind の detector は liveness fixture (x1)〜(x7) で検出・非検出の両面を
+  検証すること（`Number(x)` 非 boxing 呼び出し除外・rest-param `args[0]`
+  除外・regex literal と動的 `new RegExp(src, 'i')` 除外・`replaceAll` と
+  split 単独除外・plain loop と object key 除外・`encodeURIComponent` 除外・
+  `let`/`const` と comment 行除外を含む）🔵 *fixture (x) REQ-413 block*
+- REQ-413-002: var-declaration の 2 site
+  （`src/transcription/browser-transcriber.ts:497/:502`）は **ALLOWED 判断**
+  とすること。根拠: 両 site とも `declare global { … }`（:449）block 内の
+  **型のみの ambient 宣言**（`var X: { prototype; new (): T }` — DOM-lib
+  正典形の `declare var SpeechRecognition` 相当）で runtime emit ゼロ。
+  **teeth は生存**: runtime `var`（hoisting・block scope なし）はどこに
+  現れても unrostered RED として判断を強制される。negative anchor は
+  `declare global {` block 内の `var SpeechRecognition: {` 共存を pin する
+  こと（block 外移動は completeness 発火・別 ambient spelling への変更は
+  stale-row 発火）🔵 *declare global が :449 にあることを実コード読みで確認*
+- REQ-413-003: pin 前棄却の記録（REQ-411-003・REQ-412-005 の系列）:
+  (a) `.map(async …)` は kind にしないこと（可否は**消費側**で決まり行
+  detector に見えない — drop 形の `.forEach(async` は既存 kind が管轄）、
+  (b) `new Array(n)` preallocation（7 src site）は sized-assign / `.fill`
+  済みで incident shape なし、(c) `Math.max(...xs)` 系 spread-apply
+  （25 site）は計測全 site が入力有界 — per-site 有界性 prose は
+  confirmed-clean class に full family 相当の投資を強いるため**無限界入力
+  site が出現した時点で再計測**を guard header に明記すること 🔵 *3 class とも実測 site 全数を読んでの棄却根拠*
+- REQ-413-004: mutation 検証（MW-077）は 4 独立 mutation — (a) production
+  file への runtime `var` 注入（var-declaration 単独発火）、(b) `new Number(5)`
+  注入（primitive-wrapper-ctor 単独発火）、(c) rostered ambient var の
+  `var`→`let` 化（stale-row + var-declaration floor >= 2 の 2 面発火）、(d)
+  `.split('.').join('-')` 注入（split-join-replaceall 単独発火）— で RED
+  を実測し、mutation-witness ledger に section を追記すること 🔵 *4 mutation とも offender list で kind 帰着を確認・revert 後 8/8 GREEN*
 
 ### 基本的な制約
 
@@ -232,7 +290,12 @@ registry は **28 entry**（16 + 12・REQ-412 時点）。roster は **ALLOWED 9
   単純単一引数 operand のみ（as-cast・nested-call operand は死角）、
   bitwise-truncation は `~~`/`| 0` のみ（`>> 0`/`<< 0` truncation 綴りと
   regex literal の `|0` alternation は非検出/誤検出の境界にある — 現行
-  surface で該当なし）🟡 *契約範囲の明示（sibling census と同じ誠実さの慣行）*
+  surface で該当なし）、(g) **REQ-413 kind の行粒度 ceiling** —
+  split-join-replaceall は `[^)]*` 引数（nested paren を含む split 引数は
+  死角）・regexp-literal-ctor は escaped-quote を含む完全 literal 文字列
+  （`'\''` で早期終了し非検出）・label-statement は `for`/`while` の
+  label 形式のみ（object key / ternary は構文的に不可能だが `default:`
+  行の誤検出境界）🟡 *契約範囲の明示（sibling census と同じ誠実さの慣行）*
 
 ## 簡易ユーザーストーリー
 

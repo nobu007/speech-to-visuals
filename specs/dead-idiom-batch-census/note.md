@@ -70,3 +70,24 @@
   （layout-rng）は unsigned coercion として `>>> 0` を**要求**する
   （32-bit unsigned accumulator）。bitwise-truncation kind は `~~` / `| 0`
   のみを管轄 — bit 演算の正当利用を false-positive にしない scoping。
+
+## REQ-413 sweep #4（2026-08-25・Phase 220）
+
+- **計測**: 10 candidate class を detector 最終形と同一 regex で 331 file
+  （src + core-four）に計測。src 単独 grep と core 側 grep の両方で実施
+  （coercing-isfinite の前例に倣い core も必ず測る）。
+- **評決の内訳**: exact-0 pin 6 kind（primitive-wrapper-ctor /
+  arguments-index-access / regexp-literal-ctor / split-join-replaceall /
+  label-statement / bare-encodeuri）/ ALLOWED 1 kind（var-declaration
+  2 site — `declare global {}` 内の型のみ ambient 宣言）/ pin 前棄却
+  3 class（`.map(async` は消費側判定で行 detector 不可視・
+  `new Array(n)` は hole-read なし・`Math.max(...xs)` 25 site は全
+  入力有界）。
+- **split-join の off-walk 帰属**: repo hit 2 件は
+  `src/export/__tests__/{xml-escape-cross-invariant-fuzz,xss-security}.test.ts`
+  の test fixture で walk（`__tests__`/`*.test.*` 除外）の管轄外。
+  production surface は 0 — pure ratchet。
+- **`declare global` 判定の根拠**: browser-transcriber.ts:449 が
+  `declare global {` で :497/:502 の `var X: { prototype; new (): T }`
+  は ambient 型宣言（runtime emit ゼロ・DOM-lib 正典形）。
+  runtime `var` の新規出現は unrostered RED。

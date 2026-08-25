@@ -309,3 +309,79 @@ unrostered RED として判断を強制される。`fromCodePoint` への置換�
 ### 信頼性レベル分布（REQ-412 追計分）
 
 **分析後**: 🔵 5（REQ-412-001〜005）/ 🟡 0
+
+## A-413-1: 第四回 discovery sweep の候補選定と計測（2026-08-25）
+
+**背景**: REQ-410〜412 で主要な dead idiom は採掘済み。sweep #4 は
+「JS/TS の legacy・危険イディオムの残り領域」を対象に候補を立て、
+src 単独 grep と core-four grep の両方で計測した（coercing-isfinite
+の前例 — core 側だけに site がある class を取りこぼさない）。
+
+**計測結果（10 candidate）**:
+
+| candidate | src | core | 備考 |
+|-----------|-----|------|------|
+| `new Number/String/Boolean(` | 0 | 0 | wrapper box 化（`new Number(1) === 1` は false） |
+| `arguments[` | 0 | 0 | param alias・非配列 |
+| 完全 literal `new RegExp('…')` | 0 | 0 | `'\\b'` vs `'\b'` typo class |
+| `.split(sep).join(repl)` | 0（prod）| 0 | test 2 件は off-walk |
+| `label: for (` | 0 | 0 | pre-extract-function 制御フロー |
+| 裸 `encodeURI(` | 0 | 0 | query 値の `&=?#` 未 escape |
+| 行頭 `var ` | 2 | 0 | 両方 `declare global` 内 |
+| `.map(async` | 2 | — | 棄却 (a) |
+| `new Array(n)` / `Array(n)` | 7+ | — | 棄却 (b) |
+| `Math.max(...xs)` 系 | 22 | 3 | 棄却 (c) |
+
+**判断**: 上位 7 class を kind 化。`var` 2 site は
+browser-transcriber.ts:449 の `declare global {` block 内であることを
+実コード読みで確認し AMBIENT-SYNTAX ALLOWED とした。
+
+**信頼性への影響**: REQ-413-001/002 を追加（🔵）。
+
+## A-413-2: pin 前棄却 3 class の根拠（REQ-413-003）
+
+- **`.map(async …)`（2 src site）**: enhanced-error-recovery.ts:1414 と
+  main-pipeline.ts:732 はどちらも返り値の promise 配列を await する正規
+  形（`Promise.allSettled` / `layoutPromises`）。可否は**消費側**で決まる
+  ため行 detector には見えず、pin は全 future site を誤検出する純 noise。
+  drop 形の `.forEach(async` は unawaited-async-forEach kind が既に管轄。
+- **`new Array(n)`（7 src site）**: untrusted-json-core / parallel-layout-
+  executor / batch-operation-recovery / enhanced-error-recovery /
+  batch-optimizer / timeline-strategy はすべて sized-assign または
+  `.fill` 済みで、hole を read する経路なし。multi-arg `new Array(a, b)`
+  （array literal の意味論）は 0 件。
+- **`Math.max(...xs)` 系（25 site）**: 全 site の被 spread 配列は segment
+  group・node 座標・level key 等の入力有界 collection で、spread-arg
+  限界（~65k）より桁違いに小さい。ただし 25 site への per-site 有界性
+  prose は confirmed-clean class に full family 相当の投資を強いる
+  （steering の忌避する形状）— **無限界入力 site が出現した時点で再計測**
+  を guard header に明記して棚上げ。
+
+**REQ-412-005 との対比**: 棄却理由型の 3 例目 — 「tsc 重複型」
+（REQ-411-003）・「挙動等価型」（REQ-412-005）に続き「**検出不可能型**」
+（消費側判定）と「**投資不釣合型**」（clean class に full-family prose）。
+
+**信頼性への影響**: REQ-413-003 を追加（🔵・全 site read 根拠付き）。
+
+## 分析結果サマリー（REQ-413 分の追計）
+
+### 確認できた事項
+
+- 10 candidate class の実測（src + core-four・331 file）
+- var 2 site が `declare global`（:449）内の型のみ ambient 宣言であること
+- `.map(async` 2 site が両方 await される正規形であること
+- `Math.max(...xs)` 25 site の被 spread 配列がすべて入力有界であること
+
+### 追加/変更要件
+
+- REQ-413-001〜004（7 kind 追加・var ALLOWED 2 key・棄却 3 class 記録・MW-077）
+
+### 残課題
+
+- escaped-quote を含む完全 literal `new RegExp` は detector の死角
+  （REQ-410-008 (g) に明記・現行 0 件）
+- 跨ぎ行 idiom は引き続き AST pass が必要（sweep #1 からの持ち越し）
+
+### 信頼性レベル分布（REQ-413 追計分）
+
+**分析後**: 🔵 4（REQ-413-001〜004）/ 🟡 0

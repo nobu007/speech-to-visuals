@@ -96,6 +96,41 @@
  *                                             `__proto__:` key/assignment
  *                                             elsewhere is an unrostered RED
  *
+ * The 2026-08-25 FOURTH discovery sweep (REQ-413 / Phase 220, same walk)
+ * measured SEVEN more candidate classes. Three more were rejected BEFORE
+ * pinning — `.map(async …)` is acceptable-or-not at the CONSUMPTION site
+ * (a line detector cannot see whether the promise array is awaited, so a
+ * pin would be pure noise; the dropping form `.forEach(async` is already
+ * the pinned kind); `new Array(n)` preallocation (7 src sites) is
+ * sized-assign or `.fill`-ed with no hole-read path, so the class carries
+ * no incident shape as measured; and `Math.max(...xs)`-style spread-apply
+ * (25 sites) is input-bounded everywhere measured (segment groups, node
+ * coordinates, level keys — cardinalities orders of magnitude under the
+ * ~65k spread-arg limit), making it a clean class whose per-site bounded
+ * prose would cost a FULL family for zero fixes — re-run this census the
+ * moment an unbounded-input site appears. The remaining SEVEN joined the
+ * registry:
+ *
+ *   kind                          measured  verdict
+ *   ----------------------------- --------- -------------------------------
+ *   primitive-wrapper-ctor        0         exact-0 pin
+ *   arguments-index-access        0         exact-0 pin
+ *   regexp-literal-ctor           0         exact-0 pin (fully-literal
+ *                                           single-arg form only — dynamic
+ *                                           construction is legitimate)
+ *   split-join-replaceall         0         exact-0 pin (production
+ *                                           surface; the two repo hits are
+ *                                           off-walk __tests__ fixtures)
+ *   label-statement               0         exact-0 pin
+ *   bare-encodeuri                0         exact-0 pin
+ *   var-declaration               2 (src)   ALLOWED — both hits are the
+ *                                           TYPE-ONLY ambient spelling
+ *                                           inside browser-transcriber's
+ *                                           `declare global { … }` block;
+ *                                           any runtime `var` is an
+ *                                           unrostered RED
+ *
+ *
  *   kind                          measured  verdict
  *   ----------------------------- --------- -------------------------------
  *   coercing-isnan                2 (src)   VIOLATION — unified in-commit:
@@ -302,6 +337,41 @@ export const IDIOM_KINDS: readonly IdiomKind[] = [
   // A `__proto__` key/assignment is the prototype-pollution shape itself;
   // the sanitizer's own blocklist string is the one rostered data site.
   { id: 'proto-key-literal', detect: /__proto__/ },
+  // --- REQ-413 fourth sweep (seven kinds, all measured on 2026-08-25) ---
+  // `new Number/String/Boolean(x)` boxes a primitive: `new Number(1) === 1`
+  // is false and typeof reports 'object' — the wrapper then leaks into
+  // arithmetic as the unboxed value while comparing as an object.
+  {
+    id: 'primitive-wrapper-ctor',
+    detect: /\bnew\s+(?:Number|String|Boolean)\s*\(/,
+  },
+  // `arguments[i]` aliases the (possibly mutated) parameter list and is not
+  // an array; rest params (`...args`) are the typed spelling.
+  { id: 'arguments-index-access', detect: /\barguments\s*\[/ },
+  // A FULLY-LITERAL `new RegExp('…')` (no interpolation, single arg) is the
+  // regex-literal spelled wrong: `'\\b'` vs `'\b'` typo class produces a
+  // silently-wrong pattern. Dynamic construction (interpolated / multi-arg)
+  // is NOT the class.
+  {
+    id: 'regexp-literal-ctor',
+    detect: /new\s+RegExp\s*\(\s*['"][^'"}$]*['"]\s*\)/,
+  },
+  // `.split(sep).join(repl)` is the pre-ES2021 replaceAll spelling. NOT
+  // behavior-identical on migration: a repl containing `$&`-patterns is
+  // literal under split/join but interpolated under replaceAll — the ratchet
+  // forces the swap to be made (and re-read) per site.
+  { id: 'split-join-replaceall', detect: /\.split\([^)]*\)\s*\.\s*join\(/ },
+  // A labeled loop (`outer: for …`) is the pre-extract-function control-flow
+  // idiom; break-with-label reads as a plain break after any local refactor.
+  { id: 'label-statement', detect: /^\s*[A-Za-z_$][\w$]*\s*:\s*(?:for|while)\s*\(/ },
+  // Bare `encodeURI` leaves `&=?#` unescaped — a query value built with it
+  // splits into attacker-chosen parameters. encodeURIComponent is the form.
+  { id: 'bare-encodeuri', detect: /(?<![.\w$])encodeURI\(/ },
+  // Runtime `var` (hoisting, no block scope). The two measured hits are
+  // TYPE-ONLY ambient declarations inside `declare global { … }` — the
+  // canonical TS spelling — and sit in the ALLOWED roster below; any other
+  // `var` on the surface is a runtime one and an unrostered RED.
+  { id: 'var-declaration', detect: /^\s*var\s+\w/ },
 ];
 
 /** One discovered idiom site, classified against its kind's context rule. */
@@ -389,6 +459,15 @@ const ALLOWED: Record<string, string> = {
   // (skipped by discovery).
   'src/analysis/untrusted-json-core.ts:38':
     'SANITIZER-DATA — PROTOTYPE_POLLUTION_KEYS is the blocklist the defense matches against (string data, not a key literal); any real `__proto__:` key or assignment is an unrostered RED.',
+  // [var-declaration] both hits sit inside `declare global { … }` (line
+  // 449): `var X: T` there is TS's CANONICAL spelling of a global ambient
+  // variable (the DOM-lib convention — `declare var SpeechRecognition`).
+  // Type-only, zero runtime emit; a runtime `var` anywhere else on the
+  // surface is an unrostered RED.
+  'src/transcription/browser-transcriber.ts:497':
+    'AMBIENT-SYNTAX — inside declare global: `var SpeechRecognition: {…}` is the canonical TS spelling of a global ambient constructor var (type-only, no runtime emit).',
+  'src/transcription/browser-transcriber.ts:502':
+    'AMBIENT-SYNTAX — webkit-prefixed constructor var in the same declare-global block (type-only, no runtime emit).',
 };
 
 /**
@@ -430,6 +509,7 @@ describe('dead-idiom batch census (REQ-410)', () => {
     expect(sites.filter((s) => s.kind === 'json-clone-idiom').length).toBeGreaterThanOrEqual(1);
     expect(sites.filter((s) => s.kind === 'from-char-code').length).toBeGreaterThanOrEqual(3);
     expect(sites.filter((s) => s.kind === 'proto-key-literal').length).toBeGreaterThanOrEqual(1);
+    expect(sites.filter((s) => s.kind === 'var-declaration').length).toBeGreaterThanOrEqual(2);
     // The kind registry is the steering contract — shrinking it is RED.
     expect(IDIOM_KINDS.map((k) => k.id)).toEqual([
       'coercing-isnan',
@@ -460,6 +540,13 @@ describe('dead-idiom batch census (REQ-410)', () => {
       'constructor-index-access',
       'from-char-code',
       'proto-key-literal',
+      'primitive-wrapper-ctor',
+      'arguments-index-access',
+      'regexp-literal-ctor',
+      'split-join-replaceall',
+      'label-statement',
+      'bare-encodeuri',
+      'var-declaration',
     ]);
   });
 
@@ -545,6 +632,14 @@ describe('dead-idiom batch census (REQ-410)', () => {
       [
         'src/analysis/untrusted-json-core.ts',
         /PROTOTYPE_POLLUTION_KEYS = new Set\(\['__proto__', 'constructor', 'prototype'\]\)/,
+      ],
+      // The two rostered var sites stay INSIDE the declare-global block —
+      // ambient type syntax. Moving them out (runtime var) must land in the
+      // offender list; converting them to another ambient spelling makes
+      // the rows stale (RED), forcing the roster to shed them in-commit.
+      [
+        'src/transcription/browser-transcriber.ts',
+        /declare global \{[\s\S]*\n  var SpeechRecognition: \{/,
       ],
     ];
     for (const [file, pattern] of anchors) {
@@ -774,6 +869,58 @@ describe('dead-idiom batch census (REQ-410)', () => {
     ).toHaveLength(1);
     expect(
       discoverIdiomSites('f.ts', 'const s = String.fromCodePoint(cp);\n// __proto__ comment line'),
+    ).toEqual([]);
+
+    // (x) REQ-413 fourth-sweep kinds: each flags its dead form and leaves
+    // the modern / dynamic spellings alone.
+    // (x1) primitive wrappers flagged; the coercion functions (no `new`) not.
+    expect(
+      discoverIdiomSites('f.ts', 'const boxed = new Number(5);\nconst s = new String(x);'),
+    ).toHaveLength(2);
+    expect(
+      discoverIdiomSites('f.ts', 'const n = Number(x); const s = String(x); const b = Boolean(x);'),
+    ).toEqual([]);
+    // (x2) arguments indexing flagged; a rest-param array not.
+    expect(
+      discoverIdiomSites('f.ts', 'const first = arguments[0];'),
+    ).toHaveLength(1);
+    expect(discoverIdiomSites('f.ts', 'const first = args[0];')).toEqual([]);
+    // (x3) a FULLY-LITERAL RegExp ctor flagged; regex literals, dynamic
+    // (identifier / multi-arg / template) construction not.
+    expect(
+      discoverIdiomSites("f.ts", "const re = new RegExp('\\\\d+');"),
+    ).toHaveLength(1);
+    expect(
+      discoverIdiomSites(
+        'f.ts',
+        'const a = /\\d+/; const b = new RegExp(src); const c = new RegExp(src, \'i\');',
+      ),
+    ).toEqual([]);
+    // (x4) split/join replaceAll flagged; replaceAll and split-alone not.
+    expect(
+      discoverIdiomSites("f.ts", "const s = x.split(',').join('-');"),
+    ).toHaveLength(1);
+    expect(
+      discoverIdiomSites("f.ts", "const s = x.replaceAll(',', '-'); const parts = x.split(',');"),
+    ).toEqual([]);
+    // (x5) a labeled loop flagged; plain loops and object keys not.
+    expect(
+      discoverIdiomSites('f.ts', 'outer: for (const x of xs) { break outer; }'),
+    ).toHaveLength(1);
+    expect(
+      discoverIdiomSites('f.ts', 'for (const x of xs) {} while (done) {} const t = { color: x };'),
+    ).toEqual([]);
+    // (x6) bare encodeURI flagged; encodeURIComponent and members not.
+    expect(
+      discoverIdiomSites('f.ts', 'const u = encodeURI(loc);'),
+    ).toHaveLength(1);
+    expect(
+      discoverIdiomSites('f.ts', 'const u = encodeURIComponent(q); const v = myEncodeURI(x);'),
+    ).toEqual([]);
+    // (x7) runtime var flagged; let/const and comment lines not.
+    expect(discoverIdiomSites('f.ts', 'var legacy = 1;')).toHaveLength(1);
+    expect(
+      discoverIdiomSites('f.ts', 'const a = 1; let b = 2;\n// var commented = 3;'),
     ).toEqual([]);
   });
 });
