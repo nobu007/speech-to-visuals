@@ -95,7 +95,9 @@ export function parseSrt(content: string, fps: number = DEFAULT_FPS): SrtCaption
     // Parse index (1-based sequence number)
     const indexLine = lines[0].trim();
     const index = parseInt(indexLine, 10);
-    if (isNaN(index)) {
+    // Number.isNaN (REQ-410): `index` is always a number here, but the
+    // coercing global would also mask a future non-numeric refactor.
+    if (Number.isNaN(index)) {
       throw new SrtParseError(`Invalid SRT index: "${indexLine}" is not a number`);
     }
 

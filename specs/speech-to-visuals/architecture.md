@@ -968,6 +968,8 @@ make-run steering feedback「371 → next-target delta is auditable without re-r
 - [sort-receiver-mutation-census タスク概要](../sort-receiver-mutation-census/tasks/overview.md)
 - [spine registry title-sync census（親 index 表題 ↔ 対象 doc H1 一致）要件定義書（軽量版）](../spine-registry-title-sync/requirements.md)
 - [spine-registry-title-sync タスク概要](../spine-registry-title-sync/tasks/overview.md)
+- [dead-idiom batch census（複数 confirmed-zero イディオム class の一括 pin）要件定義書（軽量版）](../dead-idiom-batch-census/requirements.md)
+- [dead-idiom-batch-census タスク概要](../dead-idiom-batch-census/tasks/overview.md)
 
 <!-- spine:children:end -->
 

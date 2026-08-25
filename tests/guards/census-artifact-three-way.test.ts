@@ -165,6 +165,15 @@ const THREE_WAY: ThreeWayRow[] = [
       { block: 'ERADICATED', build: (n) => `ERADICATED ${n} key` },
     ],
   },
+  {
+    req: 'REQ-410',
+    guard: 'tests/guards/dead-idiom-batch-census.test.ts',
+    requirementsPath: 'specs/dead-idiom-batch-census/requirements.md',
+    phrases: [
+      { block: 'ALLOWED', build: (n) => `ALLOWED ${n} key` },
+      { block: 'ERADICATED', build: (n) => `ERADICATED ${n} key` },
+    ],
+  },
 ];
 
 /**
@@ -229,6 +238,7 @@ describe('census-artifact three-way match (REQ-395)', () => {
       'REQ-404',
       'REQ-405',
       'REQ-407',
+      'REQ-410',
     ]);
   });
 

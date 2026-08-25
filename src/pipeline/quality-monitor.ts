@@ -630,11 +630,11 @@ export class QualityMonitor {
     const baseline = this.metricsHistory.slice(0, Math.min(5, this.metricsHistory.length - 1));
     const avgBaseline = (metric: keyof QualityMetrics): number => {
       // REQ-375: `null` (unmeasured layoutOverlap) is excluded like
-      // undefined — isNaN(null) is false, so without the typeof guard a null
-      // would be averaged in as 0.
+      // undefined — Number.isNaN(null) is false too, so without the typeof
+      // guard a null would be averaged in as 0.
       const values = baseline
         .map(m => m[metric] as number | null | undefined)
-        .filter((v): v is number => typeof v === 'number' && !isNaN(v));
+        .filter((v): v is number => typeof v === 'number' && !Number.isNaN(v));
       return values.length > 0
         ? values.reduce((a, b) => a + b, 0) / values.length
         : 0;

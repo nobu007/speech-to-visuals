@@ -4607,5 +4607,6 @@ interfaces.ts には既にこれらの主要型が反映済み。
 - [speech-to-visuals API エンドポイント仕様](api-endpoints.md)
 - [fallback-default census — 自動分析記録](../fallback-default-census/interview-record.md)
 - [sort-receiver-mutation census — 自動分析記録](../sort-receiver-mutation-census/interview-record.md)
+- [dead-idiom batch census — 自動分析記録](../dead-idiom-batch-census/interview-record.md)
 
 <!-- spine:references:end -->
