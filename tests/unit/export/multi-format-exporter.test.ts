@@ -270,6 +270,24 @@ describe('REQ-168: MultiFormatExporter', () => {
       expect(black.success).toBe(true);
       expect(await decode(black)).toContain('0.000 0.000 0.000 rg');
     });
+
+    it('expands the shorthand per-channel: asymmetric #3C8 pins doubling, channel order, and hex case', async () => {
+      // #fff/#000 above are channel-symmetric — an r/g/b channel swap or a
+      // pad-with-zero mis-expansion still fills white/black and would pass.
+      // #3C8 (uppercase: CSS hex is case-insensitive) pins every channel
+      // independently: digit doubling → 33 CC 88 → 0.200/0.800/0.533, a triple
+      // no node/text fill in the stream produces. The SAME raw string flows
+      // into SVG `fill="#3C8"` (browser expands) and Canvas `fillStyle`, so the
+      // PDF triple above is the WYSIWYG parity anchor for all three formats.
+      const svg = await exporter.export(makeScene(), makeOptions({ format: 'svg', backgroundColor: '#3C8' }));
+      expect(svg.success).toBe(true);
+      expect(await (svg.data as Blob).text()).toContain('fill="#3C8"');
+
+      const pdf = await exporter.export(makeScene(), makeOptions({ format: 'pdf', backgroundColor: '#3C8' }));
+      expect(pdf.success).toBe(true);
+      const pdfText = new TextDecoder().decode(await (pdf.data as Blob).arrayBuffer());
+      expect(pdfText).toContain('0.200 0.800 0.533 rg');
+    });
   });
 
   // ─── TC-168-04: PNG export ────────────────────────────────────────────
