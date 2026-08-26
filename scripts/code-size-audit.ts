@@ -2,15 +2,15 @@
 /**
  * REQ-102: Code Size Audit CLI
  *
- * Runs the code-size audit against SYSTEM_CONSTITUTION V2.8/V2.9 limits and
+ * Runs the code-size audit against SYSTEM_CONSTITUTION V2.9 limits and
  * prints a report. Accounting is implementation-only (tests excluded —
- * V2.8), and a breach FAILS the build (exit 1): the limit has teeth.
+ * V2.9), and a breach FAILS the build (exit 1): the limit has teeth.
  *
  * V2.9 note: per-file ceiling restored from 3,000 → 2,000 after
  * enhanced-error-recovery.ts debt was split into error-recovery/* modules.
- * The numeric limits in `CONSTITUTION_V2_8_LIMITS` below are the V2.9
- * values; the identifier name retains V2.8 for git-blame stability on the
- * baseline commit (see SYSTEM_CONSTITUTION.md amendment history).
+ * The numeric limits in `CONSTITUTION_V2_9_LIMITS` below are the V2.9
+ * values; see SYSTEM_CONSTITUTION.md amendment history for the V2.8 → V2.9
+ * per-file ceiling restoration.
  *
  * Usage:
  *   npx tsx scripts/code-size-audit.ts [--ci] [--all]
