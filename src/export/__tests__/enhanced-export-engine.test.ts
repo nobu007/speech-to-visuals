@@ -193,6 +193,61 @@ describe('EnhancedExportEngine', () => {
         expect(result.success).toBe(true);
       });
     });
+
+    // E2 (session-259 parked): the old compressVideo "compressed" by slicing
+    // the artifact at a fixed ratio. Text formats (json-lottie / svg-animated)
+    // stopped parsing mid-document and failed REQ-225 verification — a false
+    // failure for a legitimate setting — while binary formats kept their head
+    // magic bytes, passed verification and shipped a tail-less (unplayable)
+    // artifact. Compression must never mutate the encoded bytes.
+    test('compression must not truncate a json-lottie artifact (verifier parses the full JSON)', async () => {
+      const result = await engine.exportVideo(
+        createSceneData(),
+        createConfig({
+          format: 'json-lottie',
+          settings: { ...baseSettings, compression: 'maximum' },
+        })
+      );
+      // The verifier is the integrity oracle: it JSON.parses the artifact and
+      // checks the Lottie root fields, which only succeeds on complete bytes.
+      expect(result.success).toBe(true);
+      expect(result.verification?.valid).toBe(true);
+    });
+
+    test('compression must not truncate an svg-animated artifact (XML well-formedness)', async () => {
+      const result = await engine.exportVideo(
+        createSceneData(),
+        createConfig({
+          format: 'svg-animated',
+          settings: { ...baseSettings, compression: 'medium' },
+        })
+      );
+      expect(result.success).toBe(true);
+      expect(result.verification?.valid).toBe(true);
+    });
+
+    test('a requested compression level discloses the skipped re-encode in warnings', async () => {
+      const result = await engine.exportVideo(
+        createSceneData(),
+        createConfig({
+          settings: { ...baseSettings, compression: 'high' },
+        })
+      );
+      expect(result.success).toBe(true);
+      expect(
+        result.warnings?.some((w) => w.includes('compression="high"'))
+      ).toBe(true);
+    });
+
+    test('compression "none" adds no compression disclosure warning', async () => {
+      const result = await engine.exportVideo(
+        createSceneData(),
+        createConfig()
+      );
+      expect(
+        result.warnings?.some((w) => w.includes('compression='))
+      ).toBe(false);
+    });
   });
 
   // --- Optimization Priority ---

@@ -741,9 +741,17 @@ export class EnhancedExportEngine {
       processed.subtitles = job.config.advanced.subtitles;
     }
 
-    // Optimize file size if requested
+    // Optimize file size if requested. compressVideo never mutates the
+    // artifact — see its comment — and reports the skipped re-encode so the
+    // disclosure reaches ExportResult.warnings instead of a fabricated
+    // size reduction.
     if (job.config.settings.compression !== 'none') {
-      processed.data = await this.compressVideo(processed.data, job.config.settings.compression);
+      const compressed = await this.compressVideo(
+        processed.data,
+        job.config.settings.compression
+      );
+      processed.data = compressed.data;
+      processed.warnings = [...(processed.warnings ?? []), ...compressed.warnings];
     }
 
     this.updateProgress(job, 'post-processing', 95, 'Post-processing complete');
@@ -815,7 +823,9 @@ export class EnhancedExportEngine {
     const exportStatus: ExportStatus = verification.valid ? 'success' : 'failure';
     exportMetricsCollector.recordExport(job.config.format, exportStatus, exportDuration, outputSize);
 
-    const warnings: string[] = [...(verification.warnings)];
+    // Post-processing disclosures (skipped compression re-encode) come first;
+    // verification warnings follow.
+    const warnings: string[] = [...(video.warnings ?? []), ...(verification.warnings)];
 
     // REQ-231: Store artifact in ExportArtifactStore (failure is non-blocking)
     let artifactId: string | undefined;
@@ -1147,16 +1157,25 @@ export class EnhancedExportEngine {
     return data; // Mock implementation
   }
 
-  private async compressVideo(data: Uint8Array, compression: string): Promise<Uint8Array> {
-    // Apply compression based on level
-    const compressionRatio = {
-      'low': 0.9,
-      'medium': 0.7,
-      'high': 0.5,
-      'maximum': 0.3
-    }[compression] || 1;
-
-    return data.slice(0, Math.floor(data.length * compressionRatio));
+  private async compressVideo(
+    data: Uint8Array,
+    compression: string
+  ): Promise<{ data: Uint8Array; warnings: string[] }> {
+    // Byte truncation is NOT compression. The previous
+    // `data.slice(0, Math.floor(len * ratio))` shrank the artifact by cutting
+    // its tail, corrupting every format: MP4/WebM/GIF/APNG lose trailer
+    // atoms/chunks (unplayable) while keeping their head magic bytes, and the
+    // text formats (json-lottie / svg-animated / interactive-html) stop
+    // parsing mid-document and fail REQ-225 verification. Output size is
+    // owned by the encoding stage via `quality` (resolution/bitrate); there
+    // is no honest re-encode path here, so the bytes pass through unchanged
+    // and the no-op is disclosed for the caller to surface in warnings.
+    return {
+      data,
+      warnings: [
+        `compression="${compression}" requested but no re-encode path exists; artifact bytes left unchanged`,
+      ],
+    };
   }
 
   private async writeOutputFile(video: ProcessedVideo, outputPath: string | undefined): Promise<string | undefined> {
@@ -1265,6 +1284,9 @@ interface EncodedVideo {
 interface ProcessedVideo extends EncodedVideo {
   chapters?: ChapterMarker[];
   subtitles?: SubtitleTrack[];
+  /** Post-processing disclosures (e.g. a skipped compression re-encode),
+   * surfaced in ExportResult.warnings by finalizeExport. */
+  warnings?: string[];
 }
 
 /**
