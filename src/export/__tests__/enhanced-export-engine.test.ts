@@ -9,6 +9,7 @@ import {
   ExportConfiguration,
   ExportFormat,
   ExportResult,
+  ExportSettings,
 } from '../enhanced-export-engine';
 import {
   encodeAPNG,
@@ -317,6 +318,30 @@ describe('EnhancedExportEngine', () => {
       expect(result.success).toBe(true);
       expect(
         result.warnings?.some((w) => w.includes('compression="turbo"'))
+      ).toBe(true);
+    });
+
+    // The 'turbo' leg above pins the unknown-STRING shape; this one pins the
+    // absent-FIELD shape (impl-run eval's literal compression="undefined"
+    // concern): a JSON-origin caller can drop a required union member the
+    // type cannot see. The `!== 'none'` guard treats the absent level as
+    // requested, so the bytes still pass through unchanged (INV-EXP-003
+    // holds at the boundary) and the disclosure surfaces the caller's
+    // contract violation instead of silently ignoring it.
+    test('an absent compression level exports intact and discloses it verbatim', async () => {
+      const result = await engine.exportVideo(
+        createSceneData(),
+        createConfig({
+          settings: {
+            ...baseSettings,
+            compression: undefined,
+          } as unknown as ExportSettings,
+        })
+      );
+      expect(result.success).toBe(true);
+      expect(result.verification?.valid).toBe(true);
+      expect(
+        result.warnings?.some((w) => w.includes('compression="undefined"'))
       ).toBe(true);
     });
   });
