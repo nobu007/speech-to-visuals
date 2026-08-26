@@ -1,0 +1,79 @@
+ambiguities:
+  - id: "AMB-QUAL-001"
+    term: "QualityMonitor"
+    topic: "品質メトリクスのスケール統一（0-1 と 0-100 の二重運用）"
+    severity: "medium"
+    uncertainty: 0.55
+    candidates:
+      - "単一スケール（0-1）へ統合する"
+      - "二重スケール維持 + 交叉配線 guard で検出する"
+    missing_info:
+      - "統合時の下位互換（既存メトリクス consumer の移行範囲）"
+    linked_conflicts: []
+    auto_decision:
+      status: "applied"
+      decision_key: "AUTO:QualityMonitor.scale:dual-with-guard"
+      chosen: "二重スケール維持 + REQ-382/TC-366-01 の4-leg guard で交叉配線検出"
+      policy: "reversibility + blast_radius_min（統合は design-heavy）"
+      confidence_auto: 0.7
+      decided_at_run: "2026-08-26T10:49:16Z"
+      expires_after_runs: 20
+      revert_triggers:
+        - "primary_evidence_contradiction"
+        - "major_test_failure"
+    last_touched_run: "2026-08-26T10:49:16Z"
+    evidence:
+      - source: "tests/guards/quality-monitor-dual-scale.test.ts#L95"
+        quote: "describe('dual QualityMonitor scale contract (REQ-382 / TC-366-01)', () => {"
+  - id: "AMB-QUAL-002"
+    term: "QualityMonitor"
+    topic: "transcriptionAccuracy / avgSceneQuality の 0.85 既定値とゲート閾値の結合"
+    severity: "medium"
+    uncertainty: 0.6
+    candidates:
+      - "0.85 を正解ラベルに基づく実測精度へ置換する"
+      - "fail-closed（実測不能な指標は既定値で扱わない）を維持する"
+    missing_info:
+      - "文字起こし精度の正解ラベルデータセット（scope 外）"
+    linked_conflicts: []
+    auto_decision:
+      status: "applied"
+      decision_key: "AUTO:QualityMonitor.metrics:fail-closed-defaults"
+      chosen: "正解ラベルが入手可能になるまで実測化せず fail-closed 継続"
+      policy: "safety（捏造 metric の禁止）+ reversibility"
+      confidence_auto: 0.65
+      decided_at_run: "2026-08-26T10:49:16Z"
+      expires_after_runs: 20
+      revert_triggers:
+        - "primary_evidence_contradiction"
+    last_touched_run: "2026-08-26T10:49:16Z"
+    evidence:
+      - source: "src/pipeline/quality-estimators.ts#L16"
+        quote: "silently coerced to the `sanitizeFinite` fallbacks 0.85 / 0.75 / 0."
+  - id: "AMB-VIS-001"
+    term: "LayoutEngine"
+    topic: "ezo overlapDetectionMode 設定の生成時未読（latent config）"
+    severity: "low"
+    uncertainty: 0.5
+    candidates:
+      - "overlapDetectionMode をレイアウト生成時に読むように実装する"
+      - "未読のまま文書化して維持する"
+    missing_info:
+      - "3モード（strict/balanced/performance）の生成時分岐仕様"
+    linked_conflicts: []
+    auto_decision:
+      status: "applied"
+      decision_key: "AUTO:LayoutEngine.overlapDetectionMode:latent-documented"
+      chosen: "生成時は未読のまま維持（config-boundary テストが未読事実を固定）"
+      policy: "blast_radius_min（実装は design-heavy・現状破壊のリスク）"
+      confidence_auto: 0.6
+      decided_at_run: "2026-08-26T10:49:16Z"
+      expires_after_runs: 20
+      revert_triggers:
+        - "primary_evidence_contradiction"
+    last_touched_run: "2026-08-26T10:49:16Z"
+    evidence:
+      - source: "src/pipeline/__tests__/config-boundary-reaches-generation.test.ts#L68"
+        quote: ".overlapDetectionMode is never read at generation;"
+      - source: "src/visualization/enhanced-zero-overlap-layout.ts#L38"
+        quote: "overlapDetectionMode: 'strict' | 'balanced' | 'performance';"

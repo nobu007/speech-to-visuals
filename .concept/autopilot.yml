@@ -1,0 +1,19 @@
+version: "1.0"
+
+commands:
+  lint: "npm run lint"
+  test: "npm test"
+  build: "npm run build"
+  verify: "npm run verify:all"
+  type_check: "npm run type-check"
+
+budget:
+  max_cycles: 5
+  max_files: 25
+
+mode: "pr"
+
+notes: >-
+  マージフローは AGENTS.md「全自動開発ループ運用」に従う:
+  branch → npm run verify:all → push → gh pr create → gh pr merge --auto --merge --delete-branch。
+  branch protection の required check は all-checks-pass のみ。
