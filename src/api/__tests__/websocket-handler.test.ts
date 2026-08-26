@@ -197,6 +197,25 @@ describe('WebSocket Handler — Auth Middleware', () => {
     expect(socket.data.user).toBeUndefined();
   });
 
+  it('should call next() with error for a verified JWT whose sub claim is an empty string', async () => {
+    // Falsy-sub boundary: `!decoded.sub` is truthiness-based BY DESIGN — no
+    // legitimate falsy sub exists, and `sub: ''` is the anonymous identity
+    // the pre-parity code authenticated as `id: ''`. A "claim is present"
+    // refactor (`decoded.sub === undefined`) would let this token through;
+    // this leg keeps that loud (REST side: same rejection, pinned in
+    // tests/guards/jwt-secret-single-source.test.ts).
+    const { createWsAuthMiddleware } = await import('../websocket-handler');
+    const token = makeToken({ sub: '', email: 'test@test.com' }, JWT_SECRET);
+    const socket = createMockSocket(token);
+    const middleware = createWsAuthMiddleware();
+    let nextError: Error | undefined;
+    middleware(socket, (err?: Error) => { nextError = err; });
+
+    expect(nextError).toBeDefined();
+    expect(nextError?.message).toBe('Invalid token');
+    expect(socket.data.user).toBeUndefined();
+  });
+
   it('should default missing email/role for a sub-carrying token', async () => {
     const { createWsAuthMiddleware } = await import('../websocket-handler');
     const token = makeToken({ sub: 'user1' }, JWT_SECRET);
