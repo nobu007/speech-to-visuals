@@ -839,6 +839,33 @@ export const IDIOM_KINDS: readonly IdiomKind[] = [
   // lone surrogate halves — `[...text]` iterates code points. The one
   // measured site was unified in-commit (see ERADICATED).
   { id: 'string-char-split', detect: /\.split\(\s*(['"`])\1\s*\)/ },
+  // --- REQ-419 tenth sweep (seven kinds, all measured on 2026-08-26) ---
+  // `.filter(…)[0]` materializes the whole filtered array to read one
+  // element; `.find(…)` is the short-circuit form (an index read like
+  // `.filter(…)[i]` with a real i, or `[0]` on a non-filter receiver, is
+  // not the shape).
+  { id: 'filter-index-zero', detect: /\.filter\(.*\)\s*\[\s*0\s*\]/ },
+  // `setAttribute('onclick', …)` installs a string handler through the
+  // CSP-unsafe inline path; addEventListener is the form (javascript-url /
+  // inline-handler-attr are the two string-handler vectors).
+  { id: 'inline-handler-attr', detect: /setAttribute\s*\(\s*['"]on\w+/ },
+  // `x instanceof Function` is cross-realm unreliable (each realm has its
+  // own Function); `typeof x === 'function'` is the form
+  // (instanceof-primitive-wrapper's callable sibling).
+  { id: 'instanceof-function', detect: /instanceof\s+Function\b/ },
+  // Object.setPrototypeOf deoptimizes the object's hidden class in every
+  // engine; class extends / Object.create is the form (a READ of
+  // Object.getPrototypeOf is not the shape).
+  { id: 'object-setprototypeof', detect: /Object\.setPrototypeOf\s*\(/ },
+  // document.execCommand is deprecated (clipboard & editing commands are
+  // async APIs now); execScript is window-execscript's own row.
+  { id: 'exec-command-legacy', detect: /document\.execCommand\s*\(/ },
+  // setImmediate is IE/Node-only scheduling — a browser crash; setTimeout /
+  // queueMicrotask is the portable form.
+  { id: 'setimmediate-call', detect: /(?<![.\w$])setImmediate\s*\(/ },
+  // process.nextTick starves the event loop and is absent in browsers;
+  // queueMicrotask is the portable form (scripts/ node shims are off-walk).
+  { id: 'process-nexttick', detect: /process\.nextTick\s*\(/ },
 ];
 
 /** One discovered idiom site, classified against its kind's context rule. */
@@ -1193,6 +1220,13 @@ describe('dead-idiom batch census (REQ-410)', () => {
       'then-two-arg-rejection',
       'dead-ua-platform',
       'string-char-split',
+      'filter-index-zero',
+      'inline-handler-attr',
+      'instanceof-function',
+      'object-setprototypeof',
+      'exec-command-legacy',
+      'setimmediate-call',
+      'process-nexttick',
     ]);
   });
 
@@ -2130,5 +2164,51 @@ describe('dead-idiom batch census (REQ-410)', () => {
     expect(
       discoverIdiomSites('f.ts', 'p.then(mapValue, onReject);\np.catch(onReject);'),
     ).toEqual([]);
+    // (ad) REQ-419 tenth-sweep kinds: each flags its dead form and leaves
+    // the modern spelling alone.
+    // (ad1) `.filter(…)[0]` flagged; .find and a real index not.
+    expect(
+      discoverIdiomSites('f.ts', "const f = xs.filter(isOn)[0];"),
+    ).toHaveLength(1);
+    expect(
+      discoverIdiomSites('f.ts', 'const f = xs.find(isOn);\nconst g = xs.filter(isOn)[i];'),
+    ).toEqual([]);
+    // (ad2) an `on`-prefixed setAttribute handler flagged; the sandbox attr
+    // (ac2's negative) and addEventListener not.
+    expect(
+      discoverIdiomSites('f.ts', "el.setAttribute('onclick', 'run()');"),
+    ).toHaveLength(1);
+    expect(
+      discoverIdiomSites('f.ts', "el.setAttribute('sandbox', 'allow-scripts');\nel.addEventListener('click', fn);"),
+    ).toEqual([]);
+    // (ad3) `instanceof Function` flagged; the typeof spelling and a real
+    // class test not.
+    expect(discoverIdiomSites('f.ts', 'if (x instanceof Function) run();')).toHaveLength(1);
+    expect(
+      discoverIdiomSites('f.ts', "if (typeof x === 'function') run();\nconst b = v instanceof MyClass;"),
+    ).toEqual([]);
+    // (ad4) Object.setPrototypeOf flagged; the read + class forms not.
+    expect(
+      discoverIdiomSites('f.ts', 'Object.setPrototypeOf(proto, base);'),
+    ).toHaveLength(1);
+    expect(
+      discoverIdiomSites('f.ts', 'const p = Object.getPrototypeOf(o);\nclass Sub extends Base {}'),
+    ).toEqual([]);
+    // (ad5) document.execCommand flagged; the async clipboard API not.
+    expect(
+      discoverIdiomSites('f.ts', "document.execCommand('copy');"),
+    ).toHaveLength(1);
+    expect(
+      discoverIdiomSites('f.ts', 'navigator.clipboard.writeText(t);'),
+    ).toEqual([]);
+    // (ad6) a bare setImmediate call flagged; member access and the
+    // portable forms not.
+    expect(discoverIdiomSites('f.ts', 'setImmediate(cb);')).toHaveLength(1);
+    expect(
+      discoverIdiomSites('f.ts', 'handlers.setImmediate = cb;\nqueueMicrotask(cb);\nsetTimeout(cb, 0);'),
+    ).toEqual([]);
+    // (ad7) process.nextTick flagged; queueMicrotask not.
+    expect(discoverIdiomSites('f.ts', 'process.nextTick(cb);')).toHaveLength(1);
+    expect(discoverIdiomSites('f.ts', 'queueMicrotask(cb);')).toEqual([]);
   });
 });

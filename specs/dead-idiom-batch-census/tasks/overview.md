@@ -271,3 +271,28 @@ spec 同梱更新 + MW-082（mutation 検証が detector optional-chain 抜け�
   language-detector test 68/68 GREEN
 - 棄却 1 class は site 実コード読み — incident 出現時点の再計測条件を
   requirements に明記
+
+## Phase 227: REQ-419 第十回 discovery sweep（7 kind 追加 + 1 class 棄却・src 変更ゼロ）
+
+**目標**: batch 契約（kind 追加 = 1 entry）の 10 回目の適用。REQ-418 merge
+後 tree で 8 candidate を計測し、7 class を exact-0 pin、1 class
+（legacy-get-elements）を pin 前棄却（記録済み判断衝突型の初例 — REQ-418
+fixture (ac26) が `getElementsByClassName` を live HTMLCollection = 現行 API
+の意図的負例として pin 済み）。同一計測ラウンドの 5 class は REQ-418 kind
+との重複で候補除外。
+**成果物**: guard 7 kind 追加 + fixture (ad1)〜(ad7) + rosters 不変
+（ALLOWED 23 key / ERADICATED 13 key）+ spec 同梱更新 + MW-083（src 変更
+ゼロ sweep）
+
+### タスク一覧
+
+- [x] [TASK-0310: 第十回 discovery sweep — 同一 batch guard へ 7 kind 追加 + 1 class pin 前棄却（記録済み判断衝突型の初例） + MW-083 mutation 検証](TASK-0310.md) - 1.5h (TDD) 🔵 ✅完了
+
+### 依存関係
+
+- Phase 217〜226 の `IDIOM_KINDS` registry と discovery primitive に直接追記
+  （新規 guard file なし — batch 契約の趣旨）
+- 計測は canonical `walkProductionSurface` 直接使用（331 file・
+  A-416-1 手順の維持）
+- 棄却 1 class は REQ-418 fixture (ac26) の記録済み負例判断との突き合わせ
+  — live collection を dead と見なす判定は別 family の議論として requirements に明記

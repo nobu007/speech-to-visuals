@@ -9,7 +9,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-08-25
-**要件ID**: REQ-410（Phase 217 / TASK-0301・audit-pass-first census series family 19・**batch 形式**）→ **REQ-411 で sweep #2 拡張**（Phase 218 / TASK-0302）→ **REQ-412 で sweep #3 拡張**（Phase 219 / TASK-0303）→ **REQ-413 で sweep #4 拡張**（Phase 220 / TASK-0304）→ **REQ-414 で sweep #5 拡張**（Phase 221 / TASK-0305）→ **REQ-415 で sweep #6 拡張**（Phase 222 / TASK-0306）→ **REQ-416 で sweep #7 拡張**（Phase 224 / TASK-0307）→ **REQ-417 で sweep #8 拡張**（Phase 225 / TASK-0308）→ **REQ-418 で sweep #9 拡張**（Phase 226 / TASK-0309）
+**要件ID**: REQ-410（Phase 217 / TASK-0301・audit-pass-first census series family 19・**batch 形式**）→ **REQ-411 で sweep #2 拡張**（Phase 218 / TASK-0302）→ **REQ-412 で sweep #3 拡張**（Phase 219 / TASK-0303）→ **REQ-413 で sweep #4 拡張**（Phase 220 / TASK-0304）→ **REQ-414 で sweep #5 拡張**（Phase 221 / TASK-0305）→ **REQ-415 で sweep #6 拡張**（Phase 222 / TASK-0306）→ **REQ-416 で sweep #7 拡張**（Phase 224 / TASK-0307）→ **REQ-417 で sweep #8 拡張**（Phase 225 / TASK-0308）→ **REQ-418 で sweep #9 拡張**（Phase 226 / TASK-0309）→ **REQ-419 で sweep #10 拡張**（Phase 227 / TASK-0310）
 
 ## 概要
 
@@ -769,7 +769,60 @@ REQ-417 と同じ契約: 既存 kind の detect は不変のまま、新 kind �
 **When**: 4 独立 mutation（language-detector:537 `[...text]` → `text.split('')` revert / `src/analysis/untrusted-json-core.ts` 末尾への `.outerHTML =` 注入 / 同位置への `document?.createEvent('HTMLEvents')` 注入 / 同位置への `addEventListener('onclick', …)` 注入）を適用する
 **Then**: (a) は completeness + eradicated-reappear + negative anchor の **3 独立面** で RED（`:537 [string-char-split]` 帰着）・(b)(d) は各 1 failed completeness RED（`[outer-html-assignment]` / `[on-prefixed-event-name]` 帰着）・(c) は初稿 regex が optional-chain 形を見落として **GREEN のまま** → 検出域を `document\??\.createEvent` に修正して RED 化（mutation 検証が detector bug を発見した初例）・revert で 8/8 GREEN 復元・`git status --short src/` は unify 対象 1 file のみ
 
+## REQ-419: 第十回 discovery sweep（同一 batch guard への kind 追加）
+
+steering 契約の 10 回目の適用。2026-08-26 の **第十回 discovery sweep** は
+同一 production surface（331 file・repo src/ .ts+.tsx と @stv/core core-four・
+走査は canonical `walkProductionSurface` 直接使用）で、REQ-418 merge 後の
+tree を対象に **8 candidate class** を計測。うち 5 class（`.outerHTML` 読み取り
+形・`initEvent` 単独・`.cancelBubble` 読み取り形・`.split('')`・
+`.then(null, …)`）は REQ-418 の kind（outer-html-assignment /
+legacy-dispatch-event・ie-attach-event / event-cancel-bubble /
+string-char-split / then-two-arg-rejection）が同一 shape を既に管轄していた
+ため候補から除外（重複）。1 class は **pin 前に棄却**（下記 REQ-419-002）。
+残る **7 kind を registry に追加**（すべて exact-0）:
+
+| kind | 実測 | 判定 |
+|------|------|------|
+| filter-index-zero（`.filter(…)[0]`） | 0 | exact-0 pin — 全件 materialize して先頭 1 件を読む形（`.find()` が短絡正形） |
+| inline-handler-attr（`setAttribute('on…', …)`） | 0 | exact-0 pin — CSP-unsafe inline handler 注入 vector（addEventListener が正形・javascript-url と並ぶ文字列 handler 2 vector の片方） |
+| instanceof-function（`instanceof Function`） | 0 | exact-0 pin — cross-realm で false になる検査（`typeof x === 'function'` が正形） |
+| object-setprototypeof（`Object.setPrototypeOf(`） | 0 | exact-0 pin — hidden-class deoptimize 要因（class extends / Object.create が正形） |
+| exec-command-legacy（`document.execCommand(`） | 0 | exact-0 pin — deprecated clipboard/editing API（async API が正形・window-execscript とは別 kind） |
+| setimmediate-call（bare `setImmediate(`） | 0 | exact-0 pin — IE/Node 専用 scheduling（browser では crash・`setTimeout` / `queueMicrotask` が可搬正形） |
+| process-nexttick（`process.nextTick(`） | 0 | exact-0 pin — event-loop starvation + browser 未実装（`queueMicrotask` が正形・scripts/ の node shim は walk 対象外） |
+
+ALLOWED **23 key** / ERADICATED **13 key**（不変）・kind registry **125 entry**
+（118 → 125）。
+
+### REQ-419-001: sweep #10 kind の検出と固定
+
+**Given（前提条件）**: production surface 331 file に 8 candidate class を追加計測（7 class kind 化・1 class pin 前棄却・5 class は REQ-418 重複で候補除外）
+**When（実行条件）**: `NODE_OPTIONS='--experimental-vm-modules --max-old-space-size=4096' npx jest --config jest.config.cjs --testPathPatterns dead-idiom-batch-census` を実行する
+**Then（期待結果）**: 8 test GREEN（同一 guard 内で kind 125 entry ratchet・fixture (ad1)〜(ad7) 拡張・ALLOWED 23 key / ERADICATED 13 key の three-way 句一致）
+
+**テストケース**:
+
+- [x] **TC-419-01**: authority の kind ratchet 125 entry（7 kind 追加の順序固定）🔵
+- [x] **TC-419-02**: liveness fixture (ad1)〜(ad7)（7 kind の検出・非検出境界 — `xs.filter(…)[i]` 変数 index は検出域外・`handlers.setImmediate =` member 形は検出域外・`instanceof MyClass` / `execScript(` は既存 kind の shape と分離）🔵
+- [x] **TC-419-03**: ALLOWED 23 key / ERADICATED 13 key の three-way 句一致（REQ-395 census-artifact guard 経由・sweep #10 は rosters 不変のため句も不変）🔵
+
+### REQ-419-002: pin 前棄却 class の記録（記録済み判断との衝突回避）
+
+- **legacy-get-elements（`getElementsBy*`・0 site）**: REQ-418 の fixture
+  (ac26) が `document.getElementsByClassName('x')` を**意図的な負例**として
+  pin 済み（「live HTMLCollection は現行 API・document.layers とは別概念」の
+  判断が guard 本文に記録されている）。kind 追加はこの記録済み判断と直接
+  矛盾するため pin 前棄却（棄却 taxonomy: 記録済み判断衝突型の初例 —
+  live collection を dead と見なす判定は別 family の議論）。
+
+### REQ-419-003: MW-083 mutation 検証
+
+**Given**: guard が GREEN の tree
+**When**: 4 独立 mutation（`src/analysis/untrusted-json-core.ts` 末尾への `xs.filter(isNum)[0]` 注入 / 同位置への `document.execCommand('copy')` 注入 / 同位置への `setImmediate(callback)` 注入 / 同位置への `process.nextTick(callback)` 注入）を適用する
+**Then**: 4 mutation とも各 1 failed completeness RED（`:125 [filter-index-zero]` / `:126 [exec-command-legacy]` / `:127 [setimmediate-call]` / `:128 [process-nexttick]` 帰着）・revert で 8/8 GREEN 復元・`git status --short src/` 0 file（src 変更ゼロ sweep）
+
 ## 最小限の非機能要件
 
 - **性能**: 追加検証は既存 walk の行 scan のみ（file 再読みなし・guard 実行 < 1s）
-- **保守性**: kind registry は純 data + 純関数 detector で export し合成 fixture で境界検証。src 変更は REQ-410 unify 2 site + REQ-412 unify 5 site + REQ-415 unify 5 site + REQ-418 unify 1 site（同一 feature check の綴り統一）のみ（それ以外 read-only census）。REQ-411 sweep #2・REQ-413 sweep #4・REQ-414 sweep #5・REQ-416 sweep #7・REQ-417 sweep #8 は **src 変更ゼロ**（実測 site は ALLOWED 判断・spec/guard のみ）
+- **保守性**: kind registry は純 data + 純関数 detector で export し合成 fixture で境界検証。src 変更は REQ-410 unify 2 site + REQ-412 unify 5 site + REQ-415 unify 5 site + REQ-418 unify 1 site（同一 feature check の綴り統一）のみ（それ以外 read-only census）。REQ-411 sweep #2・REQ-413 sweep #4・REQ-414 sweep #5・REQ-416 sweep #7・REQ-417 sweep #8・REQ-419 sweep #10 は **src 変更ゼロ**（実測 site は ALLOWED 判断・spec/guard のみ）
