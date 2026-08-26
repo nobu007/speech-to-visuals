@@ -28,10 +28,22 @@
  * Source-anchored (cwd-relative reads are banned by
  * tests/guards/source-anchor-cwd-discipline.test.ts); we read via
  * readSource() which uses import.meta.url.
+ *
+ * --- ROI note (LLM eval feedback, kept for future reviewers) ---
+ * This is a LOW-ROI test by design: the underlying rename (bfc41ef3) is a
+ * cosmetic identifier swap with no behavioral change, and the existing
+ * behavioral coverage already lives in tests/config/code-size-audit.test.ts
+ * (35 cases, independent of this drift guard). What this guard buys is
+ * LABEL drift detection — the same class of bug that bd594d7a fixed
+ * silently in the wrong direction. If you find yourself tempted to delete
+ * this test for being "obviously passing," first read SYSTEM_CONSTITUTION.md
+ * amendment history and AGENTS.md テスト規約's recurring-bug-classes lesson
+ * on label drift; the test is the receipt for that lesson, not a regression
+ * safety net for behavior.
  */
 
 import { describe, it, expect } from '@jest/globals';
-import { readSource } from '@tests/guards/freeze-guard';
+import { readSource, isCommentLine } from '@tests/guards/freeze-guard';
 
 const SCRIPT = 'scripts/code-size-audit.ts';
 
@@ -108,10 +120,63 @@ describe('code-size-audit script — V2.9 identifier drift guard (REQ-419-005)',
     }
   });
 
+  it('source-wide: no V2_8 code identifier survives as a partial revert (LLM eval strengthening)', () => {
+    const src = readSource(SCRIPT);
+    // Partial-revert defense: a future edit might rename only the
+    // declaration back to V2_8 — or introduce a *different* V2_8-shaped
+    // identifier (e.g. `V2_8_TEETH`, `LEGACY_V2_8_LIMITS`) — without
+    // tripping the `CONSTITUTION_V2_8_LIMITS` substring check above.
+    // Sweep every identifier-shaped V2_8 token (snake_case surrounding
+    // V2_8) and confirm none survive.
+    //
+    // Excludes:
+    //   - comment-only lines (recurring-bug-classes: prose may legitimately
+    //     quote V2.8 in amendment-history docstrings, and those are
+    //     pinned by tests 5/6 already as positive V2.9 markers).
+    //   - the "V2.8" / "V2.8 → V2.9" prose mentions in the JSDoc, which
+    //     use a DOT separator (not underscore) and so don't match the
+    //     snake_case regex below.
+    const offendingLines: string[] = [];
+    src.split('\n').forEach((line, i) => {
+      if (isCommentLine(line)) return;
+      // snake_case V2_8 identifier: must be preceded/followed by an
+      // identifier boundary (\b). Catches V2_8_LIMITS, V2_8_TEETH,
+      // LEGACY_V2_8, etc. Does NOT catch "V2.8" prose.
+      if (/\b[A-Z0-9_]*V2_8[A-Z0-9_]*\b/.test(line)) {
+        offendingLines.push(`L${i + 1}: ${line.trim()}`);
+      }
+    });
+    expect(offendingLines).toEqual([]);
+  });
+
+  it('CONSTITUTION_V2_9_LIMITS appears exactly twice in code (declaration + runAudit call) — no orphan call sites', () => {
+    const src = readSource(SCRIPT);
+    // Positive count anchor on CODE references only (skipping comment
+    // lines where the JSDoc legitimately quotes the identifier once for
+    // context — "see CONSTITUTION_V2_9_LIMITS below"). If someone adds
+    // a second runAudit() call (e.g. a debug invocation) using the same
+    // identifier, the code count grows and this guard fires. The
+    // negative checks above already catch V2_8 drift; this one catches
+    // silent duplicate wiring.
+    const lines = src.split('\n');
+    let codeRefCount = 0;
+    for (const line of lines) {
+      if (isCommentLine(line)) continue;
+      const m = line.match(/\bCONSTITUTION_V2_9_LIMITS\b/g);
+      if (m) codeRefCount += m.length;
+    }
+    expect(codeRefCount).toBe(2);
+  });
+
   it('process.exit still enforces "teeth" (fail-loud on breach)', () => {
     const src = readSource(SCRIPT);
     // The non-negotiable part of the contract: a limit breach exits non-zero.
-    // Pin the exact line so a future "let's just warn instead" edit fails.
-    expect(src).toMatch(/process\.exit\(result\.isCompliant\s*\?\s*0\s*:\s*1\)/);
+    // Pin the line shape — whitespace-tolerant inside the parens so a
+    // reformat ("( result.isCompliant ? 0 : 1 )") does not silently relax
+    // the pin. The triple (isCompliant, 0, 1) is the actual teeth; their
+    // exact spacing is not.
+    expect(src).toMatch(
+      /process\.exit\(\s*result\.isCompliant\s*\?\s*0\s*:\s*1\s*\)/,
+    );
   });
 });
