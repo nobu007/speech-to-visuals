@@ -125,7 +125,9 @@ ambiguities:
       revert_triggers:
         - "primary_evidence_contradiction"
         - "security_risk"
-    last_touched_run: "2026-08-26T21:12:22Z"
+    last_touched_run: "2026-08-26T21:30:39Z"
     evidence:
       - source: "tests/unit/export/multi-format-exporter.test.ts#L336-L341"
         quote: "pdfColorFill's contract is #RGB / #RRGGBB. … current policy is fail-open, not fail-fast: '#3C88' is not doubled … Pinning this makes the … policy explicit, so extending to #RGBA support or switching to … fail-fast later is a conscious contract change, not a silent drift."
+      - source: "tests/unit/export/multi-format-exporter.test.ts#L353"
+        quote: "expect(await (svg.data as Blob).text()).toContain('fill=\"#3C88\"');"
