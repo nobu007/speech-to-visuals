@@ -55,6 +55,53 @@ function makeOptions(overrides: Partial<ExportOptions> = {}): ExportOptions {
   };
 }
 
+// Runs a PNG export against a Proxy-backed fake ctx and records ONLY the
+// two pinned background hand-offs — the first fillStyle assignment and the
+// sole fillRect — while every other canvas API resolves to a no-op, so
+// renderToCanvas growth (ctx.save() / setLineDash() / …) cannot turn this
+// fixture into a TypeError that looks like a contract break. Restores
+// globalThis.document in finally so the TC-168-04 Node-environment leg
+// stays unpolluted.
+async function recordPngBackgroundHandoffs(
+  exporter: MultiFormatExporter,
+  scene: SceneGraph,
+  options: ExportOptions,
+): Promise<{ fillStyleAssignments: string[]; fillRectCalls: number[][]; result: MFExportResult }> {
+  const fillStyleAssignments: string[] = [];
+  const fillRectCalls: number[][] = [];
+  const noop = (): void => {};
+  const ctx = new Proxy(
+    {
+      set fillStyle(value: string) { fillStyleAssignments.push(value); },
+      fillRect: (...args: number[]) => { fillRectCalls.push(args); },
+    },
+    {
+      get: (target, prop) =>
+        prop in target ? Reflect.get(target, prop) : noop,
+    },
+  );
+  const canvas = {
+    width: 0,
+    height: 0,
+    getContext: () => ctx,
+    toBlob: (callback: (blob: Blob | null) => void) =>
+      callback(new Blob(['png'], { type: 'image/png' })),
+  };
+  const globals = globalThis as { document?: unknown };
+  const originalDocument = globals.document;
+  globals.document = { createElement: () => canvas };
+  try {
+    const result = await exporter.export(scene, options);
+    return { fillStyleAssignments, fillRectCalls, result };
+  } finally {
+    if (originalDocument === undefined) {
+      delete globals.document;
+    } else {
+      globals.document = originalDocument;
+    }
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
@@ -377,6 +424,56 @@ describe('REQ-168: MultiFormatExporter', () => {
       expect(pdf.success).toBe(true);
       const pdfText = new TextDecoder().decode(await (pdf.data as Blob).arrayBuffer());
       expect(pdfText).toContain('0.235 0.533 1.000 rg');
+    });
+
+    it('defaults the background to #ffffff in all three formats when backgroundColor is absent — and the default dims reach the bytes', async () => {
+      // The `options.backgroundColor || '#ffffff'` fallback exists at three
+      // sibling sites (exportSVG / exportPNG / exportPDF), but only the PDF
+      // side had a bytes-level pin (the #fff control leg). The SVG default
+      // was never asserted in bytes, and `uses default dimensions when not
+      // specified` checks metadata ONLY — metadata.dimensions is computed
+      // from the same locals that feed generateSVG, so a background rect
+      // decoupled from those params (hardcoded dims, dropped bgColor) was
+      // invisible. This leg pins the default '#ffffff' AND the default
+      // 1920x1080 in the rendered bytes of all three formats (rect-anchored
+      // for SVG, like the explicit-color legs above).
+      const svg = await exporter.export(makeScene(), makeOptions({ format: 'svg' }));
+      expect(svg.success).toBe(true);
+      expect(await (svg.data as Blob).text()).toContain('<rect width="1920" height="1080" fill="#ffffff"/>');
+
+      const png = await recordPngBackgroundHandoffs(exporter, makeScene(), makeOptions({ format: 'png' }));
+      expect(png.result.success).toBe(true);
+      expect(png.fillStyleAssignments[0]).toBe('#ffffff');
+      expect(png.fillRectCalls).toEqual([[0, 0, 1920, 1080]]);
+
+      const pdf = await exporter.export(makeScene(), makeOptions({ format: 'pdf' }));
+      expect(pdf.success).toBe(true);
+      expect(new TextDecoder().decode(await (pdf.data as Blob).arrayBuffer())).toContain('1.000 1.000 1.000 rg');
+    });
+
+    it('falls back to #ffffff on EMPTY-STRING backgroundColor — the || fork, not ?? (claim-operator family)', async () => {
+      // backgroundColor is an optional STRING: '' means "no preference", so
+      // the fallback must be `||` (empty string is falsy), NOT `??` (passes
+      // '' through). A mechanical `||`→`??` sweep of this file — the exact
+      // refactor class this repo hunted elsewhere — would push '' into the
+      // sinks: SVG fill="" (invalid → browser-default black), Canvas
+      // fillStyle='' (assignment ignored → stale fill). The PDF leg below
+      // pins the observable (white bytes) but NOT the fork itself: a ''
+      // that reaches pdfColorFill slices to (NaN, NaN, NaN) → 1.000 triple,
+      // which coincides with white — so the fork detection lives in the
+      // SVG/Canvas legs.
+      const svg = await exporter.export(makeScene(), makeOptions({ format: 'svg', backgroundColor: '', width: 800, height: 600 }));
+      expect(svg.success).toBe(true);
+      expect(await (svg.data as Blob).text()).toContain('<rect width="800" height="600" fill="#ffffff"/>');
+
+      const png = await recordPngBackgroundHandoffs(exporter, makeScene(), makeOptions({ format: 'png', backgroundColor: '', width: 800, height: 600 }));
+      expect(png.result.success).toBe(true);
+      expect(png.fillStyleAssignments[0]).toBe('#ffffff');
+      expect(png.fillRectCalls).toEqual([[0, 0, 800, 600]]);
+
+      const pdf = await exporter.export(makeScene(), makeOptions({ format: 'pdf', backgroundColor: '' }));
+      expect(pdf.success).toBe(true);
+      expect(new TextDecoder().decode(await (pdf.data as Blob).arrayBuffer())).toContain('1.000 1.000 1.000 rg');
     });
   });
 

@@ -125,11 +125,11 @@ ambiguities:
       revert_triggers:
         - "primary_evidence_contradiction"
         - "security_risk"
-    last_touched_run: "2026-08-26T21:50:15Z"
+    last_touched_run: "2026-08-26T22:15:36Z"
     evidence:
-      - source: "tests/unit/export/multi-format-exporter.test.ts#L354-L359"
+      - source: "tests/unit/export/multi-format-exporter.test.ts#L401-L406"
         quote: "pdfColorFill's contract is #RGB / #RRGGBB. … current policy is fail-open, not fail-fast: '#3C88' is not doubled … Pinning this makes the … policy explicit, so extending to #RGBA support or switching to … fail-fast later is a conscious contract change, not a silent drift."
-      - source: "tests/unit/export/multi-format-exporter.test.ts#L374"
+      - source: "tests/unit/export/multi-format-exporter.test.ts#L421"
         quote: "expect(await (svg.data as Blob).text()).toContain('<rect width=\"800\" height=\"600\" fill=\"#3C88\"/>');"
-      - source: "tests/unit/export/multi-format-exporter.test.ts#L368-L371"
+      - source: "tests/unit/export/multi-format-exporter.test.ts#L415-L418"
         quote: "The expect is rect-anchored (the … background rect's attribute list is exactly width/height/fill), so a … '#3C88' that leaked into a node fill cannot mask a broken background … hand-off the way a bare `fill=\"#3C88\"` containment would."
