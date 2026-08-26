@@ -28,29 +28,50 @@
  *                   queue_pending_max) and decisions.md ≤ 200 lines (Rule 6).
  *   6. charter    — north_star non-empty and ≥1 milestone (Q7); autopilot
  *                   command strings reference real package.json scripts.
- *   7. quotes     — every ellipsis-free evidence quote is a verbatim
- *                   (whitespace-normalized) substring of its source file;
- *                   paraphrase quotes MUST carry a `…`/`...` marker.
+ *   7. quotes     — evidence quotes are verbatim (whitespace-normalized)
+ *                   substrings of their source file; a `…`/`...` INSIDE a
+ *                   quote is an elision whose flanking fragments must each
+ *                   appear verbatim, in source order; only a TRAILING
+ *                   `…`/`...` suffix declares the quote a paraphrase and
+ *                   exempts it — and paraphrases are capped at 30% of all
+ *                   evidence so the exemption cannot become the norm.
  *   8. gc         — gc_actions.merged equals queue 'merged' decisions,
  *                   gc_actions.deleted equals the tombstones count (every
  *                   GC deletion leaves a tombstone), queue decision values
- *                   stay inside the C-7 vocabulary.
+ *                   stay inside the C-7 vocabulary, and each tombstone's
+ *                   term is gone from canonical_terms with its former_id
+ *                   unreused (deletion backfill).
  *
- * LLM-eval follow-up (run 20260826-110658 test-stage eval, 90/100): this
- * commit closes the four weaknesses it listed — non-npm autopilot commands
- * passed unvalidated (now allowlist-contracted), gc_actions.deleted/
- * deprecated were unpinned (now derived/typed), evidence quotes had no
- * substring teeth (now the ellipsis contract above; the 15 marker-less
- * paraphrases the bootstrap shipped are fixed in the same diff), and the
- * claims leg's unmapped ratio could read NaN on 0 lines (now floored in
- * the same leg).
+ * LLM-eval follow-up (run 20260826-110658 test-stage eval, 90/100): closed
+ * the four weaknesses it listed — non-npm autopilot commands passed
+ * unvalidated (now allowlist-contracted), gc_actions.deleted/deprecated
+ * were unpinned (now derived/typed), evidence quotes had no substring teeth
+ * (now the elision contract above; the 15 marker-less paraphrases the
+ * bootstrap shipped are fixed in the same diff), and the claims leg's
+ * unmapped ratio could read NaN on 0 lines (now floored in the same leg).
+ *
+ * LLM-eval follow-up #2 (run 20260826-112509 test-stage eval, 92/100): this
+ * commit closes the three residual weaknesses — (1) a trailing marker alone
+ * let fabricated quotes skip verification entirely (now bounded by the 30%
+ * paraphrase-ratio cap), (2) a verbatim quote that merely CONTAINED `...`
+ * (spread syntax, string literals) escaped as a false paraphrase (the hatch
+ * is now suffix-only; mid-quote markers are verified as elided fragments,
+ * each a substring and in source order — the 5 quotes whose fragments were
+ * not actually verbatim are fixed in the same diff), and (3) the
+ * gc_actions.deleted derivation was 0=0-vacuous with TombstoneEntry typed
+ * but unused (tombstones now get a structural backfill leg consuming those
+ * fields; the count derivation itself stays as-is).
  *
  * Scope decisions (conscious, keep future edits honest):
  *   - Evidence QUOTES are pinned modulo whitespace: single-line quotes are
  *     exact substrings, multi-line excerpts may be flattened with single
  *     spaces (both sides collapse `\s+` before comparing). A quote that
- *     paraphrases instead of excerpting must carry `…`/`...` — that is the
- *     escape hatch, and using it without being a paraphrase is a data bug.
+ *     paraphrases instead of excerpting must END with `…`/`...` — that is
+ *     the escape hatch, and using it without being a paraphrase is a data
+ *     bug. An elision (marker in the middle) is NOT an escape: both flanks
+ *     must literally occur in the source, in order. Residual gap, accepted:
+ *     a verbatim quote that genuinely ends in source-code `...` reads as a
+ *     paraphrase — the ratio cap bounds how often that can happen.
  *     (Source FILE existence is still checked separately — that is what
  *     caught the bootstrap's `tests/export/__tests__/xss-security.test.ts`
  *     → `src/export/...` typo.)
@@ -234,6 +255,26 @@ const QUEUE_DECISIONS = new Set(['pending', 'merged', 'rejected', 'accepted']);
 // Anything else is a typo'd or dead gate the old leg let through silently.
 const RAW_COMMAND_ALLOWLIST: readonly string[] = [];
 
+// A paraphrase marker is a TRAILING `…`/`...` suffix and nothing else. A
+// marker elsewhere in the quote is an elision inside a verbatim excerpt and
+// does NOT exempt the quote from substring verification.
+function stripTrailingMarker(quote: string): string {
+  const trimmed = quote.replace(/\s+$/, '');
+  if (trimmed.endsWith('…')) return trimmed.slice(0, -1);
+  if (trimmed.endsWith('...')) return trimmed.slice(0, -3);
+  return trimmed;
+}
+
+// True when the quote is exempt from substring verification: it carried a
+// trailing marker and its body has no (mid-quote) elision markers left.
+// These are the quotes the paraphrase-ratio cap below bounds.
+function isUnverifiedParaphrase(quote: string): boolean {
+  if (!quote) return false;
+  const trimmed = quote.replace(/\s+$/, '');
+  const body = stripTrailingMarker(trimmed);
+  return body.length !== trimmed.length && !/…|\.\.\./.test(body);
+}
+
 describe('concept-sync consistency guard (.concept/ bootstrap 5fd0dd60)', () => {
   it('js-yaml interop canary: load() round-trips a known snippet', () => {
     // If the createRequire interop broke (load === undefined), every loadYaml
@@ -305,6 +346,29 @@ describe('concept-sync consistency guard (.concept/ bootstrap 5fd0dd60)', () => 
     // shape until a representation lands, then derive it here.
     expect(Number.isInteger(metrics.gc_actions.deprecated)).toBe(true);
     expect(metrics.gc_actions.deprecated).toBeGreaterThanOrEqual(0);
+  });
+
+  it('gc: tombstones reference only deleted terms — term gone from canonical_terms, former_id unreused', () => {
+    // B-9 backfill contract (eval follow-up #2, weakness 3): a tombstone is
+    // the receipt for a GC deletion, so its term must NOT be a canonical
+    // term anymore, and its former TERM- id must not have been reused by a
+    // surviving term. This consumes the TombstoneEntry fields the previous
+    // commit typed but never read. Empty today — structural until the first
+    // real deletion lands, at which point this leg has data to bite on.
+    const liveIds = new Set(termEntries.map(([, t]) => t.id));
+    const bad: string[] = [];
+    for (const tomb of tombstones.tombstones) {
+      if (!tomb.term || !/^TERM-/.test(tomb.former_id)) {
+        bad.push(`malformed: ${JSON.stringify(tomb)}`);
+      }
+      if (tomb.term in ontology.canonical_terms) {
+        bad.push(`still-canonical: ${tomb.term}`);
+      }
+      if (liveIds.has(tomb.former_id)) {
+        bad.push(`id-reused-by-live-term: ${tomb.former_id}`);
+      }
+    }
+    expect(bad).toEqual([]);
   });
 
   it('metrics: run_id matches run_state.last_run_id', () => {
@@ -403,21 +467,35 @@ describe('concept-sync consistency guard (.concept/ bootstrap 5fd0dd60)', () => 
     expect(missing).toEqual([]);
   });
 
-  it('evidence: ellipsis-free quotes are verbatim (whitespace-normalized) substrings of their source', () => {
-    // Contract: `quote` is either a verbatim excerpt — single-line, or a
-    // multi-line excerpt flattened with single spaces (both sides collapse
-    // `\s+` before comparing) — or a paraphrase, which MUST carry `…`/`...`.
-    // The bootstrap shipped 15 marker-less paraphrases; the data fix in this
-    // commit appended `…` to them. This leg trips on fabricated, typo'd, or
-    // wrong-file code quotes that merely look plausible.
+  it('evidence: quotes are verbatim excerpts; mid-quote `…`/`...` elide fragments that must appear in source order', () => {
+    // Contract: a quote is (a) a verbatim excerpt — whitespace-normalized
+    // substring, single-line or flattened multi-line — or (b) an elided
+    // excerpt, where every `…`/`...` INSIDE the quote stands for omitted
+    // text: each flanking fragment must be a substring of the source AND
+    // the fragments must occur in source order (a fabricated or reordered
+    // elision fails). Only a TRAILING marker declares a paraphrase (skipped
+    // here, bounded by the ratio leg below). The bootstrap shipped 15
+    // marker-less paraphrases and 5 quotes whose "elided" fragments were
+    // not actually verbatim — both fixed in the respective data-fix diffs.
     const norm = (text: string): string => text.replace(/\s+/g, ' ');
     const offenders: string[] = [];
     const check = (label: string, ev: Evidence): void => {
-      if (!ev.quote || ev.quote.includes('…') || ev.quote.includes('...')) {
-        return; // empty handled by existence/Q8 legs; … marks paraphrase
+      if (!ev.quote || isUnverifiedParaphrase(ev.quote)) {
+        return; // empty handled by existence/Q8 legs; trailing … = paraphrase
       }
       const content = norm(readSource(ev.source.split('#')[0]));
-      if (!content.includes(norm(ev.quote))) offenders.push(`${label}: ${ev.source}`);
+      const body = stripTrailingMarker(ev.quote);
+      let pos = 0;
+      for (const fragment of body.split(/…|\.\.\./)) {
+        const needle = norm(fragment.trim());
+        if (!needle) continue; // marker at start/end of an elision
+        const at = content.indexOf(needle, pos);
+        if (at === -1) {
+          offenders.push(`${label}: ${ev.source} [not verbatim: ${needle.slice(0, 50)}]`);
+          return;
+        }
+        pos = at + needle.length; // next fragment must occur AFTER this one
+      }
     };
     for (const [name, term] of termEntries) {
       for (const ev of term.evidence ?? []) check(`term ${name}`, ev);
@@ -432,6 +510,24 @@ describe('concept-sync consistency guard (.concept/ bootstrap 5fd0dd60)', () => 
       for (const ev of item.evidence ?? []) check(item.id, ev);
     }
     expect(offenders).toEqual([]);
+  });
+
+  it('evidence: paraphrase-marker quotes stay ≤ 30% of all evidence (escape hatch cannot become the norm)', () => {
+    // A trailing `…`/`...` exempts a quote from substring verification —
+    // without this cap, stamping the marker onto fabricated quotes would
+    // pass the verbatim leg for free (eval follow-up #2, weakness 1). The
+    // marker stays cheap for genuine paraphrases but not for wholesale
+    // evasion. 15/117 = 12.8% today.
+    const all: Evidence[] = [];
+    for (const [, term] of termEntries) all.push(...(term.evidence ?? []));
+    for (const inv of invariants.invariants) all.push(...(inv.evidence ?? []));
+    for (const amb of ambiguities.ambiguities) all.push(...(amb.evidence ?? []));
+    for (const item of termQueue.queue) all.push(...(item.evidence ?? []));
+    expect(all.length).toBeGreaterThanOrEqual(100); // anti-vacuous floor
+    const paraphrases = all
+      .filter((ev) => isUnverifiedParaphrase(ev.quote))
+      .map((ev) => ev.source);
+    expect(paraphrases.length / all.length).toBeLessThanOrEqual(0.3);
   });
 
   it('claims: every ndjson line parses and invariants hold (Q5 leg)', () => {

@@ -7,7 +7,7 @@ invariants:
     rationale: "単一目的（音声→図解動画の全自動変換）の堅持。機能肥大化による複雑化を防ぐ。"
     evidence:
       - source: "SYSTEM_CONSTITUTION.md#L83-L87"
-        quote: "禁止: editing/, effects/, filters/ ディレクトリ（手動編集系）… users/, profiles/ ディレクトリ（ユーザー管理系）"
+        quote: "`editing/`, `effects/`, `filters/` ディレクトリ（手動編集系）… `users/`, `profiles/` ディレクトリ（ユーザー管理系）"
     checks:
       - type: "manual"
         target: "ls src/ のディレクトリ構成レビュー"
@@ -153,7 +153,7 @@ invariants:
       - source: "tests/guards/source-anchor-cwd-discipline.test.ts#L80"
         quote: "describe('source-anchor cwd discipline (whisper-node chdir lesson, 16ed9ccf)', () => {"
       - source: "AGENTS.md#L116-L131"
-        quote: "テストがリポジトリ内のソースを直接読む…場合、パスは必ず import.meta.url から解決すること。"
+        quote: "テストがリポジトリ内のソースを直接読む…`import.meta.url` から解決すること。"
     checks:
       - type: "test"
         target: "tests/guards/source-anchor-cwd-discipline.test.ts"
@@ -201,7 +201,7 @@ invariants:
     rationale: "無人ループの持続性: CI 往復の削減と required check 集約（all-checks-pass のみ）。"
     evidence:
       - source: "AGENTS.md#L195-L206"
-        quote: "npm run verify:all # CI と同一構成のローカルゲート (push 前に必ず) … branch protection: all-checks-pass のみ required status check に指定済み"
+        quote: "npm run verify:all # CI と同一構成のローカルゲート (push 前に必ず) … branch protection: `all-checks-pass` のみ required status check に指定済み"
     checks:
       - type: "command"
         target: "npm run verify:all"
