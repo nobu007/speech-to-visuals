@@ -289,6 +289,14 @@ interface Budget {
     aux_max: number;
   };
   ratios: { draft_ratio_max: number; queue_pending_max: number };
+  file_ceilings: {
+    invariants_max: number;
+    ambiguities_max: number;
+    conflicts_max: number;
+    mappings_max: number;
+    term_queue_max: number;
+    claims_max_lines: number;
+  };
 }
 interface Charter {
   product_goal: { north_star: string };
@@ -337,8 +345,9 @@ const charter = loadYaml<Charter>('.concept/charter.yml');
 const autopilot = loadYaml<{ commands: Record<string, string> }>(
   '.concept/autopilot.yml',
 );
-// conflicts is allowed to be an empty array — parse-only leg.
-loadYaml<{ conflicts: unknown[] }>('.concept/conflicts.yml');
+// conflicts is allowed to be an empty array — parse-only leg (plus the
+// B-10 ceiling census below).
+const conflicts = loadYaml<{ conflicts: unknown[] }>('.concept/conflicts.yml');
 const tombstones = loadYaml<{ tombstones: TombstoneEntry[] }>(
   '.concept/tombstones.yml',
 );
@@ -1122,6 +1131,41 @@ describe('concept-sync consistency guard (.concept/ bootstrap 5fd0dd60)', () => 
     expect(
       termQueue.queue.filter((q) => q.decision === 'pending').length,
     ).toBeLessThanOrEqual(budget.ratios.queue_pending_max);
+  });
+
+  it('budget: B-10 file ceilings — every store under its ontology_budget file_ceilings cap', () => {
+    // 10_concept_sync_system §B-10 sets per-store ceilings (invariants 60,
+    // ambiguities 50, conflicts 50, mappings 200, term_queue 50, claims
+    // 10k lines). The Q4/Q6 leg above covers term-count limits only —
+    // nothing held the OTHER stores to their caps, so a future増産 run
+    // could push invariants past 60 (or mappings past 200) and stay green.
+    // The caps live in ontology_budget.yml (repo-internal source of
+    // truth), not hardcoded here. The key-set pin is the typo teeth: a
+    // deleted or renamed ceiling must RED the leg instead of silently
+    // comparing against `undefined`.
+    const fc = budget.file_ceilings;
+    expect(Object.keys(fc).sort()).toEqual([
+      'ambiguities_max',
+      'claims_max_lines',
+      'conflicts_max',
+      'invariants_max',
+      'mappings_max',
+      'term_queue_max',
+    ]);
+    const counts: Array<[string, number, number]> = [
+      ['invariants', invariants.invariants.length, fc.invariants_max],
+      ['ambiguities', ambiguities.ambiguities.length, fc.ambiguities_max],
+      ['conflicts', conflicts.conflicts.length, fc.conflicts_max],
+      ['mappings', Object.keys(mappings.mappings).length, fc.mappings_max],
+      ['term_queue', termQueue.queue.length, fc.term_queue_max],
+      // B-10 caps lines OR 10MB; the line count is the binding form here
+      // (73 lines ≈ tens of KB — three orders of magnitude from 10MB).
+      ['claims lines', claimLines.length, fc.claims_max_lines],
+    ];
+    const offenders = counts
+      .filter(([name, count, cap]) => count > cap)
+      .map(([name, count, cap]) => `${name}: ${count} > cap ${cap}`);
+    expect(offenders).toEqual([]);
   });
 
   it('budget: decisions.md stays ≤ 200 lines (Rule 6 cache ceiling)', () => {
