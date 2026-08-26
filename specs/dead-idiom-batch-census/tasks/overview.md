@@ -242,3 +242,32 @@ MW-081
   → 331 file 再計測 — A-416-1 手順の再適用）
 - 棄却 4 class とも実測 site 全数（6 + 0 + 0 + 5）を読んでの根拠 —
   incident 出現時点の再計測条件を requirements に明記
+
+## Phase 226: REQ-418 第九回 discovery sweep（28 kind 追加 + unify 1 site + 1 class 棄却）
+
+**目標**: batch 契約（kind 追加 = 1 entry）の 9 回目の適用。29 candidate
+を計測し、26 class を exact-0 pin、1 class（dead-ua-platform）を ALLOWED
+1 site 同梱、1 class（string-char-split）を unify 1 site 同梱
+（`split('')` → `[...text]`・classifyChar range との交差ゼロで ratio
+完全等価）、1 class（react-default-props）を pin 前棄却（母集団不一致
+3 例目 — Remotion `<Composition defaultProps>` は Framework prop の同名）。
+**成果物**: guard 28 kind 追加 + fixture (ac1)〜(ac28) + 既存負例
+明け渡し 1 件 + ALLOWED 23 key / ERADICATED 13 key + src unify 1 site +
+spec 同梱更新 + MW-082（mutation 検証が detector optional-chain 抜けを
+発見した初例 — `document\??\.createEvent` へ修正して RED 化）
+
+### タスク一覧
+
+- [x] [TASK-0309: 第九回 discovery sweep — 同一 batch guard へ 28 kind 追加 + string-char-split unify 1 site + 1 class pin 前棄却（母集団不一致 3 例目） + MW-082 mutation 検証](TASK-0309.md) - 2h (TDD) 🔵 ✅完了
+
+### 依存関係
+
+- Phase 217〜225 の `IDIOM_KINDS` registry と discovery primitive に直接追記
+  （新規 guard file なし — batch 契約の趣旨）
+- 計測は canonical `walkProductionSurface` 直接使用（331 file・
+  A-416-1 手順の維持）
+- unify の等価性は @stv/core unicode-script-ranges の range 実値との
+  交差確認で保証（surrogate block 0xD800-0xDFFF と不交差）+
+  language-detector test 68/68 GREEN
+- 棄却 1 class は site 実コード読み — incident 出現時点の再計測条件を
+  requirements に明記

@@ -228,3 +228,31 @@
 - **再計測条件**: 行跨ぎ postMessage origin 引数・複数行/コメント付き
   `.catch` noop body の実出現時（grep -A1 pass で現在 0・src の
   `.catch` 7 site 全数読みで確認済み）。
+
+## REQ-418 sweep #9（2026-08-26・Phase 226）
+
+- **計測**: 29 candidate class を canonical `walkProductionSurface`
+  （331 file・repo src/ + core-four）直接使用で計測。候補は IE/dead-DOM
+  member 群・React legacy API 群・markup sink sibling 群・言語 dead 慣用
+  （with / new Object() / Array(n).join）・`split('')` surrogate 分離系。
+- **評決の内訳**: exact-0 pin 26 kind + ALLOWED 同梱 1 kind
+  （dead-ua-platform = production-error-handler:273 getBrowserInfo
+  telemetry の platform field・:271 userAgent REPORT-ONLY row と同型）+
+  unify 同梱 1 kind（string-char-split = language-detector:537
+  `text.split('')` → `[...text]`・@stv/core range table
+  0x3040-0x31FF / 0x3400-0xFAFF / A-Z は surrogate block 0xD800-0xDFFF
+  と交差しないため ratio 完全等価・ERADICATED 1 key 追加）。
+  ALLOWED 23 / ERADICATED 13 / kind 118 entry。
+- **既存 fixture の負例明け渡し（kind 分離契約 4 例目）**: (ab3)
+  `navigator.platform` 負例 → `navigator.language`（正当 API）に差し替え。
+  platform の帰着先は (ac19) が固定。既存 kind の detect regex は 1 行
+  も不変（REQ-417 の 2 例に続く適用）。
+- **棄却の根拠**: react-default-props 1 site は `<Composition
+  defaultProps>` — Remotion Framework 自身の prop で React の削除対象
+  `Component.defaultProps` とは無関係の同名衝突（母集団不一致 3 例目）。
+- **MW-082 の副次発見**: mutation (c) `document?.createEvent(...)` が
+  初稿 regex `document\.createEvent` で**不発**（optional-chain 記法が
+  検出域を抜ける）→ `document\??\.createEvent` に修正して RED 化。
+  mutation 検証が detector の検出域 bug を発見した初例。
+- **再計測条件**: `outerText =` 系（別 member）・行跨ぎ with 文・
+  template literal 内 `split(``)` 以外の surrogate 分離形の実出現時。

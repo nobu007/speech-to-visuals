@@ -316,7 +316,7 @@
  * ALLOWED / ERADICATED are the census-artifact three-way blocks (REQ-395):
  * the requirements prose must declare `ALLOWED 2 key` / `ERADICATED 2 key`.
  *
- *   <!-- census-pin:F19:dead-idiom-batch ALLOWED 22 key / ERADICATED 12 key -->
+ *   <!-- census-pin:F19:dead-idiom-batch ALLOWED 23 key / ERADICATED 13 key -->
  *
  * Documented ceilings (same honesty as the sibling censuses):
  *   - line-level detection sees one line at a time: a `==` split across a
@@ -748,6 +748,97 @@ export const IDIOM_KINDS: readonly IdiomKind[] = [
     id: 'console-nondebug-sink',
     detect: /console\.(?:info|warn|error|trace)\s*\(/,
   },
+  // --- REQ-418 ninth sweep (twenty-eight kinds, all measured on 2026-08-26) ---
+  // `.outerHTML =` parses its argument as markup — inner-html-assignment's
+  // sink sibling (the whole-element form; `==` comparisons are not the class).
+  { id: 'outer-html-assignment', detect: /\.outerHTML\s*(?:\+=|=)(?!=)/ },
+  // `.srcdoc =` (and React's srcDoc prop) is the iframe markup sink —
+  // innerHTML's iframe-vector sibling (sandbox without allow-same-origin is
+  // the only legitimate context, judged per site).
+  { id: 'srcdoc-assignment', detect: /\.srcdoc\s*(?:\+=|=)(?!=)/i },
+  // `document.createEvent(…)` + initEvent is the pre-`new CustomEvent()`
+  // construction dance; a future site is the legacy spelling by definition
+  // (the `?.` optional-chain spelling is the same call — MW-082 mutation
+  // (c) caught the gap in the first detector draft).
+  { id: 'legacy-dispatch-event', detect: /document\??\.createEvent\s*\(/ },
+  // attachEvent/detachEvent are the IE-only event API (addEventListener is
+  // the universal form; a hit is dead code in every current engine).
+  { id: 'ie-attach-event', detect: /\.(?:attachEvent|detachEvent)\s*\(/ },
+  // `.currentStyle` is IE's computed-style member (getComputedStyle is the
+  // standard form); undefined in every current engine.
+  { id: 'ie-current-style', detect: /\.currentStyle\b/ },
+  // window.execScript evaluates GLOBAL-scope code — eval's IE twin (and
+  // deader: removed from IE11+ edge modes and absent everywhere else). The
+  // lookbehind blocks identifier spellings but admits the `window.` member
+  // form (the incident's own shape).
+  { id: 'window-execscript', detect: /(?<![\w$])execScript\s*\(/ },
+  // window.navigate( is IE's navigation spelling (location.assign / href).
+  { id: 'window-navigate', detect: /window\.navigate\s*\(/ },
+  // setCapture/releaseCapture are the IE mouse-capture pair;
+  // setPointerCapture (which does NOT match this regex) is the modern form.
+  { id: 'element-set-capture', detect: /\.(?:setCapture|releaseCapture)\s*\(/ },
+  // document.createStyleSheet is IE-only stylesheet injection (the <link>
+  // element or adoptedStyleSheets is the form).
+  { id: 'document-create-stylesheet', detect: /createStyleSheet\s*\(/ },
+  // `Array(n).join(sep)` is the pre-`sep.repeat(n - 1)` string-repeat
+  // idiom — with the off-by-one (`Array(3).join('-')` is TWO dashes) that
+  // makes every reader re-derive the count.
+  { id: 'array-join-repeat', detect: /Array\s*\([^)]*\)\s*\.join\s*\(/ },
+  // A STRING ref (`ref="name"`) is React's legacy ref spelling — removed
+  // for function components, and ref forwarding breaks silently.
+  { id: 'react-string-ref', detect: /\bref\s*=\s*['"]/ },
+  // React.createClass is the pre-class/pre-hooks component factory,
+  // removed since React 16.
+  { id: 'react-create-class', detect: /createClass\s*\(/ },
+  // `.isMounted()` is the removed React anti-pattern (setState-after-unmount
+  // guard); the data flow must not need it.
+  { id: 'react-is-mounted', detect: /\.isMounted\s*\(/ },
+  // childContextTypes / getChildContext are the removed legacy context API;
+  // createContext is the only supported form.
+  { id: 'legacy-context-api', detect: /childContextTypes\b|getChildContext\b/ },
+  // `addEventListener('onclick', …)` subscribes to a never-fired event name
+  // (DOM names carry no `on` prefix) — the handler silently never runs.
+  { id: 'on-prefixed-event-name', detect: /addEventListener\s*\(\s*['"]on\w+['"]/ },
+  // `new Object()` is the pointless ctor spelling of `{}` — `new ObjectType()`
+  // (a real class) does not match (the ctor call must close immediately).
+  { id: 'object-ctor', detect: /\bnew\s+Object\s*\(\s*\)/ },
+  // document.domain is the deprecated same-origin-policy relaxation
+  // (cross-subdomain cookie sharing) — a security hazard, not a capability.
+  { id: 'document-domain-access', detect: /document\.domain\b/ },
+  // `with (x) {…}` is a strict-mode SyntaxError — dead in every module
+  // (`.with(` ES2023 array copy and `switch (` are not the shape).
+  { id: 'with-statement', detect: /(?<![.\w$])with\s*\(/ },
+  // window.showModalDialog is the removed IE/Firefox modal API
+  // (the <dialog> element's showModal() is the form — a different name).
+  // Same member-admitting lookbehind as window-execscript.
+  { id: 'window-showmodaldialog', detect: /(?<![\w$])showModalDialog\s*\(/ },
+  // document.selection is IE's selection model (getSelection is the form).
+  { id: 'document-selection-ie', detect: /document\.selection\b/ },
+  // `.doScroll()` is IE's scroll hack (scrollIntoView is the form).
+  { id: 'ie-do-scroll', detect: /\.doScroll\s*\(/ },
+  // `.cancelBubble = true` is IE's stopPropagation spelling — silently a
+  // no-op assignment in current engines.
+  { id: 'event-cancel-bubble', detect: /\.cancelBubble\s*=(?!=)/ },
+  // `.srcElement` is IE's event-target field (`.target` is the form);
+  // a bare `srcElement` identifier (no member access) is not the shape.
+  { id: 'event-src-element', detect: /\.srcElement\b/ },
+  // document.layers is the Netscape 4 DHTML API — dead for two decades.
+  { id: 'document-layers', detect: /document\.layers\b/ },
+  // console.assert is a debug-only sink outside the logger's level gate —
+  // console-debug-log's assertion twin.
+  { id: 'console-assert-sink', detect: /console\.assert\s*\(/ },
+  // `.then(undefined, onRejected)` is the legacy two-arg rejection
+  // spelling; `.catch(onRejected)` is the canonical form (a REAL first
+  // argument is a legitimate two-arg then and not the shape).
+  { id: 'then-two-arg-rejection', detect: /\.then\s*\(\s*(?:undefined|null)\s*,/ },
+  // `navigator.platform` is a fixed hint string that answers nothing the
+  // UA string does not (dead-ua-field's platform sibling; the one measured
+  // site REPORTS it in telemetry — no behavior branches on it).
+  { id: 'dead-ua-platform', detect: /navigator\.platform\b/ },
+  // `.split('')` breaks astral code points (CJK ext-B kanji, emoji) into
+  // lone surrogate halves — `[...text]` iterates code points. The one
+  // measured site was unified in-commit (see ERADICATED).
+  { id: 'string-char-split', detect: /\.split\(\s*(['"`])\1\s*\)/ },
 ];
 
 /** One discovered idiom site, classified against its kind's context rule. */
@@ -898,6 +989,11 @@ const ALLOWED: Record<string, string> = {
     'LOGGER-IMPL — console.warn is the logger transport itself (@stv/core-owned); every other console.info/warn/error/trace on the surface bypasses the level gate.',
   'src/utils/logger.ts:35':
     'LOGGER-IMPL — console.error is the logger transport itself (@stv/core-owned); every other console.info/warn/error/trace on the surface bypasses the level gate.',
+  // [dead-ua-platform] the third telemetry field of the same getBrowserInfo
+  // object the :271 userAgent row reports into — no behavior branches on
+  // the string (the same REPORT-ONLY verdict, one field over).
+  'src/monitoring/production-error-handler.ts:273':
+    'REPORT-ONLY — getBrowserInfo() telemetry context field beside the :271 userAgent row (platform: navigator.platform); no behavior branches on the fixed hint string; a BRANCH on it is an unrostered RED.',
 };
 
 /**
@@ -936,6 +1032,18 @@ const ERADICATED: Record<string, string> = {
     'unified 2026-08-25 (REQ-415) — `global.gc();` → `globalThis.gc();` (same site as :1428).',
   'src/quality/enhanced-error-recovery.ts:284':
     'unified 2026-08-25 (REQ-415) — `if (global.gc) global.gc();` → `if (globalThis.gc) globalThis.gc();`: unguarded `global` in the memory_cleanup preventive action was a latent browser ReferenceError; the feature check is unchanged.',
+  // [string-char-split] `text.split('')` → `[...text]` in the legacy
+  // detectLanguage wrapper: IDENTICAL for every input the classifier can
+  // distinguish — no KANA/CJK/English range (@stv/core unicode-script-ranges:
+  // 0x3040-0x31FF, 0x3400-0xFAFF, A-Z) intersects the surrogate block
+  // 0xD800-0xDFFF, so astral code points (CJK ext-B kanji, emoji) classify
+  // as Other under BOTH spellings and enter no ratio. The code-point form
+  // removes the surrogate-half artifact: element count now equals code
+  // points (matching the `for (const char of text)` spelling the SAME file
+  // uses in hasKana/scoreLatinLanguage), so a future astral CJK-ext range
+  // table works without re-touching the loop.
+  'src/analysis/language-detector.ts:537':
+    'unified 2026-08-26 (REQ-418) — `const chars = text.split(\'\');` → `const chars = [...text];`: code-point iteration, ratio-identical today (no classifier range intersects the surrogate block), canonical spelling aligned with the same file\'s for-of loops.',
 };
 
 describe('dead-idiom batch census (REQ-410)', () => {
@@ -964,6 +1072,7 @@ describe('dead-idiom batch census (REQ-410)', () => {
     expect(sites.filter((s) => s.kind === 'useragent-sniffing').length).toBeGreaterThanOrEqual(3);
     expect(sites.filter((s) => s.kind === 'swallowed-rejection').length).toBeGreaterThanOrEqual(1);
     expect(sites.filter((s) => s.kind === 'console-nondebug-sink').length).toBeGreaterThanOrEqual(3);
+    expect(sites.filter((s) => s.kind === 'dead-ua-platform').length).toBeGreaterThanOrEqual(1);
     // The kind registry is the steering contract — shrinking it is RED.
     expect(IDIOM_KINDS.map((k) => k.id)).toEqual([
       'coercing-isnan',
@@ -1056,6 +1165,34 @@ describe('dead-idiom batch census (REQ-410)', () => {
       'instanceof-object',
       'swallowed-rejection',
       'console-nondebug-sink',
+      'outer-html-assignment',
+      'srcdoc-assignment',
+      'legacy-dispatch-event',
+      'ie-attach-event',
+      'ie-current-style',
+      'window-execscript',
+      'window-navigate',
+      'element-set-capture',
+      'document-create-stylesheet',
+      'array-join-repeat',
+      'react-string-ref',
+      'react-create-class',
+      'react-is-mounted',
+      'legacy-context-api',
+      'on-prefixed-event-name',
+      'object-ctor',
+      'document-domain-access',
+      'with-statement',
+      'window-showmodaldialog',
+      'document-selection-ie',
+      'ie-do-scroll',
+      'event-cancel-bubble',
+      'event-src-element',
+      'document-layers',
+      'console-assert-sink',
+      'then-two-arg-rejection',
+      'dead-ua-platform',
+      'string-char-split',
     ]);
   });
 
@@ -1189,6 +1326,16 @@ describe('dead-idiom batch census (REQ-410)', () => {
       ['src/monitoring/performance-dashboard.ts', /if \(globalThis\.gc\) \{\s*\n\s*globalThis\.gc\(\);/],
       ['src/pipeline/main-pipeline.ts', /if \(globalThis\.gc\) \{\s*\n\s*globalThis\.gc\(\);/],
       ['src/quality/enhanced-error-recovery.ts', /if \(globalThis\.gc\) globalThis\.gc\(\);/],
+      // The unified char-iteration site keeps the code-point spread — a
+      // revert to split('') is an eradicated-reappear RED AND this anchor
+      // (the for-of body below consumes the elements, so the anchor also
+      // documents WHY the materialized array exists at all).
+      ['src/analysis/language-detector.ts', /const chars = \[\.\.\.text\];/],
+      // The rostered platform site stays the third REPORT-ONLY telemetry
+      // field of getBrowserInfo (beside the :271 userAgent row). A behavior
+      // branch on the hint string is not the rostered shape — it lands in
+      // the offender list.
+      ['src/monitoring/production-error-handler.ts', /platform: navigator\.platform/],
     ];
     for (const [file, pattern] of anchors) {
       expect(`${file}: ${readSource(file)}`).toMatch(pattern);
@@ -1764,14 +1911,16 @@ describe('dead-idiom batch census (REQ-410)', () => {
       discoverIdiomSites('f.ts', 'const u = decodeURIComponent(path); const e = decodeURIComponent(x, y);'),
     ).toEqual([]);
     // (ab3) dead UA fields flagged; userAgent stays useragent-sniffing's
-    // site (kind帰着の分離) and platform is neither kind's shape.
+    // site (kind帰着の分離) and language is no kind's shape. platform was
+    // this fixture's negative until REQ-418 made it dead-ua-platform's own
+    // site (kind 分離契約 4 例目 — the negative handed over to (ac18)).
     expect(
       discoverIdiomSites('f.ts', 'const n = navigator.appName;\nconst v = navigator.appVersion;'),
     ).toHaveLength(2);
     const uaHit = discoverIdiomSites('f.ts', 'const ua = navigator.userAgent;');
     expect(uaHit).toHaveLength(1);
     expect(uaHit[0].kind).toBe('useragent-sniffing');
-    expect(discoverIdiomSites('f.ts', 'const p = navigator.platform;')).toEqual([]);
+    expect(discoverIdiomSites('f.ts', 'const l = navigator.language;')).toEqual([]);
     // (ab4) the React 18 legacy root trio flagged; createRoot not.
     expect(
       discoverIdiomSites('f.ts', "const n = findDOMNode(this);\nconst u = unmountComponentAtNode(el);"),
@@ -1839,6 +1988,147 @@ describe('dead-idiom batch census (REQ-410)', () => {
     expect(logSink[0].kind).toBe('console-debug-log');
     expect(
       discoverIdiomSites('f.ts', "logger.info('x'); logger.warn('y'); logger.error('z');"),
+    ).toEqual([]);
+    // (ac) REQ-418 ninth-sweep kinds: each flags its dead form and leaves
+    // the modern spelling alone.
+    // (ac1) `.outerHTML =` / `+=` flagged; the == comparison not.
+    expect(
+      discoverIdiomSites('f.ts', 'el.outerHTML = markup;\nhead.outerHTML += banner;'),
+    ).toHaveLength(2);
+    expect(discoverIdiomSites('f.ts', 'const same = a.outerHTML === b.outerHTML;')).toEqual([]);
+    // (ac2) `.srcdoc =` flagged (case-insensitive); sandbox string attr not.
+    expect(
+      discoverIdiomSites('f.ts', 'frame.srcdoc = html;\nframe.srcDoc = otherHtml;'),
+    ).toHaveLength(2);
+    expect(
+      discoverIdiomSites('f.ts', "frame.setAttribute('sandbox', 'allow-scripts');"),
+    ).toEqual([]);
+    // (ac3) document.createEvent flagged; new Event / new CustomEvent not.
+    expect(
+      discoverIdiomSites('f.ts', "const ev = document.createEvent('HTMLEvents');"),
+    ).toHaveLength(1);
+    expect(
+      discoverIdiomSites('f.ts', "const a = new Event('x');\nconst b = new CustomEvent('y', { detail: 1 });"),
+    ).toEqual([]);
+    // (ac4) attachEvent/detachEvent flagged; addEventListener/removeEventListener not.
+    expect(
+      discoverIdiomSites('f.ts', "el.attachEvent('onclick', fn);\nel.detachEvent('onclick', fn);"),
+    ).toHaveLength(2);
+    expect(
+      discoverIdiomSites('f.ts', "el.addEventListener('click', fn);\nel.removeEventListener('click', fn);"),
+    ).toEqual([]);
+    // (ac5) `.currentStyle` flagged; getComputedStyle not.
+    expect(discoverIdiomSites('f.ts', 'const s = el.currentStyle;')).toHaveLength(1);
+    expect(discoverIdiomSites('f.ts', 'const s = getComputedStyle(el);')).toEqual([]);
+    // (ac6) execScript flagged; eval stays direct-eval's site (kind 分離).
+    expect(discoverIdiomSites('f.ts', 'execScript(code);')).toHaveLength(1);
+    const evalHit = discoverIdiomSites('f.ts', 'const v = eval(code);');
+    expect(evalHit).toHaveLength(1);
+    expect(evalHit[0].kind).toBe('direct-eval');
+    // (ac7) window.navigate flagged; location.assign not.
+    expect(discoverIdiomSites('f.ts', 'window.navigate(url);')).toHaveLength(1);
+    expect(discoverIdiomSites('f.ts', 'location.assign(url);\nlocation.href = url;')).toEqual([]);
+    // (ac8) setCapture/releaseCapture flagged; the POINTER capture pair not.
+    expect(
+      discoverIdiomSites('f.ts', 'el.setCapture();\nel.releaseCapture();'),
+    ).toHaveLength(2);
+    expect(
+      discoverIdiomSites('f.ts', 'el.setPointerCapture(id);\nel.releasePointerCapture(id);'),
+    ).toEqual([]);
+    // (ac9) createStyleSheet flagged; an injected <link> element not.
+    expect(discoverIdiomSites('f.ts', 'document.createStyleSheet(url);')).toHaveLength(1);
+    expect(
+      discoverIdiomSites('f.ts', "const l = document.createElement('link'); l.rel = 'stylesheet';"),
+    ).toEqual([]);
+    // (ac10) `Array(n).join(sep)` flagged; sep.repeat not. The literal-length
+    // form stays bare-array-ctor's twin hit — a variable length separates
+    // the kinds (bare-array-ctor pins literal digits only).
+    expect(
+      discoverIdiomSites('f.ts', "const line = Array(width + 1).join(pad);"),
+    ).toHaveLength(1);
+    expect(
+      discoverIdiomSites('f.ts', "const line = '-'.repeat(3);\nconst j = xs.join(', ');"),
+    ).toEqual([]);
+    // (ac11) a string ref flagged; the ref-object form not.
+    expect(discoverIdiomSites('f.ts', '<input ref="name" />')).toHaveLength(1);
+    expect(
+      discoverIdiomSites('f.ts', '<input ref={inputRef} /><div href = "x"></div>;'),
+    ).toEqual([]);
+    // (ac12) createClass flagged; a function component not.
+    expect(discoverIdiomSites('f.ts', 'const C = createClass({ render() {} });')).toHaveLength(1);
+    expect(discoverIdiomSites('f.ts', 'function C() { return null; }')).toEqual([]);
+    // (ac13) `.isMounted()` flagged; a mounted ref flag not.
+    expect(discoverIdiomSites('f.ts', 'if (this.isMounted()) run();')).toHaveLength(1);
+    expect(discoverIdiomSites('f.ts', 'if (mountedRef.current) run();')).toEqual([]);
+    // (ac14) legacy context API flagged; createContext not.
+    expect(
+      discoverIdiomSites('f.ts', 'childContextTypes = {};\ngetChildContext() {}'),
+    ).toHaveLength(2);
+    expect(
+      discoverIdiomSites('f.ts', "const Ctx = createContext(null);\nCtx.Provider;"),
+    ).toEqual([]);
+    // (ac15) the `on`-prefixed event NAME flagged (the handler never
+    // fires); the real name not.
+    expect(
+      discoverIdiomSites('f.ts', "el.addEventListener('onclick', fn);"),
+    ).toHaveLength(1);
+    expect(
+      discoverIdiomSites('f.ts', "el.addEventListener('click', fn);\nel.removeEventListener('onclick', fn);"),
+    ).toEqual([]);
+    // (ac16) `new Object()` flagged; a real class ctor not.
+    expect(discoverIdiomSites('f.ts', 'const o = new Object();')).toHaveLength(1);
+    expect(discoverIdiomSites('f.ts', 'const o = new ObjectType();')).toEqual([]);
+    // (ac17) document.domain flagged; documentElement not.
+    expect(discoverIdiomSites('f.ts', 'const d = document.domain;')).toHaveLength(1);
+    expect(discoverIdiomSites('f.ts', 'const r = document.documentElement;')).toEqual([]);
+    // (ac18) `with (` flagged (strict SyntaxError); the ES2023 `.with(`
+    // array copy and switch not.
+    expect(discoverIdiomSites('f.ts', 'with (obj) { run(x); }')).toHaveLength(1);
+    expect(
+      discoverIdiomSites('f.ts', 'const w = xs.with(0, 9);\nswitch (x) { case 1: break; }'),
+    ).toEqual([]);
+    // (ac19) navigator.platform flagged (dead-ua-platform — the platform
+    // negative handed over from (ab3)); the REPORT-ONLY rostered spelling
+    // is the :273 site's own judgment, userAgent stays its kind's shape.
+    const platformHit = discoverIdiomSites('f.ts', 'platform: navigator.platform');
+    expect(platformHit).toHaveLength(1);
+    expect(platformHit[0].kind).toBe('dead-ua-platform');
+    expect(discoverIdiomSites('f.ts', 'const lang = navigator.languages;')).toEqual([]);
+    // (ac20) `.split('')` flagged; delimiter splits and code-point spread not.
+    expect(
+      discoverIdiomSites("f.ts", "const a = text.split('');\nconst b = text.split(``);"),
+    ).toHaveLength(2);
+    expect(
+      discoverIdiomSites('f.ts', "const a = text.split('-');\nconst b = [...text];\nconst c = Array.from(text);"),
+    ).toEqual([]);
+    // (ac21) showModalDialog flagged; the <dialog> element's showModal not.
+    expect(discoverIdiomSites('f.ts', 'window.showModalDialog(url);')).toHaveLength(1);
+    expect(discoverIdiomSites('f.ts', 'dialog.showModal();\ndialog.close();')).toEqual([]);
+    // (ac22) document.selection flagged; window.getSelection not.
+    expect(discoverIdiomSites('f.ts', 'const s = document.selection;')).toHaveLength(1);
+    expect(discoverIdiomSites('f.ts', 'const s = window.getSelection();')).toEqual([]);
+    // (ac23) `.doScroll()` flagged; scrollIntoView not.
+    expect(discoverIdiomSites('f.ts', 'el.doScroll();')).toHaveLength(1);
+    expect(discoverIdiomSites('f.ts', 'el.scrollIntoView();\nwindow.scrollTo(0, 0);')).toEqual([]);
+    // (ac24) `.cancelBubble =` flagged; stopPropagation not.
+    expect(discoverIdiomSites('f.ts', 'e.cancelBubble = true;')).toHaveLength(1);
+    expect(discoverIdiomSites('f.ts', 'e.stopPropagation();\nconst b = e.cancelBubble === true;')).toEqual([]);
+    // (ac25) `.srcElement` flagged; `.target` not.
+    expect(discoverIdiomSites('f.ts', 'const t = e.srcElement;')).toHaveLength(1);
+    expect(discoverIdiomSites('f.ts', 'const t = e.target;')).toEqual([]);
+    // (ac26) document.layers flagged; getElementsByClassName not (that is
+    // a live collection, a different concept with its own judgment).
+    expect(discoverIdiomSites('f.ts', 'const l = document.layers;')).toHaveLength(1);
+    expect(discoverIdiomSites('f.ts', "const l = document.getElementsByClassName('x');")).toEqual([]);
+    // (ac27) console.assert flagged; logger assertion not.
+    expect(discoverIdiomSites('f.ts', "console.assert(x > 0, 'pos');")).toHaveLength(1);
+    expect(discoverIdiomSites('f.ts', "logger.debug('assert', x > 0);")).toEqual([]);
+    // (ac28) `.then(undefined, …)` flagged; a real first argument not.
+    expect(
+      discoverIdiomSites('f.ts', 'p.then(undefined, onReject);\nq.then(null, onReject);'),
+    ).toHaveLength(2);
+    expect(
+      discoverIdiomSites('f.ts', 'p.then(mapValue, onReject);\np.catch(onReject);'),
     ).toEqual([]);
   });
 });
