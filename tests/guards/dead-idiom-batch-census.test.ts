@@ -602,7 +602,7 @@ export const IDIOM_KINDS: readonly IdiomKind[] = [
   // `!0` / `!1` minified booleans are unreadable in handwritten source.
   {
     id: 'minified-boolean-literal',
-    detect: /[=,({[?:;&|<>+\-*\/%^~]\s*!\s*[01]\b|^\s*!\s*[01]\b/,
+    detect: /[=,({[?:;&|<>+\-*/%^~]\s*!\s*[01]\b|^\s*!\s*[01]\b/,
   },
   // require()/module.exports/__dirname/__filename are CJS spellings; this
   // repo is `"type": "module"`, so they are ReferenceError/undefined at
@@ -1041,7 +1041,7 @@ describe('dead-idiom batch census (REQ-410)', () => {
       // the rows stale (RED), forcing the roster to shed them in-commit.
       [
         'src/transcription/browser-transcriber.ts',
-        /declare global \{[\s\S]*\n  var SpeechRecognition: \{/,
+        /declare global \{[\s\S]*\n {2}var SpeechRecognition: \{/,
       ],
       // The rostered core logger site keeps its level gate on the adjacent
       // line — an unconditional console.debug (gate deleted) flips this
