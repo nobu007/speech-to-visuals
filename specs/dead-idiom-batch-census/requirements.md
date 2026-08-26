@@ -9,7 +9,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-08-25
-**要件ID**: REQ-410（Phase 217 / TASK-0301・audit-pass-first census series family 19・**batch 形式**）→ **REQ-411 で sweep #2 拡張**（Phase 218 / TASK-0302）→ **REQ-412 で sweep #3 拡張**（Phase 219 / TASK-0303）→ **REQ-413 で sweep #4 拡張**（Phase 220 / TASK-0304）→ **REQ-414 で sweep #5 拡張**（Phase 221 / TASK-0305）→ **REQ-415 で sweep #6 拡張**（Phase 222 / TASK-0306）
+**要件ID**: REQ-410（Phase 217 / TASK-0301・audit-pass-first census series family 19・**batch 形式**）→ **REQ-411 で sweep #2 拡張**（Phase 218 / TASK-0302）→ **REQ-412 で sweep #3 拡張**（Phase 219 / TASK-0303）→ **REQ-413 で sweep #4 拡張**（Phase 220 / TASK-0304）→ **REQ-414 で sweep #5 拡張**（Phase 221 / TASK-0305）→ **REQ-415 で sweep #6 拡張**（Phase 222 / TASK-0306）→ **REQ-416 で sweep #7 拡張**（Phase 224 / TASK-0307）
 
 ## 概要
 
@@ -558,7 +558,61 @@ registry は **71 entry**（49 + 22・REQ-415 時点）。roster は **ALLOWED 1
 **When**: 4 独立 mutation（`new XMLHttpRequest()` 注入 / unify site の `global.gc` revert / rostered confirm gate の direct reset() 化 / `document.cookie` 読み注入）を適用する
 **Then**: 各 mutation で対応面が RED（completeness / eradicated-reappear + anchor / stale-row + floor + anchor の 3 面）・revert で GREEN 復元
 
+## REQ-416: 第七回 discovery sweep（同一 batch guard への kind 追加）
+
+steering 契約の 7 回目の適用。2026-08-26 の **第七回 discovery sweep** は
+同一 production surface（331 file・repo src/ .ts+.tsx と @stv/core core-four）
+で **10 candidate class** を計測。このうち 3 class は **pin 前に棄却**（下記
+REQ-416-003）。残る **7 kind を registry に追加**（全 exact-0・src 変更ゼロ・
+ALLOWED/ERADICATED roster 不変）:
+
+| kind | 実測 | 判定 |
+|------|------|------|
+| async-promise-executor（`new Promise(async …)`） | 0 | exact-0 pin — async executor 内の throw は promise chain から切り離され unhandled |
+| array-delete-hole（`delete a[i]` bracket 形） | 0 | exact-0 pin — hole 化で length 不変・map/forEach が slot skip |
+| instanceof-primitive-wrapper（`instanceof String/Number/Boolean`） | 0 | exact-0 pin — primitive は常に false（typeof が正形） |
+| atob-btoa（`atob(` / `btoa(`） | 0 | exact-0 pin — Latin-1 codec で UTF-8 content に throw（TextEncoder/Decoder が正形） |
+| inner-html-op-assign（`.innerHTML +=`） | 0 | exact-0 pin — inner-html-assignment の compound 形（`=` regex の死角側） |
+| insert-adjacent-html（`.insertAdjacentHTML(`） | 0 | exact-0 pin — 引数を markup として parse する innerHTML の兄弟 sink |
+| sparse-array-ctor（`new Array(<literal>)` 単一引数） | 0 | exact-0 pin — holey array（Array.from が正形） |
+
+### REQ-416-001〜004: sweep #7 kind の検出と固定
+
+**Given（前提条件）**: production surface 331 file に 10 candidate class を追加計測（7 class exact-0・3 class pin 前棄却・ALLOWED/ERADICATED roster は不変）
+**When（実行条件）**: `NODE_OPTIONS='--experimental-vm-modules --max-old-space-size=4096' npx jest --config jest.config.cjs --testPathPatterns dead-idiom-batch-census` を実行する
+**Then（期待結果）**: 8 test GREEN（同一 guard 内で kind 78 entry ratchet・fixture (aa1)〜(aa7) 拡張・ALLOWED 18 key / ERADICATED 12 key 不変・three-way 句一致）
+
+**テストケース**:
+
+- [x] **TC-416-01**: authority の kind ratchet 78 entry（7 kind 追加の順序固定）🔵
+- [x] **TC-416-02**: liveness fixture (aa1)〜(aa7)（7 kind の検出・非検出境界 — `instanceof Array` は既存 kind の検出域であることを負例で分離・同一行の atob+btoa は行単位 1 site も踏まえる）🔵
+- [x] **TC-416-03**: ALLOWED 18 key / ERADICATED 12 key の three-way 句一致（本 sweep は roster 不変）🔵
+
+### REQ-416-003: pin 前棄却 class の記録（投資不釣合型 4/5 例目・検出不可能型 2 例目）
+
+- **`.length = 0`（10 src site）**: 計測全 site が instance-owned receiver の
+  意図的 in-place drain（errorQueue / samples / records / CappedArray 自身の
+  clear）で incident shape ゼロ。fix ゼロの 10 row per-site prose は
+  恒久 ALLOWED noise（charCodeAt・Math.max(...xs)・.substring に続く
+  投資不釣合型 4 例目）。
+- **`.splice(…)`（27 src site）**: 全 site が queue primitive としての正当利用
+  （優先度挿入・dequeue・DLQ purge）。receiver-mutation class は family 16
+  （REQ-407）で概念正典化済みで、27 row の再分類は投資不釣合型 5 例目。
+- **`return` inside `finally`（finally 13 site・return 0 site）**: incident
+  （finally 内 return による例外握り潰し）は行を跨ぐため行 detector に不可視
+  （block-scope parse 必要 — assignment-in-condition と同じ検出不可能型 2 例目）。
+  加えて finally 行 detector の site 母集団は「全 finally block」（13 site すべて
+  cleanup-only）で incident 母集団と不一致のため、pin は今後の正当な
+  try/finally 追加すべてに roster 行を課す逆薬剤（site 母集団 ≠ incident
+  母集団の初例として guard header に記録）。
+
+### REQ-416-004: MW-080 mutation 検証
+
+**Given**: guard が GREEN の tree
+**When**: 4 独立 mutation（`src/analysis/untrusted-json-core.ts` 末尾への `new Promise(async …)` 注入 / `new Array(16)` 注入 / `instanceof Number` 注入 / `atob('Zm9v')` 注入）を適用する
+**Then**: 各 mutation で completeness が RED（各 1 failed・offender list で kind 帰着を確認）・revert で 8/8 GREEN 復元・`git status --short src/` 空
+
 ## 最小限の非機能要件
 
 - **性能**: 追加検証は既存 walk の行 scan のみ（file 再読みなし・guard 実行 < 1s）
-- **保守性**: kind registry は純 data + 純関数 detector で export し合成 fixture で境界検証。src 変更は REQ-410 unify 2 site + REQ-412 unify 5 site + REQ-415 unify 5 site（同一 feature check の綴り統一）のみ（それ以外 read-only census）。REQ-411 sweep #2・REQ-413 sweep #4・REQ-414 sweep #5 は **src 変更ゼロ**（実測 site は ALLOWED 判断・spec/guard のみ）
+- **保守性**: kind registry は純 data + 純関数 detector で export し合成 fixture で境界検証。src 変更は REQ-410 unify 2 site + REQ-412 unify 5 site + REQ-415 unify 5 site（同一 feature check の綴り統一）のみ（それ以外 read-only census）。REQ-411 sweep #2・REQ-413 sweep #4・REQ-414 sweep #5・REQ-416 sweep #7 は **src 変更ゼロ**（実測 site は ALLOWED 判断・spec/guard のみ）

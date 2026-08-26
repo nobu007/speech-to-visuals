@@ -167,3 +167,34 @@
   vendoring）や bundler 設定変更で混入した場合に最初の 1 file で RED。
   `.ts` 拡張 import（ESM loader 実行）との混同は `require(`/`module.exports`
   の綴り判定で構造的に回避。
+
+## REQ-416 sweep #7（2026-08-26・Phase 224）
+
+- **計測**: 10 candidate class を detector 最終形と同一 regex で 331 file
+  （src .ts+.tsx + core-four）に計測。本 sweep は走査面の再確認から
+  入った — 初回計測が 278 file で従来 sweep の 331 と不一致だったため
+  `walkProductionFiles` の拡張子 filter（`/\.(ts|tsx)$/`）を照合し
+  `.tsx` 53 file の取りこぼしを修正してから評決（detector の見落としは
+  exact-0 false-pin に直結するため走査面の一致は前提条件）。
+- **評決の内訳**: exact-0 pin 7 kind（async-promise-executor /
+  array-delete-hole / instanceof-primitive-wrapper / atob-btoa /
+  inner-html-op-assign / insert-adjacent-html / sparse-array-ctor）/
+  ALLOWED・ERADICATED rosterは不変（18/12）/ pin 前棄却 3 class
+  （`.length = 0` 10 site と `.splice(…)` 27 site は投資不釣合型
+  4/5 例目・`return` in `finally` は検出不可能型 2 例目）。
+- **inner-html-op-assign の位置づけ**: REQ-415 の inner-html-assignment
+  （`\.innerHTML\s*=`）は compound 代入 `+=` を検出しない。同 class の
+  別 kind として登録し（regex 拡張ではなく新 entry — 既存 kind の
+  検出域変更は ALLOWED 判断の意味を変えるため）、fixture (aa5) で
+  `=` 形が inner-html-assignment に帰着することも固定。
+- **棄却の根拠**: `.length = 0` は全 10 site が instance-owned receiver
+  の意図的 drain（CappedArray 自身の clear を含む）で incident なし。
+  `.splice` は全 27 site が queue primitive として正当（優先度挿入・
+  dequeue・DLQ purge）で receiver-mutation 概念は family 16 で正典化
+  済み。`return` in finally は block-scope parse が必要（行 detector
+  不可視）に加え、finally 行 detector の site 母集団が「全 finally
+  block」（13 site すべて cleanup-only）で incident 母集団と不一致 —
+  pin は今後の正当な try/finally 追加に roster 行を課す逆薬剤。
+- **再計測条件**: 変数長 `new Array(n)` site 出現時（literal 形のみ
+  pin）・`.length = 0` / `.splice` の aliasing incident 実出現時・
+  finally 内 return の実出現時（AST pass の投資判断をその時点で）。

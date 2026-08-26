@@ -11,7 +11,7 @@
 **作成日**: 2026-08-25
 **プロジェクト期間**: 2026-08-25 - 2026-08-25（全 phase 完了）
 **推定工数**: 4h（REQ-410 batch guard + unify 2 site + three-way family 19 登録 + atomic dogfood landing + MW-074 mutation 検証 — **単一 phase・単一 TASK の batch 形式**）
-**総タスク数**: 6件
+**総タスク数**: 7件
 
 > **形式 note（family 19 の差分）**: steering ROI 指示（REQ-405 採点後）に
 > より、violation が少量（2 site）かつ class 多数が confirmed-zero の
@@ -37,11 +37,12 @@
 | Phase 220 | 2026-08-25 | REQ-413 第四回 sweep — 同一 guard へ 7 kind 追加（28→35 entry）+ var ambient 2 site ALLOWED（declare global 内の型のみ宣言）+ 3 class pin 前棄却（`.map(async` 検出不可能型・`new Array(n)` hole なし・`Math.max(...xs)` 入力有界）+ MW-077 mutation 検証 | 1 | 2.5h | ✅完了 |
 | Phase 221 | 2026-08-25 | REQ-414 第五回 sweep — 同一 guard へ 14 kind 追加（35→49 entry）+ console-debug-log / process-exit / tolocalestring-bare 各 1 site ALLOWED（level gate 隣接・gracefulShutdown epilogue・finite branch）+ 3 class pin 前棄却（charCodeAt 投資不釣合型・assignment-in-condition 検出不可能型・charAt 挙動等価型）+ MW-078 mutation 検証 | 1 | 2.5h | ✅完了 |
 | Phase 222 | 2026-08-25 | REQ-415 第六回 sweep — 同一 guard へ 22 kind 追加（49→71 entry）+ global.gc→globalThis.gc 5 site unify（batch 形式初の browser-portability cluster）+ 4 site ALLOWED（confirm gate・UA report-only ×3）+ legacy-substring pin 前棄却（投資不釣合型 3 例目）+ MW-079 mutation 検証 | 1 | 3h | ✅完了 |
+| Phase 224 | 2026-08-26 | REQ-416 第七回 sweep — 同一 guard へ 7 kind 追加（71→78 entry）+ 3 class pin 前棄却（`.length = 0`/`.splice` 投資不釣合型 4/5 例目・`return` in finally 検出不可能型 2 例目 + site 母集団≠incident 母集団の初例）+ REQ-414/415 cherry-pick 移植を前段化 + MW-080 mutation 検証 | 1 | 2h | ✅完了 |
 
 ## タスク番号管理
 
-**使用済みタスク番号**: TASK-0301〜0306
-**次回開始番号**: TASK-0307
+**使用済みタスク番号**: TASK-0301〜0307
+**次回開始番号**: TASK-0308
 
 （参考: TASK-0297〜0300 は parallel branch の family 17/18 が使用 —
 `git log --all` で衝突確認済み）
@@ -54,6 +55,7 @@
 - [x] Phase 220: REQ-413 sweep #4 — 7 kind 追加 + var ambient ALLOWED + MW-077
 - [x] Phase 221: REQ-414 sweep #5 — 14 kind 追加 + 3 site ALLOWED + MW-078
 - [x] Phase 222: REQ-415 sweep #6 — 22 kind 追加 + global.gc 5 site unify + 4 site ALLOWED + MW-079
+- [x] Phase 224: REQ-416 sweep #7 — 7 kind 追加 + 3 class pin 前棄却 + MW-080
 
 ## マイルストーン
 
@@ -62,6 +64,7 @@
 - **M3: sweep #2 定着** (Phase 218): REQ-411 で batch 契約の再適用（新 spec dir / family / phase 群なし・kind 追加のみ）を実証 — 9 kind 追加・2 class pin 前棄却・MW-075 で代表 3 kind の独立 RED 実測 ✅
 - **M4: sweep #3/#4/#5 の反復定着** (Phase 219〜221): 3 回連続で同一 registry への kind 追加（12+7+14 = 33 entry・計 49）と棄却理由型の再利用（挙動等価型×2・検出不可能型×2・投資不釣合型×2）を継続実証 ✅
 - **M5: sweep #6 で portability cluster 収穫** (Phase 222): REQ-415 で browser/Node 兼側面の class 群（`global.`・XHR・CJS 綴り・UA sniffing・legacy HTML API）を計測 — `global.gc` 5 site を batch 形式初の portability unify として同梱 ✅
+- **M6: sweep #7 で棄却理由の枠組み拡張** (Phase 224): REQ-416 で site 母集団 ≠ incident 母集団（finally 13 site すべて cleanup-only）という棄却軸を追加 — completeness 契約が正当イディオムの税になる class は pin しない判断基準を成文化 ✅
 
 ---
 
@@ -191,3 +194,27 @@ ERADICATED 5 key + fixture (z1)〜(z18) + spec 同梱更新 + MW-079
 - ALLOWED 4 site の文脈（confirm gate が破壊操作を guard・UA が telemetry
   /diagnostics の field のみで挙動分岐なし）を実コード読みで確認し
   negative anchor で pin
+
+## Phase 224: REQ-416 第七回 discovery sweep（7 kind 追加 + 3 class 棄却）
+
+**目標**: batch 契約（kind 追加 = 1 entry）の 7 回目の適用。10 candidate
+を計測し、7 class を exact-0 pin、`.length = 0`（10 site）と `.splice(…)`
+（27 site）を投資不釣合型（4/5 例目）、`return` in `finally`（finally 13
+site・return 0）を検出不可能型（2 例目）+ site 母集団 ≠ incident 母集団
+の初例として pin 前棄却。前段として main 未到達の REQ-414/415 を
+cherry-pick 移植（71 kind 状態）から開始。
+**成果物**: guard 7 kind 追加 + fixture (aa1)〜(aa7) + ALLOWED 18 key /
+ERADICATED 12 key 不変 + spec 同梱更新 + MW-080
+
+### タスク一覧
+
+- [x] [TASK-0307: 第七回 discovery sweep — 同一 batch guard へ 7 kind 追加 + 3 class pin 前棄却（投資不釣合型 4/5 例目・検出不可能型 2 例目） + MW-080 mutation 検証](TASK-0307.md) - 2h (TDD) 🔵 ✅完了
+
+### 依存関係
+
+- Phase 217〜222 の `IDIOM_KINDS` registry と discovery primitive に直接追記
+  （新規 guard file なし — batch 契約の趣旨）
+- REQ-414/415（sweep #5/#6）の cherry-pick 移植（0c8fa4a0・b5d49c47）を
+  前段とする（71 kind 状態からの追加分類）
+- 棄却 3 class とも実測 site 全数（10 + 27 + 13）を読んでの根拠 —
+  incident 出現時点の再計測条件を guard header に明記

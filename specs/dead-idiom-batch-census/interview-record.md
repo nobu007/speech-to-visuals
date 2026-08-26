@@ -593,3 +593,86 @@ unify 後 walk 再計測 exact-0）。
 ### 信頼性レベル分布（REQ-415 追計分）
 
 **分析後**: 🔵 4（REQ-415-001〜004）/ 🟡 0
+
+## A-416-1: 第七回 sweep の候補選定と計測（2026-08-26）
+
+- **候補生成**: 従来どおり MDN legacy/deprecated 面と JSDoc/ESLint
+  (`no-async-promise-executor`・`no-delete-var` 等) の rule 群から
+  10 candidate を抽出。registry 71 kind との重複は full registry 読み
+  で除外済み（getYear・keyCode・document.write 系は REQ-415 で取得
+  済み）。atob/btoa は REQ-415 の escape/unescape と同系列の codec 面。
+- **計測面の自己修正**: 初回計測が 278 file で過去 sweep の 331 file
+  と不一致。原因は走査 script の repo src filter が `/\.ts$/` で
+  `.tsx` 53 file を落としていたこと。canonical `walkProductionFiles`
+  の `/\.(ts|tsx)$/` に照合して再計測（detector の見落としは exact-0
+  false-pin に直結するため、走査面の一致を sweep の前提条件とした）。
+- **計測結果**: 7 class exact-0（async-promise-executor /
+  array-delete-hole / instanceof-primitive-wrapper / atob-btoa /
+  inner-html-op-assign / insert-adjacent-html /
+  sparse-array-ctor-literal）。`.length = 0` 10 site・`.splice(…)`
+  27 site・finally 内 return 0（finally block 13）は評決棄却へ。
+
+**信頼性への影響**: REQ-416-001 を追加（🔵・331 file 実測 + 走査面
+canonical 一致の明示）。
+
+## A-416-2: inner-html-op-assign を既存 kind の拡張ではなく新 entry にした理由（REQ-416-001）
+
+`inner-html-assignment`（REQ-415・`\.innerHTML\s*=`）は compound
+代入 `+=` を検出しない。`.innerHTML +=` は（XSS 面で）`=` 再代入より
+危険な accumulated-injection 形だが、既存 kind の detect regex を
+`=`→`=`? に緩めると検出域が広がり、REQ-415 時点の ALLOWED 判断
+（`innerHTML =` site の文脈根拠）を暗黙に再評判したのと同じ意味論に
+なる。よって (a) 既存 kind は不変、(b) compound 形は別 kind として
+登録（class 追加 = 1 entry の契約どおり）、(c) fixture (aa5) で
+`=` 形が inner-html-assignment に帰着することを負例で分離固定。
+実測は両 kind とも 0 site。
+
+**信頼性への影響**: REQ-416-001 に kind 分離根拠を追記（🔵・
+registry 変更の意味論保存を契約で強制）。
+
+## A-416-3: pin 前棄却 3 class の根拠（REQ-416-003）
+
+- **`.length = 0`（10 site）**: 全 site が CappedArray 系の意図的
+  drain（clear() 実装を含む）。正しい clear 慣用そのもので incident
+  なし — 10 row の per-site prose は投資不釣合（4 例目）。
+- **`.splice(…)`（27 site）**: 全 site が queue primitive（優先度
+  挿入・dequeue・DLQ purge）として正当。receiver-mutation 概念は
+  family 16（REQ-407）で正典化済みで重複（5 例目）。
+- **`return` in `finally`（finally 13 site・return 0）**: 行 detector
+  では block-scope が不可視（naive regex は finally block 終了後の
+  return まで偽陽性 — audio-preprocessor.ts で実測）。brace-depth
+  scan まで書くと「AST が要る」判定と同コスト。加えて **site 母集団
+  ≠ incident 母集団**: finally 行 detector の site 母集団は「全
+  finally block」（13 site すべて cleanup-only の正当形）で、incident
+  （finally 内 return）は 0 — pin は今後の正当な try/finally 追加の
+  たびに roster 行を課す逆薬剤になる。検出不可能型 2 例目 + 母集団
+  不一致の初例として成文化。
+
+**信頼性への影響**: REQ-416-003 を追加（🔵・全 site 読み + 母集団
+不一致軸の追加）。
+
+## 分析結果サマリー（REQ-416 分の追計）
+
+### 確認できた事項
+
+- 10 candidate class の実測（331 file・走査面を canonical
+  `walkProductionFiles` と一致させてから評決）
+- 7 class exact-0 pin と ALLOWED 18 / ERADICATED 12 不変の確認
+- 棄却 3 class の全 site（10 + 27 + 13）実コード読み
+- MW-080 で 4 kind の独立 RED（kind 帰着を offender list で確認）
+
+### 追加/変更要件
+
+- REQ-416-001〜004（7 kind 追加・3 class 棄却記録・MW-080・
+  src 変更ゼロ）
+
+### 残課題
+
+- 変数長 `new Array(n)` は sparse 保証がないため literal 形のみ pin
+  （変数形出現時に再計測）
+- finally 内 return・`.splice` aliasing の incident 実出現時に
+  AST pass の投資判断を重新評価
+
+### 信頼性レベル分布（REQ-416 追計分）
+
+**分析後**: 🔵 4（REQ-416-001〜004）/ 🟡 0

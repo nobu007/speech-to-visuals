@@ -178,6 +178,41 @@
  *   tolocalestring-bare           1 (core)  ALLOWED — safeToLocaleString's
  *                                           own finite-number delegation
  *
+ * The 2026-08-26 SEVENTH discovery sweep (REQ-416 / Phase 224, same walk,
+ * 331 files) measured TEN more candidate classes. THREE were rejected
+ * BEFORE pinning — `.length = 0` (10 sites) and `.splice(…)` (27 sites)
+ * both measured zero incident shape: every site is an intentional
+ * in-place drain / queue op on an instance-owned receiver (splice IS the
+ * correct queue primitive, and family 16 canonized the receiver-mutation
+ * concept), so a pin would be 37 rows of permanent ALLOWED-roster noise
+ * for zero fixes — the 投資不釣合型 rejection (charCodeAt /
+ * Math.max(...xs) / .substring precedent, examples #4 and #5).
+ * `return` inside `finally` was rejected as 検出不可能型 (the
+ * assignment-in-condition precedent, second example): the incident shape
+ * spans lines and needs block-scope parsing, while a finally-line
+ * detector's site population is EVERY finally block (13 on the surface,
+ * all cleanup-only) — pinning it would tax every future legitimate
+ * try/finally with a roster row (site population ≠ incident population).
+ * The remaining SEVEN joined the registry:
+ *
+ *   kind                          measured  verdict
+ *   ----------------------------- --------- -------------------------------
+ *   async-promise-executor        0         exact-0 pin (an async
+ *                                           executor's throws become
+ *                                           unhandled rejections)
+ *   array-delete-hole             0         exact-0 pin (`delete a[i]`
+ *                                           holes skip map/forEach)
+ *   instanceof-primitive-wrapper  0         exact-0 pin (always false for
+ *                                           primitives — typeof is the form)
+ *   atob-btoa                     0         exact-0 pin (Latin-1 codecs;
+ *                                           TextEncoder/Decoder are the form)
+ *   inner-html-op-assign          0         exact-0 pin (`innerHTML +=` is
+ *                                           the = sink's compound form)
+ *   insert-adjacent-html          0         exact-0 pin (markup-parsing
+ *                                           sink — innerHTML's sibling)
+ *   sparse-array-ctor             0         exact-0 pin (new Array(n) is
+ *                                           holey; Array.from is the form)
+ *
  * The 2026-08-25 SIXTH discovery sweep (REQ-415 / Phase 222, same walk)
  * measured TWENTY-THREE more candidate classes. One was rejected BEFORE
  * pinning — `.substring(` (23 src sites) is behavior-identical to slice at
@@ -611,6 +646,34 @@ export const IDIOM_KINDS: readonly IdiomKind[] = [
     id: 'locale-sensitive-bare',
     detect: /\.to(?:LocaleUpperCase|LocaleLowerCase)\s*\(\s*\)/,
   },
+  // --- REQ-416 seventh sweep (seven kinds, all measured on 2026-08-26) ---
+  // An async Promise executor detaches every throw inside it from the
+  // promise chain — the rejection is unhandled and the promise never
+  // settles from the executor's own failure.
+  { id: 'async-promise-executor', detect: /new\s+Promise\s*\(\s*async\b/ },
+  // `delete a[i]` punches a hole: length is unchanged and map/forEach skip
+  // the slot. splice / filter are the forms.
+  { id: 'array-delete-hole', detect: /delete\s+[\w$.]+\s*\[/ },
+  // Primitives never satisfy instanceof String/Number/Boolean — always
+  // false for the primitive side the check is written for (typeof is the
+  // form).
+  {
+    id: 'instanceof-primitive-wrapper',
+    detect: /instanceof\s+(?:String|Number|Boolean)\b/,
+  },
+  // atob/btoa are Latin-1 byte codecs — they throw INVALID_CHARACTER_ERR
+  // on any UTF-8 content (TextEncoder/TextDecoder are the form).
+  { id: 'atob-btoa', detect: /(?<![.\w$])(?:atob|btoa)\s*\(/ },
+  // `.innerHTML +=` is inner-html-assignment's compound form — the same
+  // XSS sink, invisible to the `=`-only regex.
+  { id: 'inner-html-op-assign', detect: /\.innerHTML\s*\+=/ },
+  // insertAdjacentHTML parses its argument as markup — the innerHTML
+  // sink's sibling (React's dangerouslySetInnerHTML is the explicit form).
+  { id: 'insert-adjacent-html', detect: /\.insertAdjacentHTML\s*\(/ },
+  // `new Array(n)` builds a holey array whose map/forEach skip every slot;
+  // Array.from({ length: n }) is the form (literal-length single-arg only —
+  // a variable-length ctor site gets measured if one ever appears).
+  { id: 'sparse-array-ctor', detect: /new\s+Array\s*\(\s*\d+\s*\)/ },
 ];
 
 /** One discovered idiom site, classified against its kind's context rule. */
@@ -879,6 +942,13 @@ describe('dead-idiom batch census (REQ-410)', () => {
       'string-html-method',
       'legacy-define-getter',
       'locale-sensitive-bare',
+      'async-promise-executor',
+      'array-delete-hole',
+      'instanceof-primitive-wrapper',
+      'atob-btoa',
+      'inner-html-op-assign',
+      'insert-adjacent-html',
+      'sparse-array-ctor',
     ]);
   });
 
@@ -1511,6 +1581,61 @@ describe('dead-idiom batch census (REQ-410)', () => {
     expect(discoverIdiomSites('f.ts', 'const a = s.toLocaleUpperCase();')).toHaveLength(1);
     expect(
       discoverIdiomSites('f.ts', "const a = s.toLocaleUpperCase('de'); const b = s.toUpperCase();"),
+    ).toEqual([]);
+    // (aa) REQ-416 seventh-sweep kinds: each flags its dead form and
+    // leaves the modern spelling alone.
+    // (aa1) async executor flagged; the standard executor not.
+    expect(
+      discoverIdiomSites('f.ts', 'const p = new Promise(async (resolve) => { resolve(1); });'),
+    ).toHaveLength(1);
+    expect(
+      discoverIdiomSites('f.ts', 'const p = new Promise((resolve, reject) => { resolve(1); });'),
+    ).toEqual([]);
+    // (aa2) bracket-form delete flagged; dot-form property delete and
+    // splice removal not.
+    expect(
+      discoverIdiomSites('f.ts', 'delete this.cache[key];'),
+    ).toHaveLength(1);
+    expect(
+      discoverIdiomSites('f.ts', 'delete this.cache[keyField]; this.queue.splice(idx, 1);'),
+    ).toHaveLength(1);
+    // (aa3) instanceof String/Number/Boolean flagged; instanceof Array /
+    // instanceof Error not.
+    expect(
+      discoverIdiomSites('f.ts', 'const a = x instanceof String;\nconst b = y instanceof Number;\nconst c = z instanceof Boolean;'),
+    ).toHaveLength(3);
+    expect(
+      discoverIdiomSites('f.ts', 'const a = x instanceof Error; const b = y instanceof Map;'),
+    ).toEqual([]);
+    // (aa4) atob/btoa flagged; TextEncoder/TextDecoder not. (Both codec
+    // spellings on separate lines — a line yields one site per kind.)
+    expect(
+      discoverIdiomSites('f.ts', "const raw = atob('Zm9v');\nconst enc = btoa(raw);"),
+    ).toHaveLength(2);
+    expect(
+      discoverIdiomSites('f.ts', "const bytes = new TextEncoder().encode(s); const t = new TextDecoder().decode(bytes);"),
+    ).toEqual([]);
+    // (aa5) `.innerHTML +=` flagged (op-assign kind); the plain `=` form
+    // stays inner-html-assignment's site, textContent not a hit.
+    const opAssign = discoverIdiomSites('f.ts', 'el.innerHTML += markup;');
+    expect(opAssign).toHaveLength(1);
+    expect(opAssign[0].kind).toBe('inner-html-op-assign');
+    const plainAssign = discoverIdiomSites('f.ts', 'el.innerHTML = markup;');
+    expect(plainAssign).toHaveLength(1);
+    expect(plainAssign[0].kind).toBe('inner-html-assignment');
+    expect(discoverIdiomSites('f.ts', 'el.textContent += text;')).toEqual([]);
+    // (aa6) insertAdjacentHTML flagged; textContent append not.
+    expect(
+      discoverIdiomSites('f.ts', "el.insertAdjacentHTML('beforeend', markup);"),
+    ).toHaveLength(1);
+    expect(
+      discoverIdiomSites('f.ts', "el.insertAdjacentText('beforeend', text);"),
+    ).toEqual([]);
+    // (aa7) single literal-length `new Array(n)` flagged; the dense
+    // multi-arg ctor and Array.from not.
+    expect(discoverIdiomSites('f.ts', 'const xs = new Array(12);')).toHaveLength(1);
+    expect(
+      discoverIdiomSites('f.ts', 'const xs = new Array(1, 2, 3);\nconst ys = Array.from({ length: 12 });'),
     ).toEqual([]);
   });
 });
