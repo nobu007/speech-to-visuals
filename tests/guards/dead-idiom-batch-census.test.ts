@@ -2194,6 +2194,18 @@ describe('dead-idiom batch census (REQ-410)', () => {
     expect(
       discoverIdiomSites('f.ts', 'if (xs.filter(isOn).length > 0) { const y = pair(a)[0]; }'),
     ).toEqual([]);
+    // (ad1d) array-returning chained-call false-positive guard: when
+    // `.filter(…)` is followed by an array-returning member call such
+    // as `.map(…)`, the trailing `[0]` indexes the mapped array, not
+    // the filtered one. The balanced-arg regex stops at the FIRST `)`
+    // of `.filter(…)`, so the original greedy `.*` would have crossed
+    // past it to read `)[0]` (sibling of ac24/ac25 cross-receiver
+    // coverage). Real modern usage is `xs.find(…)`; the chained form
+    // `.filter(…).map(…)[0]` is itself questionable but is a DIFFERENT
+    // idiom — it is not the `.filter(…)[0]` shape and must not match.
+    expect(
+      discoverIdiomSites('f.ts', 'const f = xs.filter(isOn).map(g)[0];'),
+    ).toEqual([]);
     // (ad2) an `on`-prefixed setAttribute handler flagged; the sandbox attr
     // (ac2's negative) and addEventListener not.
     expect(
