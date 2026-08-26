@@ -179,7 +179,12 @@ describe('WebSocket Handler — Auth Middleware', () => {
     expect(socket.data.user.id).toBe('user1');
   });
 
-  it('should handle JWT with missing sub/email/role fields', async () => {
+  it('should call next() with error for a verified JWT without a sub claim', async () => {
+    // REST parity (middleware/auth.ts): authMiddleware 401s a verified token
+    // with no `sub` claim (`!decoded.sub` → INVALID_TOKEN). The WS path used
+    // to accept the identical token as `id: ''` — the exact "accepted by one
+    // path, 401 on the other" divergence jwt-secret.ts documents both
+    // middlewares must never exhibit.
     const { createWsAuthMiddleware } = await import('../websocket-handler');
     const token = makeToken({}, JWT_SECRET);
     const socket = createMockSocket(token);
@@ -187,12 +192,25 @@ describe('WebSocket Handler — Auth Middleware', () => {
     let nextError: Error | undefined;
     middleware(socket, (err?: Error) => { nextError = err; });
 
+    expect(nextError).toBeDefined();
+    expect(nextError?.message).toBe('Invalid token');
+    expect(socket.data.user).toBeUndefined();
+  });
+
+  it('should default missing email/role for a sub-carrying token', async () => {
+    const { createWsAuthMiddleware } = await import('../websocket-handler');
+    const token = makeToken({ sub: 'user1' }, JWT_SECRET);
+    const socket = createMockSocket(token);
+    const middleware = createWsAuthMiddleware();
+    let nextError: Error | undefined;
+    middleware(socket, (err?: Error) => { nextError = err; });
+
     expect(nextError).toBeUndefined();
-    expect(socket.data.user.id).toBe('');
-    expect(socket.data.user.email).toBe('');
+    expect(socket.data.user?.id).toBe('user1');
+    expect(socket.data.user?.email).toBe('');
     // REQ-405: a missing role claim defaults to 'authenticated' — the same
     // tier the HTTP auth middleware assigns for the identical decoded.role.
-    expect(socket.data.user.role).toBe('authenticated');
+    expect(socket.data.user?.role).toBe('authenticated');
   });
 });
 

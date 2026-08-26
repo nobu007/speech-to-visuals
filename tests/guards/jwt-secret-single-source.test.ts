@@ -183,6 +183,30 @@ describe('REST and WS auth resolve the SAME secret (round 26 drift oracle)', () 
     expect(socket.data.user).toBeUndefined();
     expect(wsNext).toHaveBeenCalledWith(expect.any(Error));
   });
+
+  it('a token WITHOUT a sub claim is rejected by both middlewares (claim-requirement parity)', () => {
+    setEnv({ JWT_SECRET: 'round-26-cross-path-secret' });
+    // Same-secret verification is not enough when the two paths disagree on
+    // REQUIRED claims: auth.ts 401s a verified sub-less token (`!decoded.sub`
+    // → INVALID_TOKEN) while the WS middleware used to authenticate it as
+    // `id: ''` — one socket, full tier, for a token every REST route rejects.
+    const subless = jwt.sign({ email: 'u@example.com' }, requireJwtSecret());
+
+    const restReq = {
+      headers: { authorization: `Bearer ${subless}` },
+      user: undefined,
+    } as unknown as AuthenticatedRequest;
+    const restRes = { status: jest.fn().mockReturnThis(), json: jest.fn() };
+    authMiddleware(restReq, restRes as never, jest.fn());
+    expect(restReq.user).toBeUndefined();
+    expect(restRes.status).toHaveBeenCalledWith(401);
+
+    const wsSocket: TestSocket = { handshake: { auth: { token: subless } }, data: {} };
+    const wsNext = jest.fn();
+    createWsAuthMiddleware()(wsSocket as never, wsNext);
+    expect(wsSocket.data.user).toBeUndefined();
+    expect(wsNext).toHaveBeenCalledWith(expect.any(Error));
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -205,6 +229,16 @@ describe('jwt-secret source anchors (round 26)', () => {
     expect(src).toMatch(/jwt\.verify\(\s*token,\s*requireJwtSecret\(\)\s*\)/);
     expect(src).not.toMatch(/function\s+getJwtSecret\s*\(/);
     expect(src).not.toMatch(/JWT_SECRET\s*\|\|\s*process\.env\.SUPABASE_JWT_SECRET/);
+  });
+
+  it('both verify sites require a sub claim (claim-requirement parity anchor)', () => {
+    // Value + operator in one def: the `!decoded.sub` guard must survive in
+    // BOTH files, or the behavioral leg above is the only thing standing
+    // between a silent re-widening and the parity contract.
+    const rest = readSource('src/api/middleware/auth.ts');
+    const ws = readSource('src/api/websocket-handler.ts');
+    expect(rest).toMatch(/!decoded\s*\|\|\s*!decoded\.sub/);
+    expect(ws).toMatch(/!decoded\s*\|\|\s*!decoded\.sub/);
   });
 
   it('security-env validator resolves through the canonical chain, not a re-typed copy', () => {

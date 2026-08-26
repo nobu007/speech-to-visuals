@@ -131,12 +131,19 @@ export function createWsAuthMiddleware() {
         role?: string;
       };
 
-      if (!decoded) {
+      // Claim-requirement parity with the REST sibling (middleware/auth.ts):
+      // `jwt.verify` throws on a bad signature and never returns falsy, so
+      // the `!decoded.sub` half is the live check — a verified token WITHOUT
+      // a `sub` claim is 401'd by authMiddleware (INVALID_TOKEN), and the WS
+      // path used to accept the identical token as `id: ''`. That is the
+      // exact "accepted by one path, 401 on the other" divergence
+      // jwt-secret.ts documents both middlewares must never exhibit.
+      if (!decoded || !decoded.sub) {
         return next(new Error('Invalid token'));
       }
 
       socket.data.user = {
-        id: decoded.sub ?? '',
+        id: decoded.sub,
         email: decoded.email ?? '',
         // Same JWT claim default as the HTTP auth middleware (auth.ts):
         // a verified token carries the 'authenticated' tier even without a
