@@ -208,18 +208,18 @@ const ALLOWED: Record<string, string> = {
   'src/quality/error-recovery/load-balanced-executor.ts:467:stage':
     "multiplier-LOOKUP lane default ('export') — indexes stageMultipliers; same lane rationale as :329.",
   // -- width / height: canvas FRAME dims vs layout NODE box dims --------
-  'src/export/enhanced-export-engine.ts:939:width':
+  'src/export/enhanced-export-engine.ts:949:width':
     'canvas FRAME width fallback (1920) — export frame sizing; the layout-worker cluster-mates are node box dims behind the same trailing token.',
-  'src/export/enhanced-export-engine.ts:951:width':
-    'canvas FRAME width fallback (1920) — second frameInfo computation, same domain as :939.',
+  'src/export/enhanced-export-engine.ts:961:width':
+    'canvas FRAME width fallback (1920) — second frameInfo computation, same domain as :949.',
   'src/workers/layout-worker.ts:122:width':
     'layout NODE width fallback (120) — overlap-heuristic node box, not a canvas frame.',
   'src/workers/layout-worker.ts:129:width':
     'layout NODE width fallback (120) — same node-box domain as :122.',
-  'src/export/enhanced-export-engine.ts:939:height':
+  'src/export/enhanced-export-engine.ts:949:height':
     'canvas FRAME height fallback (1080) — export frame sizing, not a node box.',
-  'src/export/enhanced-export-engine.ts:951:height':
-    'canvas FRAME height fallback (1080) — same domain as :939.',
+  'src/export/enhanced-export-engine.ts:961:height':
+    'canvas FRAME height fallback (1080) — same domain as :949.',
   'src/workers/layout-worker.ts:130:height':
     'layout NODE height fallback (60) — node box domain, same split as the width legs.',
   // -- options.quality: render TIER enum vs compression FRACTION --------
