@@ -43,12 +43,24 @@ const exportImplFiles = globSync('src/export/**/*.ts', { cwd: REPO_ROOT }).filte
 );
 
 // Fixed-ratio byte truncation: `<bytes>.slice(0, Math.floor(<x>.length * r))`
-// (or the subarray twin). Statistical array splits (`values.slice(0,
-// Math.floor(values.length / 2))` in continuous-learner etc.) are the same
-// textual shape, which is exactly why this guard is scoped to src/export —
-// the artifact-owning tree — rather than all of src/.
+// (or the subarray twin). The receiver reads its own extent via `.length` OR
+// `.byteLength` — Uint8Array exposes both, and a `subarray(0,
+// Math.floor(data.byteLength * r))` re-introduction sailed past a `.length`-
+// only regex (verified RED-matrix below), so both suffixes are in the shape.
+// `Math.trunc` joins `Math.floor` as the same idiom family.
+//
+// Known blind spots (deliberate, not silent): bitwise truncation —
+// `slice(0, (buf.length * r) | 0)` / `>> 2` — drops the `Math.<fn>(` wrapper
+// the shape keys on and is NOT detected. The unit legs (verifier + artifact
+// store oracles) remain the behavioral backstop for any shape this census
+// misses; this guard only needs to catch the missed-sibling-site class.
+//
+// Statistical array splits (`values.slice(0, Math.floor(values.length / 2))`
+// in continuous-learner etc.) are the same textual shape, which is exactly why
+// this guard is scoped to src/export — the artifact-owning tree — rather than
+// all of src/.
 const RATIO_BYTE_TRUNCATION =
-  /\.(?:slice|subarray)\(\s*0\s*,\s*Math\.floor\([^)]*\.length/;
+  /\.(?:slice|subarray)\(\s*0\s*,\s*Math\.(?:floor|trunc)\([^)]*\.(?:length|byteLength)/;
 
 describe('export artifact byte-truncation guard (INV-EXP-003)', () => {
   it('no src/export implementation file truncates a byte container by fixed ratio', () => {
@@ -62,6 +74,28 @@ describe('export artifact byte-truncation guard (INV-EXP-003)', () => {
     // Fail as a census, not per-file: one offender or ten, the RED output
     // names every site in a single run.
     expect(offenders).toEqual([]);
+  });
+
+  it('the idiom shape matches byteLength/trunc receivers and spares the dead citation', () => {
+    // Pin the census regex's detection contract so it cannot silently
+    // re-narrow (a `.length`-only shape left a `data.byteLength` receiver's
+    // re-introduction green — the blind spot this leg exists to lock shut).
+    expect(
+      RATIO_BYTE_TRUNCATION.test(
+        'return data.subarray(0, Math.floor(data.byteLength * ratio));'
+      )
+    ).toBe(true);
+    expect(
+      RATIO_BYTE_TRUNCATION.test('b.slice(0, Math.floor(b.length * 0.7));')
+    ).toBe(true);
+    expect(
+      RATIO_BYTE_TRUNCATION.test('b.slice(0, Math.trunc(b.byteLength * 0.7));')
+    ).toBe(true);
+    // The historical citation inside compressVideo's comment reads
+    // `len`, not `<x>.length` — it must stay off the census (green).
+    expect(
+      RATIO_BYTE_TRUNCATION.test('`data.slice(0, Math.floor(len * ratio))`')
+    ).toBe(false);
   });
 
   it('the census actually sweeps the export tree (not vacuously green)', () => {
