@@ -386,8 +386,10 @@ invariants:
     evidence:
       - source: "src/export/enhanced-export-engine.ts#L1164-L1172"
         quote: "Byte truncation is NOT compression. The previous … shrank the artifact by cutting … is no honest re-encode path here, so the bytes pass through unchanged"
-      - source: "src/export/__tests__/enhanced-export-engine.test.ts#L197-L202"
+      - source: "src/export/__tests__/enhanced-export-engine.test.ts#L198-L203"
         quote: "the old compressVideo \"compressed\" by slicing … Text formats (json-lottie / svg-animated) … failed REQ-225 verification — a false … Compression must never mutate the encoded bytes."
+      - source: "src/export/__tests__/enhanced-export-engine.test.ts#L253-L258"
+        quote: "The verifier-based legs above only protect the TEXT formats … The REQ-231 artifact store … that can witness binary truncation."
     checks:
       - type: "test"
         target: "src/export/__tests__/enhanced-export-engine.test.ts"
