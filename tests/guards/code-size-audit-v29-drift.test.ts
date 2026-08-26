@@ -226,3 +226,49 @@ describe('isCommentLine helper (freeze-guard import path) — contract pin', () 
     expect(isCommentLine('   ')).toBe(false);
   });
 });
+
+// ----------------------------------------------------------------------
+// readSource helper contract (see freeze-guard.ts::readSource)
+//
+// Tests 1-9 above read SCRIPT via readSource(). If readSource drifted
+// (e.g., silently returned '' for missing files, normalized line
+// endings in a way that breaks src.split('\n') counts, or returned
+// stale cached content that no longer matches disk), the V2.9
+// identifier pins above would either vacuously pass on empty strings
+// or count stale comments — a silent green on a meaningless guard.
+//
+// This is the receipt for that dependency: pin the helper's own
+// contract so a regression in freeze-guard fails HERE (the import
+// path) rather than only as an indirect, confusing miss in tests 1-9.
+// ----------------------------------------------------------------------
+describe('readSource helper (freeze-guard import path) — contract pin', () => {
+  it('returns the actual file content for a known repo-relative path (no silent empty)', () => {
+    // If readSource ever silently returned '' (e.g., swallowed an
+    // ENOENT, or guarded a missing existsSync check), every V2.9 pin
+    // above would vacuously pass. Force the file we asked for to be
+    // present and identifiable by a known marker.
+    const src = readSource(SCRIPT);
+    expect(typeof src).toBe('string');
+    expect(src).toContain('CONSTITUTION_V2_9_LIMITS');
+  });
+
+  it('round-trips the exact declaration substring (no byte-level drift)', () => {
+    // Test 4 above uses /const\s+CONSTITUTION_V2_9_LIMITS.../ anchored
+    // on the declaration shape; tests 8/9 use src.split('\n'). If
+    // readSource silently normalized \r\n → \n or stripped trailing
+    // whitespace, the regex still matches but the line counts shift.
+    // Pin the exact byte sequence the strict regex depends on.
+    const src = readSource(SCRIPT);
+    expect(src).toContain('const CONSTITUTION_V2_9_LIMITS: CodeSizeLimits = {');
+  });
+
+  it('returns content whose byte length matches a known floor (no truncation)', () => {
+    // Sanity floor: the script is 3520 bytes on disk (runAudit body
+    // + the 4 limit entries + JSDoc + the runAudit call site). If
+    // readSource ever started returning a prefix slice or truncated
+    // at a buffer boundary, every line-count test above would shift
+    // or fail silently. Pin a generous floor well below the real size.
+    const src = readSource(SCRIPT);
+    expect(src.length).toBeGreaterThan(3000);
+  });
+});
