@@ -53,3 +53,14 @@
 - Expires After Runs: 20
 - Linked: AMB-EXP-001
 - Revert Triggers: primary_evidence_contradiction, security_risk
+
+## AUTO:Concept.run_id.monotonic-union
+- Status: ACTIVE
+- Chosen: last_run_id は max(既存 last_run_id, claims.ndjson 内の max run_id, wall clock) を採用。
+  並行 PR が JST local 時刻を Z 接尾で stamp した為 (2026-08-27T08:40:00Z ≒ 実 2026-08-26T23:40Z)、
+  union 時に last_run_id が時系列逆行した (23:05Z → 08:40Z)。stamp 系列の最大値に合わせる事で
+  monotonic を保証し、wall clock が系列 max を下回る場合は系列 max を維持する。
+- Policy: bookkeeping 一貫性 (monotonic) + 最小差分
+- Expires After Runs: 20
+- Linked: （なし・運用決定）
+- Revert Triggers: run_id を実 UTC 生成 (source clock 修正) に切り替える場合
