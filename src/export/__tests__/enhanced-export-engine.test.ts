@@ -16,6 +16,7 @@ import {
   type ApngFrameInput,
 } from '../apng-encoder';
 import { exportMetricsCollector } from '../export-metrics-collector';
+import { ExportArtifactStore } from '../export-artifact-store';
 
 // Suppress console
 beforeEach(() => {
@@ -247,6 +248,76 @@ describe('EnhancedExportEngine', () => {
       expect(
         result.warnings?.some((w) => w.includes('compression='))
       ).toBe(false);
+    });
+
+    // The verifier-based legs above only protect the TEXT formats: REQ-225
+    // checks binary artifacts by head magic bytes alone, so a tail-truncated
+    // MP4 still "verifies" — and getFileSize is a mock constant, so
+    // outputSize cannot observe the bytes either. The REQ-231 artifact store
+    // receives the post-compression bytes directly and is the only observer
+    // that can witness binary truncation.
+    test('a binary artifact passes through every compression level byte-identically (artifact store oracle)', async () => {
+      const store = new ExportArtifactStore();
+      const binaryEngine = new EnhancedExportEngine(2, false, undefined, store);
+
+      const levels = ['none', 'low', 'medium', 'high', 'maximum'] as const;
+      const storedArtifacts: Uint8Array[] = [];
+      for (const compression of levels) {
+        const result = await binaryEngine.exportVideo(
+          createSceneData(),
+          createConfig({ settings: { ...baseSettings, compression } })
+        );
+        expect(result.success).toBe(true);
+        const artifact = store.get(result.artifactId ?? '');
+        if (!artifact) {
+          throw new Error(`artifact not stored for compression="${compression}"`);
+        }
+        storedArtifacts.push(artifact.data);
+      }
+      // simulateEncoding is deterministic for fixed scene data, so any byte
+      // deviation from the "none" baseline means post-processing mutated the
+      // artifact — a fabricated size reduction, not compression.
+      expect(storedArtifacts[0].byteLength).toBeGreaterThan(0);
+      for (const artifact of storedArtifacts.slice(1)) {
+        expect(artifact).toEqual(storedArtifacts[0]);
+      }
+    });
+
+    // The disclosure must not read as success: pin that it states the bytes
+    // were left unchanged, so a future rewording cannot turn the skipped
+    // re-encode into a fabricated "compression applied" claim.
+    test('the compression disclosure states the artifact bytes were left unchanged', async () => {
+      const result = await engine.exportVideo(
+        createSceneData(),
+        createConfig({
+          settings: { ...baseSettings, compression: 'high' },
+        })
+      );
+      const disclosure = result.warnings?.find((w) =>
+        w.includes('compression="high"')
+      );
+      expect(disclosure).toBeDefined();
+      expect(disclosure).toMatch(/bytes left unchanged/);
+    });
+
+    // Out-of-contract runtime levels (untyped callers bypassing the required
+    // ExportSettings union) must still surface in the disclosure rather than
+    // silently passing through — fail-open disclosure, the same family the
+    // session-267 legs pinned for unknown claims.
+    test('an out-of-contract compression level still discloses instead of silently passing through', async () => {
+      const result = await engine.exportVideo(
+        createSceneData(),
+        createConfig({
+          settings: {
+            ...baseSettings,
+            compression: 'turbo' as unknown as typeof baseSettings.compression,
+          },
+        })
+      );
+      expect(result.success).toBe(true);
+      expect(
+        result.warnings?.some((w) => w.includes('compression="turbo"'))
+      ).toBe(true);
     });
   });
 
