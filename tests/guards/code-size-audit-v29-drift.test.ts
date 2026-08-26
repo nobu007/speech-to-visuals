@@ -186,6 +186,76 @@ describe('code-size-audit script — V2.9 identifier drift guard (REQ-419-005)',
       /process\.exit\(\s*result\.isCompliant\s*\?\s*0\s*:\s*1\s*\)/,
     );
   });
+
+  // ---------------------------------------------------------------------
+  // RED-verify: the guards above must actually FIRE on a regression, not
+  // just hold a constant shape. A guard that has never been seen to RED is
+  // a guard nobody trusts (and the next refactor will silently delete).
+  //
+  // Strategy: read the real script, apply an in-memory mutation, and run
+  // the same regex/anchor logic the positive tests use. If the mutation
+  // does not produce the expected RED, the corresponding guard is broken
+  // and we want to know NOW — before the next label drift slips through.
+  // ---------------------------------------------------------------------
+  describe('mutation-pinning (RED-verify the guards actually catch regressions)', () => {
+    it('partial V2_9 → V2_8 rename IS caught by the negative sweep (regression class: the bug that motivated this guard)', () => {
+      const real = readSource(SCRIPT);
+      // Apply the exact regression class: rename the declaration AND the
+      // runAudit call site back to V2_8 — but introduce a NEW snake_case
+      // shape (V2_8_BACKUP) that the original CONSTITUTION_V2_8_LIMITS
+      // substring check would miss but the new source-wide sweep catches.
+      const mutated = real
+        .replace(/const\s+CONSTITUTION_V2_9_LIMITS\b/, 'const CONSTITUTION_V2_8_LIMITS')
+        .replace(/runAudit\(ROOT_DIR,\s*PACKAGE_JSON,\s*CONSTITUTION_V2_9_LIMITS/, 'runAudit(ROOT_DIR, PACKAGE_JSON, CONSTITUTION_V2_8_LIMITS')
+        .replace(/CONSTITUTION_V2_9_LIMITS/g, 'CONSTITUTION_V2_8_LIMITS_BACKUP');
+      expect(mutated).not.toBe(real);
+      // Negative sweep from the test above MUST fire on this mutation.
+      const offenders: string[] = [];
+      mutated.split('\n').forEach((line, i) => {
+        if (isCommentLine(line)) return;
+        if (/\b[A-Z0-9_]*V2_8[A-Z0-9_]*\b/.test(line)) {
+          offenders.push(`L${i + 1}: ${line.trim()}`);
+        }
+      });
+      expect(offenders.length).toBeGreaterThanOrEqual(2);
+    });
+
+    it('duplicate runAudit wiring IS caught by the positive count anchor (3 refs vs expected 2)', () => {
+      const real = readSource(SCRIPT);
+      // Simulate a debug invocation slipped in after the rename — would
+      // pass the negative V2_8 sweep but must fail the positive count.
+      const mutated = real.replace(
+        /runAudit\(ROOT_DIR,\s*PACKAGE_JSON,\s*CONSTITUTION_V2_9_LIMITS,\s*\{/,
+        (match) => `${match}\n  debug: runAudit(ROOT_DIR, PACKAGE_JSON, CONSTITUTION_V2_9_LIMITS, {}),\n  const _dbg =`,
+      );
+      let codeRefCount = 0;
+      mutated.split('\n').forEach((line) => {
+        if (isCommentLine(line)) return;
+        const m = line.match(/\bCONSTITUTION_V2_9_LIMITS\b/g);
+        if (m) codeRefCount += m.length;
+      });
+      expect(codeRefCount).toBeGreaterThan(2);
+    });
+
+    it('dot-separated V2.8 prose in JSDoc is NOT flagged (regex boundary: \\b only matches snake_case)', () => {
+      // The negative sweep's snake_case regex would wrongly flag "V2.8"
+      // prose as a partial revert if \b were not anchored to underscores
+      // / alphanumerics. The real script DOES contain such prose
+      // ("V2.8 → V2.9", "Baseline at V2.8"); a regression in the regex
+      // would explode the offender count from 0 to ~3.
+      const real = readSource(SCRIPT);
+      const offenders: string[] = [];
+      real.split('\n').forEach((line, i) => {
+        if (isCommentLine(line)) return;
+        if (/\b[A-Z0-9_]*V2_8[A-Z0-9_]*\b/.test(line)) {
+          offenders.push(`L${i + 1}: ${line.trim()}`);
+        }
+      });
+      // Pre-rename amendment-history JSDoc lines use a DOT separator and
+      // must NOT appear here — confirms the regex boundary is correct.
+      expect(offenders).toEqual([]);
+    });
+  });
 });
 
 // ----------------------------------------------------------------------
