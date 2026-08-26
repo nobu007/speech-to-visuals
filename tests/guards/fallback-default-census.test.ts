@@ -376,6 +376,19 @@ describe('fallback-default census (REQ-405)', () => {
         'src/api/middleware/auth.ts',
         /decoded\.role \|\| 'authenticated'/,
       ],
+      // decoded.email — the LAST forked claim field, same operator fork the
+      // role field had: `||` on both sides, so a non-string falsy email
+      // claim (type confusion; the string '' boundary is operator-
+      // insensitive because the default is also '') defaults identically
+      // (falsy-email parity; `??` here re-forked the user objects again).
+      [
+        'src/api/websocket-handler.ts',
+        /decoded\.email \|\| ''/,
+      ],
+      [
+        'src/api/middleware/auth.ts',
+        /decoded\.email \|\| ''/,
+      ],
     ];
     for (const [file, pattern] of anchors) {
       expect(`${file}: ${readSource(file)}`).toMatch(pattern);
@@ -385,6 +398,7 @@ describe('fallback-default census (REQ-405)', () => {
       ['src/pipeline/actual-video-renderer.ts', /durationMs \|\| 10000/],
       ['src/pipeline/pipeline-orchestrator.ts', /reason \?\? 'Quality gate failed'/],
       ['src/api/websocket-handler.ts', /decoded\.role \?\? ''/],
+      ['src/api/websocket-handler.ts', /decoded\.email \?\? ''/],
     ] as const) {
       expect(`${file}: ${readSource(file)}`).not.toMatch(pattern);
     }
