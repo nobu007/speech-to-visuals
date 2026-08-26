@@ -108,7 +108,7 @@ invariants:
     statement: "validateSceneGraphForExport は決して throw しない。常に {passed,findings} を返し、非strict は FAIL-OPEN・strict は高severityのみFAILとする"
     rationale: "バリデーション例外によるエクスポート経路全体のダウンを防ぐ。"
     evidence:
-      - source: "src/export/export-content-validator.ts#L241-L242"
+      - source: "src/export/export-content-validator.ts#L244-L245"
         quote: "const hasHighSeverity = findings.some((f) => f.severity === 'high'); const passed = !(strict && hasHighSeverity);"
       - source: "tests/export/export-verifier.test.ts#L67"
         quote: "describe('ExportVerifier', () => {"
@@ -254,7 +254,7 @@ invariants:
     statement: "テストファイルで jest.unstable_mockModule / jest.mock に第三引数の { virtual: true } options を渡してはならない（例外は行末の // virtual-mock-exempt: 宣言のみ）"
     rationale: "ESM (--experimental-vm-modules) では options 引数が検証されず module registry を楔付けにして jest を HANG させる。15+ セッションにわたり 63 テストを隠蔽した実績のある bug class"
     evidence:
-      - source: "tests/guards/no-virtual-mock-module.test.ts#L7"
+      - source: "tests/guards/no-virtual-mock-module.test.ts#L8"
         quote: "no test file may pass a third `{ virtual: true }` options argument"
       - source: "tests/guards/no-virtual-mock-module.test.ts#L13-L14"
         quote: "suite then produces NO output at all: no test starts, no failure is … reported, jest hangs until the runner is killed."

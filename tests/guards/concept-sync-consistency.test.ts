@@ -201,7 +201,9 @@ import { REPO_ROOT, resolveSource, readSource } from '@tests/guards/freeze-guard
 import {
   collectTombstoneViolations,
   isUnverifiedParaphrase,
+  parseLineAnchor,
   stripTrailingMarker,
+  verifyAnchorWindow,
   verifyQuoteExcerpt,
   type TombstoneEntry,
 } from '@tests/guards/concept-quote-contract';
@@ -917,6 +919,49 @@ describe('concept-sync consistency guard (.concept/ bootstrap 5fd0dd60)', () => 
     expect(offenders).toEqual([]);
   });
 
+  it('evidence: line anchors bracket their quote — #Lx/#Lx-Ly windows pin to live code, not just to the file', () => {
+    // The verbatim leg strips the anchor (`source.split('#')[0]`) and
+    // substring-checks the WHOLE file, so a quote that stays verbatim
+    // SOMEWHERE in the file keeps a drifted `#L62-L65` green forever —
+    // evidence claims a line location nothing verifies (eval follow-up #8,
+    // the anchor-drift gap). Contract: for every line-anchored source, the
+    // quote's fragments must occur inside the anchored window of the live
+    // file; a window that no longer contains the quote (or no longer fits
+    // the file) is drift and fails here. Bare-path sources keep the
+    // file-level contract above; paraphrases stay ratio-capped.
+    let anchored = 0;
+    const offenders: string[] = [];
+    const check = (label: string, ev: Evidence): void => {
+      if (!parseLineAnchor(ev.source)) return; // bare path — file-level legs
+      anchored++;
+      const file = ev.source.split('#')[0];
+      const offender = verifyAnchorWindow(
+        ev.quote,
+        ev.source,
+        readSource(file).split('\n'),
+      );
+      if (offender) offenders.push(`${label}: ${ev.source} [${offender}]`);
+    };
+    for (const [name, term] of termEntries) {
+      for (const ev of term.evidence ?? []) check(`term ${name}`, ev);
+    }
+    for (const inv of invariants.invariants) {
+      for (const ev of inv.evidence ?? []) check(inv.id, ev);
+    }
+    for (const amb of ambiguities.ambiguities) {
+      for (const ev of amb.evidence ?? []) check(amb.id, ev);
+    }
+    for (const item of termQueue.queue) {
+      for (const ev of item.evidence ?? []) check(item.id, ev);
+    }
+    // Anti-vacuous floor: 84 anchored entries today (57 single-line +
+    // 27 ranged). Mass anchor-stripping (deleting `#L…` fragments to
+    // escape the window check) must fall through THIS floor loudly, not
+    // silently empty the leg. Raise with the census, never silently.
+    expect(anchored).toBeGreaterThanOrEqual(80);
+    expect(offenders).toEqual([]);
+  });
+
   it('evidence: paraphrase-marker quotes stay ≤ 30% of all evidence (escape hatch cannot become the norm)', () => {
     // A trailing `…`/`...` exempts a quote from substring verification —
     // without this cap, stamping the marker onto fabricated quotes would
@@ -1237,6 +1282,52 @@ describe('concept-quote-contract helpers (import path) — contract pin', () => 
   it('verifyQuoteExcerpt: trailing-marker paraphrase is exempt (bounded by the ratio leg)', () => {
     const source = 'completely unrelated source text';
     expect(verifyQuoteExcerpt('a loose summary of the source…', source)).toBeNull();
+  });
+
+  it('parseLineAnchor: recognizes #L12 / #L12-L15 / #L12-15; normalizes reversed ranges; null otherwise', () => {
+    expect(parseLineAnchor('src/a.ts#L12')).toEqual({ start: 12, end: 12 });
+    expect(parseLineAnchor('docs/x.md#L12-L15')).toEqual({ start: 12, end: 15 });
+    expect(parseLineAnchor('docs/x.md#L12-15')).toEqual({ start: 12, end: 15 });
+    // Reversed bounds are a typo, not a different window — same inclusivity.
+    expect(parseLineAnchor('docs/x.md#L15-L12')).toEqual({ start: 12, end: 15 });
+    // Anything else is not a line anchor and must NOT be treated as an
+    // error: bare paths and heading fragments keep the file-level contract.
+    expect(parseLineAnchor('src/a.ts')).toBeNull();
+    expect(parseLineAnchor('docs/x.md#overview')).toBeNull();
+    expect(parseLineAnchor('src/a.ts#L12x')).toBeNull();
+  });
+
+  it('verifyAnchorWindow: quote verbatim elsewhere in the file but outside the window FAILS (the file-level blind spot)', () => {
+    const lines = ['alpha line', 'beta line', 'gamma line', 'delta line'];
+    expect(verifyAnchorWindow('beta line', 'f.ts#L2', lines)).toBeNull();
+    // `beta line` IS in the file — the verbatim leg stays green — but L2
+    // no longer brackets it. Only this window check can see that drift.
+    expect(verifyAnchorWindow('beta line', 'f.ts#L3', lines)).toMatch(
+      /^not verbatim: beta line$/,
+    );
+    expect(verifyAnchorWindow('beta line', 'f.ts#L1-L3', lines)).toBeNull(); // ranged window covers
+  });
+
+  it('verifyAnchorWindow: multi-line quotes flatten across the window; anchors past EOF report the range, not a miss', () => {
+    const lines = ['alpha', 'beta', 'gamma'];
+    expect(verifyAnchorWindow('beta gamma', 'f.ts#L2-L3', lines)).toBeNull();
+    expect(verifyAnchorWindow('alpha beta', 'f.ts#L2-L3', lines)).toMatch(
+      /^not verbatim: alpha beta$/,
+    );
+    expect(verifyAnchorWindow('gamma', 'f.ts#L4', lines)).toMatch(
+      /^anchor L4-L4 outside file \(3 lines\)$/,
+    );
+    expect(verifyAnchorWindow('gamma', 'f.ts#L2-L9', lines)).toMatch(
+      /^anchor L2-L9 outside file \(3 lines\)$/,
+    );
+  });
+
+  it('verifyAnchorWindow: bare paths stay null (file-level contract); paraphrases stay exempt (ratio-capped)', () => {
+    const lines = ['alpha'];
+    expect(verifyAnchorWindow('zzz', 'f.ts', lines)).toBeNull();
+    expect(
+      verifyAnchorWindow('loose summary of the window…', 'f.ts#L1', lines),
+    ).toBeNull();
   });
 
   it('collectTombstoneViolations: empty list and clean tombstones yield no violations', () => {
