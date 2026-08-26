@@ -168,6 +168,19 @@
  * precedent) and the classifier is pinned in its own describe
  * (session-239 lesson).
  *
+ * Test-stage follow-up #9 (this diff): the anchor HALF of those same
+ * sources. Every path leg ends at `source.split('#')[0]` — what the
+ * `#L…` part says was never checked, so an anchor that outran a file
+ * shrunk by a refactor, or a malformed L-shape, passed silently while
+ * the quote leg verified text living on a line the anchor no longer
+ * names. Anchors are now shape-pinned (GitHub forms `L<n>` / `L<a>-L<b>`)
+ * and bounds-checked against the file's addressable line count, where a
+ * trailing newline does NOT open a phantom `+1` line. Live data today:
+ * 84 of the 138 evidence entries and 42 of the 73 claim lines carry an
+ * anchor, all in bounds. Re-anchoring to CONTENT stays out of scope —
+ * quote verbatimness is the quote leg's contract (documented weak
+ * branch). Helpers pinned in their own describe (session-239 lesson).
+ *
  * Scope decisions (conscious, keep future edits honest):
  *   - Evidence QUOTES are pinned modulo whitespace: single-line quotes are
  *     exact substrings, multi-line excerpts may be flattened with single
@@ -502,6 +515,10 @@ function codeDescriptorOffenders(
   descriptor: string,
   fileText: string | null,
 ): string[] {
+  // Precedence: a `/` ANYWHERE in the descriptor makes it a compound
+  // first — keyword/identifier shapes are never reconsidered inside the
+  // compound branch (a hypothetical `class Foo/Bar` is two members, not a
+  // keyword descriptor; live data never mixes the shapes).
   const offenders: string[] = [];
   if (descriptor.includes('/')) {
     for (const member of descriptor.split('/')) {
@@ -547,6 +564,46 @@ const GITIGNORE_LITERAL_PATHS: ReadonlySet<string> = new Set(
     )
     .map((line) => line.replace(/^\//, '').replace(/\/+$/, '')),
 );
+
+// A `#L…` source anchor takes the GitHub forms `L<n>` / `L<a>-L<b>`.
+// Follow-up #9: every path leg discards the anchor with split('#')[0], so
+// an anchor that outran its file (a refactor shrinks files) or a
+// malformed L-shape passed silently. Anchors are NOT re-anchored to
+// content — the quote leg owns text verification; here the anchor's line
+// range must simply be addressable in the mapped file.
+const LINE_ANCHOR = /^L(\d+)(?:-L(\d+))?$/;
+
+// Bounds come from the module's own `lineCountOf` (wc -l convention): a
+// trailing newline does NOT open a phantom `+1` line, so `#L<last+1>` on
+// a '\n'-terminated file is past EOF and stays RED (the off-by-one
+// over-allow this leg exists to close).
+
+// `lineCount === null` (missing/unreadable file) yields NO offender: the
+// path-existence legs own that failure, keeping each leg single-purpose.
+// Shape is still checked when the file is unreadable — a malformed
+// anchor is wrong regardless of where it points.
+function lineAnchorOffenders(
+  anchor: string,
+  lineCount: number | null,
+): string[] {
+  const match = LINE_ANCHOR.exec(anchor);
+  if (!match) {
+    return [`malformed anchor "${anchor}" (want L<n> or L<a>-L<b>)`];
+  }
+  if (lineCount === null) return [];
+  const start = Number(match[1]);
+  const end = match[2] === undefined ? start : Number(match[2]);
+  const offenders: string[] = [];
+  if (start < 1) offenders.push(`line ${start} is not addressable`);
+  if (start > lineCount) {
+    offenders.push(`start L${start} past EOF (${lineCount} lines)`);
+  }
+  if (end < start) offenders.push(`inverted range L${start}-L${end}`);
+  if (end > lineCount) {
+    offenders.push(`end L${end} past EOF (${lineCount} lines)`);
+  }
+  return offenders;
+}
 
 describe('concept-sync consistency guard (.concept/ bootstrap 5fd0dd60)', () => {
   it('js-yaml interop canary: load() round-trips a known snippet', () => {
@@ -986,6 +1043,69 @@ describe('concept-sync consistency guard (.concept/ bootstrap 5fd0dd60)', () => 
       if (!existsSync(resolveSource(path))) missing.push(claim.source);
     }
     expect(missing).toEqual([]);
+  });
+
+  it('anchors: every evidence `#L` anchor is well-formed and resolves inside the file', () => {
+    // Follow-up #9, leg 1 — the path-existence leg above keeps only
+    // source.split('#')[0], so the anchor half was never checked: an
+    // anchor that outran a file shrunk by a refactor (or a malformed
+    // L-shape) passed while the quote leg verified text on a line the
+    // anchor no longer names. 84 of the 138 evidence entries carry an
+    // anchor today. Re-anchoring to CONTENT stays out of scope — quote
+    // verbatimness is the quote leg's contract; the anchor's line range
+    // must merely be addressable.
+    const offenders: string[] = [];
+    const check = (label: string, source: string): void => {
+      const hash = source.indexOf('#');
+      if (hash < 0) return; // plain path — the path leg is the whole contract
+      const resolved = resolveSource(source.slice(0, hash));
+      if (!existsSync(resolved)) return; // the path leg owns this failure
+      if (statSync(resolved).isDirectory()) return; // anchors name files
+      const lineCount = lineCountOf(readFileSync(resolved, 'utf8'));
+      for (const offender of lineAnchorOffenders(
+        source.slice(hash + 1),
+        lineCount,
+      )) {
+        offenders.push(`${label}: ${source} [${offender}]`);
+      }
+    };
+    for (const [name, term] of termEntries) {
+      for (const ev of term.evidence ?? []) check(`term ${name}`, ev.source);
+    }
+    for (const inv of invariants.invariants) {
+      for (const ev of inv.evidence ?? []) check(inv.id, ev.source);
+    }
+    for (const amb of ambiguities.ambiguities) {
+      for (const ev of amb.evidence ?? []) check(amb.id, ev.source);
+    }
+    for (const item of termQueue.queue) {
+      for (const ev of item.evidence ?? []) check(item.id, ev.source);
+    }
+    expect(offenders).toEqual([]);
+  });
+
+  it('anchors: every claim `#L` source anchor resolves inside the file', () => {
+    // Follow-up #9, leg 2 — the same blind spot on the ndjson side: the
+    // claims path leg above (follow-up #8) resolves split('#')[0] only.
+    // 42 of the 73 claim lines carry an anchor; one gone stale past EOF
+    // is now a RED instead of silently naming a line the file no longer
+    // has.
+    const offenders: string[] = [];
+    for (const line of claimLines) {
+      const claim = JSON.parse(line) as Claim; // shape pinned by the Q5 leg
+      const hash = claim.source.indexOf('#');
+      if (hash < 0) continue;
+      const resolved = resolveSource(claim.source.slice(0, hash));
+      if (!existsSync(resolved)) continue; // the claims path leg owns this
+      const lineCount = lineCountOf(readFileSync(resolved, 'utf8'));
+      for (const offender of lineAnchorOffenders(
+        claim.source.slice(hash + 1),
+        lineCount,
+      )) {
+        offenders.push(`${claim.source} [${offender}]`);
+      }
+    }
+    expect(offenders).toEqual([]);
   });
 
   it('budget: terms / layers / draft ratio / queue pending inside ontology_budget limits (Q4, Q6)', () => {
@@ -1428,6 +1548,76 @@ describe('code-symbol descriptor classifier (local) — contract pin', () => {
     expect([...GITIGNORE_LITERAL_PATHS].some((p) => p.startsWith('#'))).toBe(
       false,
     );
+  });
+});
+
+// ----------------------------------------------------------------------
+// line-anchor helpers (local closure — session-239 lesson, #9)
+//
+// lineAnchorOffenders runs against live data that is clean today (126
+// anchored sources, all in bounds), so its branches (malformed shape /
+// past-EOF / line 0 / inverted range) are only exercised here. Pin them
+// so a future edit cannot silently reopen the classification while the
+// live data stays green. `lineCountOf` is the module's SHARED wc-l
+// helper (decisionsMdLines predates this leg) — pinning it here is the
+// session-239 lesson applied to an existing helper, not just the new one.
+describe('line-anchor helpers (local) — contract pin', () => {
+  it('lineCountOf: a trailing newline does not open a phantom addressable line', () => {
+    expect(lineCountOf('a\nb\n')).toBe(2); // 'a','b' — L3 is past EOF
+    expect(lineCountOf('a\nb')).toBe(2); // no trailing \n — still 2 lines
+    expect(lineCountOf('one line\n')).toBe(1);
+    expect(lineCountOf('')).toBe(0);
+  });
+
+  it('well-formed single and range anchors inside bounds pass', () => {
+    expect(lineAnchorOffenders('L2', 2)).toEqual([]);
+    expect(lineAnchorOffenders('L1-L2', 2)).toEqual([]);
+    expect(lineAnchorOffenders('L2-L2', 2)).toEqual([]); // single-line range
+    expect(lineAnchorOffenders('L1', 2)).toEqual([]); // first line is fine
+  });
+
+  it('past-EOF starts/ends, line 0, and inverted ranges each report their branch', () => {
+    // A single past-EOF anchor names the line twice (start defaults to
+    // end): acceptable noise — the four bounds checks stay independent
+    // rather than special-casing the single form.
+    expect(lineAnchorOffenders('L3', 2)).toEqual([
+      'start L3 past EOF (2 lines)',
+      'end L3 past EOF (2 lines)',
+    ]);
+    expect(lineAnchorOffenders('L1-L3', 2)).toEqual([
+      'end L3 past EOF (2 lines)',
+    ]);
+    expect(lineAnchorOffenders('L0', 2)).toEqual(['line 0 is not addressable']);
+    expect(lineAnchorOffenders('L2-L1', 2)).toEqual([
+      'inverted range L2-L1',
+    ]);
+    // Independent branches report together — the failure names every one.
+    expect(lineAnchorOffenders('L9-L1', 2)).toEqual([
+      'start L9 past EOF (2 lines)',
+      'inverted range L9-L1',
+    ]);
+  });
+
+  it('malformed shapes fail even when the file is unreadable; unreadable is not an offender', () => {
+    // Shape is checked regardless of the file: a malformed anchor is wrong
+    // no matter where it points.
+    expect(lineAnchorOffenders('Lx', 2)).toEqual([
+      'malformed anchor "Lx" (want L<n> or L<a>-L<b>)',
+    ]);
+    // A range must repeat the L (GitHub form) — `L1-2` is not legal.
+    expect(lineAnchorOffenders('L1-2', 2)).toEqual([
+      'malformed anchor "L1-2" (want L<n> or L<a>-L<b>)',
+    ]);
+    expect(lineAnchorOffenders('', 2)).toEqual([
+      'malformed anchor "" (want L<n> or L<a>-L<b>)',
+    ]);
+    // A well-formed anchor over an unreadable file is the path legs'
+    // failure — delegated, not doubled.
+    expect(lineAnchorOffenders('L3', null)).toEqual([]);
+    // ...but the malformed arm still fires with lineCount === null.
+    expect(lineAnchorOffenders('bogus', null)).toEqual([
+      'malformed anchor "bogus" (want L<n> or L<a>-L<b>)',
+    ]);
   });
 });
 
