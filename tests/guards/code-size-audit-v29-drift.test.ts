@@ -182,7 +182,7 @@ describe('code-size-audit script — V2.9 identifier drift guard (REQ-419-005)',
 });
 
 // ----------------------------------------------------------------------
-// isCommentLine helper contract (freeze-guard.ts:67-70)
+// isCommentLine helper contract (see freeze-guard.ts::isCommentLine)
 //
 // Tests 8 and 9 above depend on isCommentLine skipping comment lines
 // before counting V2_8 / V2_9 references. If isCommentLine drifted (e.g.
