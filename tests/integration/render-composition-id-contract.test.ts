@@ -25,6 +25,7 @@
 import { jest } from '@jest/globals';
 import type { SceneGraph } from '@stv/core/types/diagram';
 import { COMPOSITION_ID } from '@/remotion/composition-id';
+import { DEFAULT_FPS } from '@/remotion/scene-synchronizer';
 
 // ESM mocking: unstable_mockModule + dynamic import (see jest-esm-mock-pattern).
 jest.unstable_mockModule('@remotion/bundler', () => ({
@@ -159,9 +160,16 @@ describe('Render-path composition-id contract + frame-count invariant', () => {
         // ignored
       }
       const composition = await lastComposition();
-      // 12000ms / 1000 * 30fps = 360. Pre-fix time-unit bug would collapse
-      // this toward the 10s/300-frame clamp; the correct value is 360.
-      expect(composition.durationInFrames).toBe(360);
+      // DERIVED from the scene durations × canonical DEFAULT_FPS (mirrors
+      // getComposition's Math.ceil((totalMs / 1000) * resolvedFps); its
+      // min-1-second floor is a no-op at these durations). A conscious
+      // DEFAULT_FPS retuning updates the pin instead of leaving a stale-RED,
+      // while the time-unit collapse (12000 ms treated as 12 s → ~0/1 frames)
+      // still REDs. Pre-fix time-unit bug would collapse this toward the
+      // 10s/300-frame clamp; the correct value is 360 at 30 fps.
+      expect(composition.durationInFrames).toBe(
+        Math.ceil(((3000 + 5000 + 4000) / 1000) * DEFAULT_FPS),
+      );
     });
 
     it('single 5s scene → 150 frames (not ~0 from a ms/s confusion)', async () => {
@@ -172,10 +180,14 @@ describe('Render-path composition-id contract + frame-count invariant', () => {
         // ignored
       }
       const composition = await lastComposition();
-      // 5000ms → 150 frames. The classic DiagramVideo time-unit bug treated
-      // ms as seconds and produced ~0.15 frames; assert the correct count.
-      expect(composition.durationInFrames).toBeGreaterThanOrEqual(149);
-      expect(composition.durationInFrames).toBeLessThanOrEqual(150);
+      // DERIVED from the scene duration × canonical DEFAULT_FPS (5000 ms → 150
+      // at 30 fps). The classic DiagramVideo time-unit bug treated ms as
+      // seconds and produced ~0.15 frames; the exact derived pin REDs on that
+      // collapse just as the old 149–150 range did — and follows a conscious
+      // DEFAULT_FPS retuning instead of staling.
+      expect(composition.durationInFrames).toBe(
+        Math.ceil((5000 / 1000) * DEFAULT_FPS),
+      );
     });
 
     it('contract + invariant hold together on one render', async () => {
@@ -189,7 +201,12 @@ describe('Render-path composition-id contract + frame-count invariant', () => {
       expect(lastSelectCall().id).toBe(COMPOSITION_ID);
       // …and derived the correct frame count from real durations.
       const composition = await lastComposition();
-      expect(composition.durationInFrames).toBe(180); // 6000ms → 180 frames
+      // DERIVED from the scene durations × canonical DEFAULT_FPS (6000 ms →
+      // 180 at 30 fps) — follows a conscious DEFAULT_FPS retuning instead of
+      // staling as a bare frame count.
+      expect(composition.durationInFrames).toBe(
+        Math.ceil(((2000 + 4000) / 1000) * DEFAULT_FPS),
+      );
     });
   });
 });
