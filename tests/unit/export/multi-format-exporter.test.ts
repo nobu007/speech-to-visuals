@@ -287,6 +287,64 @@ describe('REQ-168: MultiFormatExporter', () => {
       expect(pdf.success).toBe(true);
       const pdfText = new TextDecoder().decode(await (pdf.data as Blob).arrayBuffer());
       expect(pdfText).toContain('0.200 0.800 0.533 rg');
+
+      // Canvas leg — completes the three-way parity inside ONE test. The SAME
+      // raw string must reach ctx.fillStyle untouched: the browser expands the
+      // shorthand itself, so pre-expanding (or letting a default eat it) here
+      // would desync PNG from the SVG/PDF legs above. exportPNG assigns the
+      // background fillStyle FIRST (renderToCanvas then sets '#666' node
+      // strokes / '#3b82f6' / 'white'), and fillRect is used ONLY for the
+      // background (nodes go through roundRect+fill) — so first assignment +
+      // the sole fillRect pin the background hand-off exactly.
+      const fillStyleAssignments: string[] = [];
+      const fillRectCalls: number[][] = [];
+      const ctx = {
+        set fillStyle(value: string) { fillStyleAssignments.push(value); },
+        strokeStyle: '', lineWidth: 0, font: '', textAlign: '', textBaseline: '',
+        fillRect: (...args: number[]) => { fillRectCalls.push(args); },
+        beginPath: () => {}, moveTo: () => {}, lineTo: () => {}, stroke: () => {},
+        roundRect: () => {}, fill: () => {}, fillText: () => {},
+      };
+      const canvas = {
+        width: 0,
+        height: 0,
+        getContext: () => ctx,
+        toBlob: (callback: (blob: Blob | null) => void) =>
+          callback(new Blob(['png'], { type: 'image/png' })),
+      };
+      const globals = globalThis as { document?: unknown };
+      const originalDocument = globals.document;
+      globals.document = { createElement: () => canvas };
+      try {
+        const png = await exporter.export(
+          makeScene(),
+          makeOptions({ format: 'png', backgroundColor: '#3C8', width: 800, height: 600 }),
+        );
+        expect(png.success).toBe(true);
+        expect(fillStyleAssignments[0]).toBe('#3C8');
+        expect(fillRectCalls).toEqual([[0, 0, 800, 600]]);
+      } finally {
+        if (originalDocument === undefined) {
+          delete globals.document;
+        } else {
+          globals.document = originalDocument;
+        }
+      }
+    });
+
+    it('fail-opens an out-of-contract length (#RGBA) per-channel instead of throwing — documented policy', async () => {
+      // pdfColorFill's contract is #RGB / #RRGGBB. For anything else the
+      // current policy is fail-open, not fail-fast: '#3C88' is not doubled
+      // (only length===3 triggers doubling), so the channels slice as
+      // (3C, 88, '') → (0.235, 0.533, NaN→1.000). Pinning this makes the
+      // policy explicit, so extending to #RGBA support or switching to
+      // fail-fast later is a conscious contract change, not a silent drift.
+      // (SVG would emit the raw string verbatim — 4-digit input is outside
+      // the documented background contract either way.)
+      const pdf = await exporter.export(makeScene(), makeOptions({ format: 'pdf', backgroundColor: '#3C88' }));
+      expect(pdf.success).toBe(true);
+      const pdfText = new TextDecoder().decode(await (pdf.data as Blob).arrayBuffer());
+      expect(pdfText).toContain('0.235 0.533 1.000 rg');
     });
   });
 

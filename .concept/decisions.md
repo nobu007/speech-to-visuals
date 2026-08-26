@@ -43,3 +43,13 @@
 - Expires After Runs: 20
 - Linked: AMB-PROC-001
 - Revert Triggers: primary_evidence_contradiction
+
+## AUTO:ExportEngine.pdfColorFill.invalid-length:fail-open
+- Status: ACTIVE
+- Chosen: backgroundColor 契約外長度 (#RGBA 等) は現行 per-channel fail-open (NaN→1.000) を維持。
+  test leg (tests/unit/export/multi-format-exporter.test.ts) で方針を文書化 —
+  fail-fast 化・#RGBA 対応は意図した契約変更として扱う。
+- Policy: reversibility + blast_radius_min（既存 NaN→1 fallback と同一）
+- Expires After Runs: 20
+- Linked: AMB-EXP-001
+- Revert Triggers: primary_evidence_contradiction, security_risk

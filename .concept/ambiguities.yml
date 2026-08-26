@@ -102,3 +102,30 @@ ambiguities:
     evidence:
       - source: "tests/guards/concept-sync-consistency.test.ts#L5"
         quote: "The bootstrap generated 41 ontology terms / 16 invariants / 41 mappings /"
+  - id: "AMB-EXP-001"
+    term: "ExportEngine"
+    topic: "backgroundColor 契約外長度 (#RGBA 等 3/6 桁以外) 入力の方針: fail-fast・無視・fail-open のいずれ也未指定"
+    severity: "low"
+    uncertainty: 0.45
+    candidates:
+      - "現行どおり per-channel fail-open（NaN → 1.000、'#3C88' → 0.235 0.533 1.000 rg）"
+      - "fail-fast（ExportError で拒否）"
+      - "CSS #RGBA (#RRGGBBAA) 対応として正式解釈する"
+    missing_info:
+      - "UI/API 側から 3/6 桁以外の backgroundColor が流入する経路の有無"
+    linked_conflicts: []
+    auto_decision:
+      status: "applied"
+      decision_key: "AUTO:ExportEngine.pdfColorFill.invalid-length:fail-open"
+      chosen: "契約外長度は現行の per-channel fail-open を維持し test leg で文書化（fail-fast 化・#RGBA 対応は意図した契約変更として扱う）"
+      policy: "reversibility + blast_radius_min（既存 NaN→1 fallback と同一・UI は 6 桁 hex のみ供給）"
+      confidence_auto: 0.6
+      decided_at_run: "2026-08-26T21:12:22Z"
+      expires_after_runs: 20
+      revert_triggers:
+        - "primary_evidence_contradiction"
+        - "security_risk"
+    last_touched_run: "2026-08-26T21:12:22Z"
+    evidence:
+      - source: "tests/unit/export/multi-format-exporter.test.ts#L336-L341"
+        quote: "pdfColorFill's contract is #RGB / #RRGGBB. … current policy is fail-open, not fail-fast: '#3C88' is not doubled … Pinning this makes the … policy explicit, so extending to #RGBA support or switching to … fail-fast later is a conscious contract change, not a silent drift."
