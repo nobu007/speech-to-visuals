@@ -113,11 +113,11 @@ describe('MW-091 ledger integrity (PR #75 follow-up)', () => {
     expect(mw091Rows[0]).toMatch(/12\/12 GREEN/);
   });
 
-  it('parent guard (mutation-witness-ledger.test.ts) keeps PINNED_MIN_ENTRIES = 86 (MW-092 floor bump 復帰)', () => {
+  it('parent guard (mutation-witness-ledger.test.ts) keeps PINNED_MIN_ENTRIES = 87 (MW-092 floor bump + MW-093 REQ-420 recovery)', () => {
     const guardSrc = readFileSync(GUARD_TEST, 'utf-8');
     // 85 は MW-092 (2026-08-28 sweep #10 recovery) で 86 へ bump — 78/85 への
     // 再注入は parent guard 自身の ratchet で RED する設計を守る
-    expect(guardSrc).toMatch(/const PINNED_MIN_ENTRIES = 86;/);
+    expect(guardSrc).toMatch(/const PINNED_MIN_ENTRIES = 87;/);
     // regression trap: 78 を再注入したら ALLOWED 系 guard が RED する設計を守る
     expect(guardSrc).not.toMatch(/const PINNED_MIN_ENTRIES = 78;/);
   });

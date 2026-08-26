@@ -408,7 +408,7 @@ flowchart TD
 
 ### 設定バリデーションフロー 🔵
 
-**信頼性**: 🔵 *src/config/validate.ts・src/config/schema.ts・要件定義REQ-038より*
+**信頼性**: 🔵 *@stv/core/config/validate・@stv/core/config/schema・要件定義REQ-038より*
 
 **関連要件**: REQ-038
 
@@ -469,7 +469,7 @@ stateDiagram-v2
 - **データ整合性**: RLS によるアクセス制御 + 外部キー制約
 - **キャッシュ整合性**: TTL 120分による自動失効 + 類似度ベースの整合判定
 - **レイアウト整合性**: オーバーラップ検出 → フォースダイレクト解消 → 最終確認の3段階保証
-- **NaN/Infinity伝播防止** 🔵: パイプライン全体での数値データバリデーション *src/utils/guards.ts・直近6コミット(f42f7bc〜a68e5c2)より*
+- **NaN/Infinity伝播防止** 🔵: パイプライン全体での数値データバリデーション *@stv/core/utils/guards・直近6コミット(f42f7bc〜a68e5c2)より*
   - **入力段階**: diagram-detector/scene-segmenterが`sanitizeFinite()`でNaN/非数値をデフォルト値に変換
   - **処理段階**: stage-timing-metricsが`Math.max(0, rawDuration)`で負のdurationを0にクランプ・throughputPerMsのNaNガード
   - **レンダリング段階**: Remotionコンポーネント（EdgeAnimation/Video/DiagramVideo/scene-synchronizer/renderer）が`Number.isFinite()`でNaN/Infinityをガード
@@ -477,7 +477,7 @@ stateDiagram-v2
 
 ## NaN/Infinityガードデータフロー 🔵
 
-**信頼性**: 🔵 *src/utils/guards.ts・src/remotion/*.tsx・src/pipeline/*.ts・src/analysis/*.ts より*
+**信頼性**: 🔵 *@stv/core/utils/guards・src/remotion/*.tsx・src/pipeline/*.ts・src/analysis/*.ts より*
 
 ```mermaid
 flowchart TD
@@ -944,7 +944,7 @@ flowchart TD
 
 ### 型ガードによる図解タイプ検証フロー 🔵
 
-**信頼性**: 🔵 *src/types/diagram.ts isDiagramType()・要件定義REQ-051 より*
+**信頼性**: 🔵 *@stv/core/types/diagram isDiagramType()・要件定義REQ-051 より*
 
 **関連要件**: REQ-051
 
@@ -1426,7 +1426,7 @@ flowchart TD
 
 ### 機能15: ファイル名サニタイズ・集中制限検証フロー（Phase 52） 🔵
 
-**信頼性**: 🔵 *src/utils/sanitize.ts・src/config/limits.ts・要件定義REQ-132~134・Phase 52 より*
+**信頼性**: 🔵 *@stv/core/utils/sanitize・@stv/core/config/limits・要件定義REQ-132~134・Phase 52 より*
 
 **関連要件**: REQ-132, REQ-133, REQ-134
 
@@ -1481,7 +1481,7 @@ flowchart TD
 
 ### 機能16: 音声時間事前計測・警告フロー（Phase 54） 🔵
 
-**信頼性**: 🔵 *src/utils/audio-duration.ts・src/config/limits.ts AUDIO_LIMITS・要件定義EDGE-103・REQ-140~141 より*
+**信頼性**: 🔵 *@stv/core/utils/audio-duration・@stv/core/config/limits AUDIO_LIMITS・要件定義EDGE-103・REQ-140~141 より*
 
 **関連要件**: REQ-140, REQ-141, EDGE-103
 
@@ -1688,7 +1688,7 @@ flowchart TD
     style E2 fill:#ffebee
 ```
 
-**Phase 92 検証ルール** 🔵 *src/config/limits.ts ERROR_REGISTRY_LIMITS より*:
+**Phase 92 検証ルール** 🔵 *@stv/core/config/limits ERROR_REGISTRY_LIMITS より*:
 
 | 検証項目 | ルール | エラーコード |
 |---------|--------|------------|
