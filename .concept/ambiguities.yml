@@ -77,3 +77,28 @@ ambiguities:
         quote: ".overlapDetectionMode is never read at generation;"
       - source: "src/visualization/enhanced-zero-overlap-layout.ts#L38"
         quote: "overlapDetectionMode: 'strict' | 'balanced' | 'performance';"
+  - id: "AMB-PROC-001"
+    term: "GuardHarness"
+    topic: "Q3（invariant 抽出率）の分母定義: テスト全ファイル比 50% は 386 invariants を要求し Rule 7（統合優先）と構造的に衝突する"
+    severity: "low"
+    uncertainty: 0.5
+    candidates:
+      - "テスト全ファイル比 50% を維持する（772 ファイル → 386 invariants が必要）"
+      - "bug-class 網羅基準（census / mutation-pinning guard が表す再発クラス）へ分母を再定義する"
+    missing_info:
+      - "抽出可能な制約の総数の機械導出方法（抽出率の真の分母）"
+    linked_conflicts: []
+    auto_decision:
+      status: "applied"
+      decision_key: "AUTO:ConceptSync.Q3-denominator:bug-class-coverage"
+      chosen: "Q3 は bug-class 網羅基準で運用し、テスト全ファイル比は参考値として記録する（16→26 invariants・増産は続行）"
+      policy: "integration-first（Rule 7 統合優先）+ blast_radius_min"
+      confidence_auto: 0.65
+      decided_at_run: "2026-08-26T12:48:37Z"
+      expires_after_runs: 20
+      revert_triggers:
+        - "primary_evidence_contradiction"
+    last_touched_run: "2026-08-26T12:48:37Z"
+    evidence:
+      - source: "tests/guards/concept-sync-consistency.test.ts#L5"
+        quote: "The bootstrap generated 41 ontology terms / 16 invariants / 41 mappings /"

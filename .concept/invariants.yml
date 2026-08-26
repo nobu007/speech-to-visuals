@@ -205,3 +205,143 @@ invariants:
     checks:
       - type: "command"
         target: "npm run verify:all"
+  - id: "INV-VIS-003"
+    related_terms: ["LayoutStrategy", "LayoutEngine"]
+    status: "stable"
+    strength: "hard"
+    statement: "dagre へ渡す edge は全呼び出しサイトで事前に node-set へ filter する（両端点が実在ノードであることを保証）。dagre は不在エンドポイントへ phantom node を自動生成し NaN 座標を下流へ伝播するため、g.setEdge 前の filter は省略できない"
+    rationale: "dagre phantom node バグクラス（再発性・新規 dagre 戦略の追加のたびに再開する class であるため guard が全サイトを sweep する）"
+    evidence:
+      - source: "tests/guards/dagre-dangling-edge-filter-mutation-pinning.test.ts#L10-L11"
+        quote: "dagre silently AUTO-CREATES phantom … nodes for any edge endpoint that is not in the input node set."
+      - source: "tests/guards/dagre-dangling-edge-filter-mutation-pinning.test.ts#L19"
+        quote: "const safeEdges = edges.filter(e => nodeIds.has(e.from) && nodeIds.has(e.to));"
+    checks:
+      - type: "test"
+        target: "tests/guards/dagre-dangling-edge-filter-mutation-pinning.test.ts"
+  - id: "INV-ANIM-001"
+    related_terms: ["RemotionComposition"]
+    status: "stable"
+    strength: "hard"
+    statement: "msToFrame / frameToMs の両変換サイトは Number.isFinite(fps) ガードを持ち、非有限 fps（Infinity / NaN）は DEFAULT_FPS へフォールバックする。fps <= 0 単体のガードは Infinity と NaN を黙って通すため不十分"
+    rationale: "数値境界ガードの Infinity/NaN 負け bug class（TC-306。audio file-size finiteness TC-304 と同型）。frame 積が NaN になると caption 二分探索と下流 frame index が全体汚染される"
+    evidence:
+      - source: "tests/guards/scene-synchronizer-fps-finiteness-mutation-pinning.test.ts#L22"
+        quote: "if (!Number.isFinite(fps) || fps <= 0) fps = DEFAULT_FPS;"
+      - source: "src/remotion/scene-synchronizer.ts#L77"
+        quote: "export function msToFrame(ms: number, fps: number = DEFAULT_FPS): number {"
+    checks:
+      - type: "test"
+        target: "tests/guards/scene-synchronizer-fps-finiteness-mutation-pinning.test.ts"
+  - id: "INV-ERR-003"
+    related_terms: ["ExportEngine"]
+    status: "stable"
+    strength: "hard"
+    statement: "経過時間（duration）計算の両オペランドは同一の時間原点（epoch-ms 同士）とする。Date.now() と performance.now() の混在は約 -1.7e12 の負 duration を生み、下流の durationMs < 0 ドロップが成功記録を全損する"
+    rationale: "Time-origin bug class（TC-301）。契約外の成分を span に含める変種も同根"
+    evidence:
+      - source: "tests/guards/timestamp-guard-mutation-pinning.test.ts#L10"
+        quote: "An elapsed-time computation that mixes time origins"
+      - source: "tests/guards/timestamp-guard-mutation-pinning.test.ts#L18-L19"
+        quote: "const exportDuration = job.startTime"
+    checks:
+      - type: "test"
+        target: "tests/guards/timestamp-guard-mutation-pinning.test.ts"
+  - id: "INV-TEST-005"
+    related_terms: ["GuardHarness"]
+    status: "stable"
+    strength: "hard"
+    statement: "テストファイルで jest.unstable_mockModule / jest.mock に第三引数の { virtual: true } options を渡してはならない（例外は行末の // virtual-mock-exempt: 宣言のみ）"
+    rationale: "ESM (--experimental-vm-modules) では options 引数が検証されず module registry を楔付けにして jest を HANG させる。15+ セッションにわたり 63 テストを隠蔽した実績のある bug class"
+    evidence:
+      - source: "tests/guards/no-virtual-mock-module.test.ts#L7"
+        quote: "no test file may pass a third `{ virtual: true }` options argument"
+      - source: "tests/guards/no-virtual-mock-module.test.ts#L13-L14"
+        quote: "suite then produces NO output at all: no test starts, no failure is … reported, jest hangs until the runner is killed."
+    checks:
+      - type: "test"
+        target: "tests/guards/no-virtual-mock-module.test.ts"
+  - id: "INV-SEC-002"
+    related_terms: ["ApiServer", "WebSocketHandler"]
+    status: "stable"
+    strength: "hard"
+    statement: "JWT 署名シークレットの解決 chain は単一モジュール (src/api/jwt-secret.ts) のみに存在する。REST / WS / config 検証の各サイトで chain を再宣言・再タイプしてはならない"
+    rationale: "security chokepoint の invariant-split: chain が drift すると REST と WS が異なる秘密で検証し、片方の経路だけ 401 になる"
+    evidence:
+      - source: "tests/guards/jwt-secret-single-source.test.ts#L15"
+        quote: "DIFFERENT secrets — a token accepted by one path would 401 on the other"
+      - source: "src/api/jwt-secret.ts#L42"
+        quote: "export function requireJwtSecret("
+    checks:
+      - type: "test"
+        target: "tests/guards/jwt-secret-single-source.test.ts"
+  - id: "INV-EXP-001"
+    related_terms: ["ExportEngine"]
+    status: "stable"
+    strength: "hard"
+    statement: "PDF エクスポートのラベルは Latin-1 範囲（U+0000〜U+00FF）のみなら base-14 Helvetica、U+00FF 超を含むなら Adobe-Japan1 Type0 合成フォント + UTF-16BE hex string へルーティングする"
+    rationale: "PDF glyph-coverage bug class（TC-308）。Helvetica + WinAnsiEncoding は Latin-1 のみをカバーし、CJK ラベルが構造的には正常なファイルで視覚的に空白化する"
+    evidence:
+      - source: "tests/guards/pdf-cjk-font-routing-guard-mutation-pinning.test.ts#L11"
+        quote: "base-14 Helvetica font + /Encoding /WinAnsiEncoding, which covers only"
+      - source: "tests/guards/pdf-cjk-font-routing-guard-mutation-pinning.test.ts#L17-L19"
+        quote: "Labels containing a >U+00FF character are routed to a non-embedded … Adobe-Japan1 Type0 composite font (/F3, HeiseiKakuGo-W5) and emitted as … UTF-16BE hex strings"
+    checks:
+      - type: "test"
+        target: "tests/guards/pdf-cjk-font-routing-guard-mutation-pinning.test.ts"
+  - id: "INV-MON-001"
+    related_terms: ["ProductionMonitor", "QualityMonitor"]
+    status: "stable"
+    strength: "hard"
+    statement: "メトリクス集計は safeSum / safeMean / safeMax / safeMin（@stv/core の metrics-utils）を経由し、戻り値は常に有限。空配列・全非有限入力は fallback（既定 0）を返し、有限入力に対しては legacy inline 式と bitwise（Object.is）等価とする"
+    rationale: "Infinity→NaN sink bug class。spread blowout（Math.max(...arr) は 2e5 要素で RangeError）と集計の非有限汚染が下流ゲートを無効化する"
+    evidence:
+      - source: "tests/guards/finite-safe-aggregation.test.ts#L7-L8"
+        quote: "the return value is ALWAYS … empty / all-non-finite inputs return the fallback (default 0)."
+      - source: "tests/guards/finite-safe-aggregation.test.ts#L17-L18"
+        quote: "Spread blowout regression (EDGE-102): `Math.max(...arr)` throws … RangeError at 2e5 elements; `safeMax` returns a finite value."
+    checks:
+      - type: "test"
+        target: "tests/guards/finite-safe-aggregation.test.ts"
+  - id: "INV-QUAL-002"
+    related_terms: ["QualityMonitor", "AutoImprovementEngine"]
+    status: "stable"
+    strength: "hard"
+    statement: "品質ゲート閾値の既定値（transcription 0.85 / segmentation 0.75 / entity・relation 0.80・0.85 / renderTime 30000ms / memoryUsage 512MB）は単一モジュールにのみ定義する。memoryUsage の MB→BYTES 変換は導出で構造化し、サイト毎に再タイピングしない"
+    rationale: "hardcoded-constant desync（field-NAME 変異 relationshipAccuracy / relationAccuracy と 1024× 単位分岐の複合）"
+    evidence:
+      - source: "tests/guards/quality-thresholds-single-source.test.ts#L4-L5"
+        quote: "the default quality thresholds (transcription 0.85,"
+      - source: "tests/guards/quality-thresholds-single-source.test.ts#L21-L22"
+        quote: "The canonical module derives BYTES from MB so the 1024× relation is … structural, not re-typed per site (same lesson as the ms/s class)."
+    checks:
+      - type: "test"
+        target: "tests/guards/quality-thresholds-single-source.test.ts"
+  - id: "INV-UI-001"
+    related_terms: ["UIComponents"]
+    status: "stable"
+    strength: "soft"
+    statement: "改行を保持すべき UI テキスト（toast・caption 等）の DOM 出力は white-space: pre-line とする。white-space: normal は改行を単一スペースへ潰す"
+    rationale: "CSS whitespace-collapse bug class（TC-311）。修正時は同クラスの全 sibling を grep して揃える（MISSED-SIBLING-SITE の教訓）"
+    evidence:
+      - source: "tests/guards/toast-whitespace-pre-line-guard.test.ts#L12-L14"
+        quote: "CSS `white-space: normal` (the browser default for text) … collapses every newline in a string to a single space when that string is … rendered as a DOM text node."
+      - source: "src/components/ui/sonner.tsx#L28"
+        quote: 'description: "group-[.toast]:text-muted-foreground whitespace-pre-line",'
+    checks:
+      - type: "test"
+        target: "tests/guards/toast-whitespace-pre-line-guard.test.ts"
+  - id: "INV-TEST-006"
+    related_terms: ["GuardHarness"]
+    status: "stable"
+    strength: "soft"
+    statement: "破壊的配列メソッド（sort / reverse）のレシーバは新鮮な producer 式（[...x].sort / x.map(f).sort / Array.from(...) 系）に限る。呼び出し元の引数を in-place に並べ替えて返すことを禁止する"
+    rationale: "sort-receiver mutation bug class（REQ-407 census）。.sort() / .reverse() は copy でなく receiver を返すため、引数の暗黙並べ替えが下流 consumer 全体で分岐する"
+    evidence:
+      - source: "tests/guards/sort-receiver-mutation-census.test.ts#L12-L14"
+        quote: "`.sort()` / … `.reverse()` (unlike every other array read) return the RECEIVER, not … a copy."
+      - source: "tests/guards/sort-receiver-mutation-census.test.ts#L14-L15"
+        quote: "`return items.sort(byX)` therefore hands the caller their own … argument back — silently reordered."
+    checks:
+      - type: "test"
+        target: "tests/guards/sort-receiver-mutation-census.test.ts"
