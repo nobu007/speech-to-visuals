@@ -38,6 +38,7 @@
  */
 
 import { jest } from '@jest/globals';
+import { DEFAULT_SCENE_DURATION_MS } from '@/pipeline/scene-duration-limits';
 import type { SceneGraph } from '@stv/core/types/diagram';
 
 // ESM mocking: unstable_mockModule + dynamic import (jest-esm-mock-pattern).
@@ -170,7 +171,9 @@ describe('Registered ≡ rendered durationInFrames (cross-path contract)', () =>
     const registered = calculateTotalFrames([], FPS);
     const rendered = await renderedFrames(renderer, []);
     // calculateTotalFrames([]) → DEFAULT_FPS * 10 = 300.
-    // getComposition([]) → empty-branch default 10000 ms → 300 frames.
+    // getComposition([]) → empty-branch DEFAULT_SCENE_DURATION_MS * 2 = 10000 ms
+    // → 300 frames. Two independent formulas that agree only while the canonical
+    // default is 5000 — this pin flags a cross-path divergence if it ever drifts.
     expect(registered).toBe(300);
     expect(rendered).toBe(300);
     expect(registered).toBe(rendered);
@@ -188,12 +191,22 @@ describe('Registered ≡ rendered durationInFrames (cross-path contract)', () =>
     // tests/guards/scene-duration-limits-single-source.test.ts. Pinning the
     // divergence here keeps a future "unification" from silently changing
     // render behaviour without a conscious decision + test update.
-    it('durationMs:0 → registered 1 frame, rendered 300 frames (two 5 s defaults)', async () => {
+    //
+    // The rendered expectation is DERIVED from the canonical constant instead
+    // of a bare frame count: the 600→300 stale-pin incident (6a6d0663) was
+    // exactly this test hardcoding the frame count of a value the render path
+    // later re-sourced. Deriving keeps the pin sensitive to the render-path
+    // SUBSTITUTE (any constant other than DEFAULT_SCENE_DURATION_MS REDs)
+    // while staying correct through a conscious re-tuning of the constant
+    // itself, which its own single-source guard pins.
+    it('durationMs:0 → registered 1 frame, rendered two canonical-default scenes', async () => {
       const scenes = sequential([0, 0]);
       const registered = calculateTotalFrames(scenes, FPS);
       const rendered = await renderedFrames(renderer, scenes);
+      // 2 × (0 || DEFAULT_SCENE_DURATION_MS) = 10000 ms → 300 frames at 30fps.
+      const expectedRendered = (scenes.length * DEFAULT_SCENE_DURATION_MS / 1000) * FPS;
       expect(registered).toBe(1);
-      expect(rendered).toBe(300);
+      expect(rendered).toBe(expectedRendered);
       expect(registered).not.toBe(rendered);
     });
   });
