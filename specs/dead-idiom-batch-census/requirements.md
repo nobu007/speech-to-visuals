@@ -9,7 +9,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-08-25
-**要件ID**: REQ-410（Phase 217 / TASK-0301・audit-pass-first census series family 19・**batch 形式**）→ **REQ-411 で sweep #2 拡張**（Phase 218 / TASK-0302）→ **REQ-412 で sweep #3 拡張**（Phase 219 / TASK-0303）→ **REQ-413 で sweep #4 拡張**（Phase 220 / TASK-0304）→ **REQ-414 で sweep #5 拡張**（Phase 221 / TASK-0305）→ **REQ-415 で sweep #6 拡張**（Phase 222 / TASK-0306）→ **REQ-416 で sweep #7 拡張**（Phase 224 / TASK-0307）
+**要件ID**: REQ-410（Phase 217 / TASK-0301・audit-pass-first census series family 19・**batch 形式**）→ **REQ-411 で sweep #2 拡張**（Phase 218 / TASK-0302）→ **REQ-412 で sweep #3 拡張**（Phase 219 / TASK-0303）→ **REQ-413 で sweep #4 拡張**（Phase 220 / TASK-0304）→ **REQ-414 で sweep #5 拡張**（Phase 221 / TASK-0305）→ **REQ-415 で sweep #6 拡張**（Phase 222 / TASK-0306）→ **REQ-416 で sweep #7 拡張**（Phase 224 / TASK-0307）→ **REQ-417 で sweep #8 拡張**（Phase 225 / TASK-0308）
 
 ## 概要
 
@@ -612,7 +612,85 @@ ALLOWED/ERADICATED roster 不変）:
 **When**: 4 独立 mutation（`src/analysis/untrusted-json-core.ts` 末尾への `new Promise(async …)` 注入 / `new Array(16)` 注入 / `instanceof Number` 注入 / `atob('Zm9v')` 注入）を適用する
 **Then**: 各 mutation で completeness が RED（各 1 failed・offender list で kind 帰着を確認）・revert で 8/8 GREEN 復元・`git status --short src/` 空
 
+## REQ-417: 第八回 discovery sweep（同一 batch guard への kind 追加）
+
+steering 契約の 8 回目の適用。2026-08-26 の **第八回 discovery sweep** は
+同一 production surface（331 file・repo src/ .ts+.tsx と @stv/core core-four）
+で **16 candidate class** を計測（走査は canonical `walkProductionSurface`
+を直接使用 — 初回 probe script が `.d.ts` 3 file の扱い違いで 330 file に
+なったため、A-416-1 と同一の「走査面一致を評決の前提条件」手順で再計測）。
+このうち 4 class は **pin 前に棄却**（下記 REQ-417-003）。残る
+**12 kind を registry に追加**（10 kind exact-0・2 kind は ALLOWED 4 site
+同梱・src 変更ゼロ）:
+
+| kind | 実測 | 判定 |
+|------|------|------|
+| date-string-parse（`Date.parse(` + `new Date('…')` literal 形） | 0 | exact-0 pin — ISO profile 外の文字列 parse は実装依存（Safari の古典的 NaN 形） |
+| bare-decodeuri（`decodeURI(`） | 0 | exact-0 pin — reserved 文字（%2F %3F %23）を decode しない・bare-encodeuri の decode 側 sibling |
+| dead-ua-field（`navigator.app{Name,Version,CodeName}` / `product`） | 0 | exact-0 pin — 固定文字列（"Netscape"/"Gecko"）しか返さない死んだ UA field |
+| react-legacy-root-api（`findDOMNode` / `unmountComponentAtNode` / `ReactDOM.render(`） | 0 | exact-0 pin — React 18 StrictMode で削除済みの legacy root trio |
+| react-unsafe-lifecycle（`componentWill{Mount,ReceiveProps, Update}` + `UNSAFE_` 接頭形） | 0 | exact-0 pin — React 18 削除 unsafe lifecycle（`componentWillUnmount` は検出域外 — fixture (ab5) 負例で固定） |
+| dangerously-set-innerhtml（`dangerouslySetInnerHTML`） | 0 | exact-0 pin — React markup sink・insert-adjacent-html の component 面 sibling |
+| bare-array-ctor（`Array(<literal>)` call 形） | 0 | exact-0 pin — sparse-array-ctor の `new` 無し形（lookbehind で `new Array(n)` は従来 kind に帰着 — fixture (ab7) で分離固定） |
+| postmessage-wildcard（`postMessage(…, '*')`） | 0 | exact-0 pin — origin 無資格 broadcast（worker の単一引数 postMessage に targetOrigin 引数は存在せず incident 外） |
+| script-element-creation（`createElement('script')`） | 0 | exact-0 pin — script injection sink（将来 site には provenance 判断を同 commit で課す） |
+| instanceof-object（`instanceof Object`） | 0 | exact-0 pin — 全 object で true・cross-realm で false・typeof が常に上位 |
+| swallowed-rejection（`.catch(() => {})` / `=> null` / `undefined`） | **1 site（src）** | ALLOWED 1 key — whisper-transcriber:121 dynamic-import 可否 probe（README: 推論は実行しない・null は意図的破棄） |
+| console-nondebug-sink（`console.{info,warn,error,trace}(`） | **3 site（core）** | ALLOWED 3 key — logger.ts:25/30/35 logger 自身の transport（:20 の console.debug LOGGER-IMPL row と同型・core 所有 file） |
+
+ALLOWED **22 key** / ERADICATED **12 key**（不変）・kind registry **90 entry**
+（78 → 90）。
+
+### REQ-417-001〜004: sweep #8 kind の検出と固定
+
+**Given（前提条件）**: production surface 331 file に 16 candidate class を追加計測（12 class kind 化・4 class pin 前棄却）
+**When（実行条件）**: `NODE_OPTIONS='--experimental-vm-modules --max-old-space-size=4096' npx jest --config jest.config.cjs --testPathPatterns dead-idiom-batch-census` を実行する
+**Then（期待結果）**: 8 test GREEN（同一 guard 内で kind 90 entry ratchet・fixture (ab1)〜(ab12) 拡張・ALLOWED 22 key / ERADICATED 12 key の three-way 句一致）
+
+**テストケース**:
+
+- [x] **TC-417-01**: authority の kind ratchet 90 entry（12 kind 追加の順序固定）🔵
+- [x] **TC-417-02**: liveness fixture (ab1)〜(ab12)（12 kind の検出・非検出境界 — `navigator.userAgent` は useragent-sniffing・`new Array(12)` は sparse-array-ctor・`console.log` は console-debug-log への帰着を負例で分離）🔵
+- [x] **TC-417-03**: ALLOWED 22 key / ERADICATED 12 key の three-way 句一致（REQ-395 census-artifact guard 経由）🔵
+
+### REQ-417-002: 既存 fixture 負例の検出域明け渡し（kind 分離契約の 3 例目）
+
+REQ-416 の inner-html-op-assign と同じ契約: 既存 kind の detect は不変の
+まま、新 kind が管轄を取る shape を既存 fixture の**負例側から明け渡す**。
+本 sweep は 2 fixture が該当し、いずれも負例の差し替えで対応（既存 kind
+の検出域は 1 行も変わらない）:
+
+- **(y12) console-debug-log 負例**: `console.info/warn/error` が負例側に
+  居た → `logger.info/warn/error` facade に差し替え（info/warn/error の
+  帰着先は (ab12) が固定）。
+- **(z14) inner-html-assignment 負例**: React の `dangerouslySetInnerHTML`
+  prop が負例側に居た → `<div>{text}</div>` children 形に差し替え
+  （prop 形の帰着先は (ab6) が固定）。
+
+### REQ-417-003: pin 前棄却 class の記録（site≠incident 母集団 2 例目・挙動一致型 2 例目）
+
+- **dom0-handler-assign（`.on{error,click,…} =`・6 src site）**: 全 site が
+  SpeechRecognition / HTMLMediaElement（Audio）の **型付き onXxx handler
+  property**（lib.dom 現行仕様の正形・`onerror = (ev) => …` は TS が
+  型付けする公式 API）。死んだ慣用ではなく site 母集団 ≠ incident 母集団
+  （REQ-416 finally の 2 例目）。addEventListener への統一は文書価値のみ。
+- **throw-bare-error（`throw Error(…)` new 無し）**: Error は関数呼び出し
+  でも自動 construct される（仕様）→ **挙動完全一致**・incident なし
+  （sweep #3 の `a ** b`↔Math.pow 棄却と同型 2 例目）。
+- **void-zero-undefined（`void 0`）**: 安全な undefined 読みの正形そのもの
+  （`undefined` 再定義対策の正統綴り）。死んだ慣用ではないため pin 対象外。
+- **bare `postMessage(` 呼び出し（5 worker site）**:
+  DedicatedWorkerGlobalScope.postMessage に targetOrigin 引数は存在しない
+  — incident 形は wildcard origin のみで postmessage-wildcard kind が
+  pin 済み（概念の重複棄却）。
+
+### REQ-417-004: MW-081 mutation 検証
+
+**Given**: guard が GREEN の tree
+**When**: 4 独立 mutation（`src/analysis/untrusted-json-core.ts` 末尾への `Date.parse('2026-01-01')` 注入 / `Array(16)` call 形注入 / `console.error('rogue')` 注入 / `postMessage(payload, '*')` 注入）を適用する
+**Then**: 各 mutation で completeness が RED（各 1 failed・offender list で kind 帰着を確認）・revert で 8/8 GREEN 復元・`git status --short src/` 空
+
 ## 最小限の非機能要件
 
 - **性能**: 追加検証は既存 walk の行 scan のみ（file 再読みなし・guard 実行 < 1s）
-- **保守性**: kind registry は純 data + 純関数 detector で export し合成 fixture で境界検証。src 変更は REQ-410 unify 2 site + REQ-412 unify 5 site + REQ-415 unify 5 site（同一 feature check の綴り統一）のみ（それ以外 read-only census）。REQ-411 sweep #2・REQ-413 sweep #4・REQ-414 sweep #5・REQ-416 sweep #7 は **src 変更ゼロ**（実測 site は ALLOWED 判断・spec/guard のみ）
+- **保守性**: kind registry は純 data + 純関数 detector で export し合成 fixture で境界検証。src 変更は REQ-410 unify 2 site + REQ-412 unify 5 site + REQ-415 unify 5 site（同一 feature check の綴り統一）のみ（それ以外 read-only census）。REQ-411 sweep #2・REQ-413 sweep #4・REQ-414 sweep #5・REQ-416 sweep #7・REQ-417 sweep #8 は **src 変更ゼロ**（実測 site は ALLOWED 判断・spec/guard のみ）

@@ -218,3 +218,27 @@ ERADICATED 12 key 不変 + spec 同梱更新 + MW-080
   前段とする（71 kind 状態からの追加分類）
 - 棄却 3 class とも実測 site 全数（10 + 27 + 13）を読んでの根拠 —
   incident 出現時点の再計測条件を guard header に明記
+
+## Phase 225: REQ-417 第八回 discovery sweep（12 kind 追加 + 4 class 棄却）
+
+**目標**: batch 契約（kind 追加 = 1 entry）の 8 回目の適用。16 candidate
+を計測し、10 class を exact-0 pin、2 class を ALLOWED 4 site 同梱
+（whisper dynamic-import probe・logger transport 3 行）、4 class
+（dom0-handler-assign / throw-bare-error / void-zero-undefined / bare
+postMessage）を pin 前棄却（母集団不一致 2 例目・挙動一致型 2 例目）。
+**成果物**: guard 12 kind 追加 + fixture (ab1)〜(ab12) + 既存負例
+明け渡し 2 件 + ALLOWED 22 key / ERADICATED 12 key + spec 同梱更新 +
+MW-081
+
+### タスク一覧
+
+- [x] [TASK-0308: 第八回 discovery sweep — 同一 batch guard へ 12 kind 追加 + 4 class pin 前棄却（母集団不一致 2 例目・挙動一致型 2 例目） + MW-081 mutation 検証](TASK-0308.md) - 2h (TDD) 🔵 ✅完了
+
+### 依存関係
+
+- Phase 217〜224 の `IDIOM_KINDS` registry と discovery primitive に直接追記
+  （新規 guard file なし — batch 契約の趣旨）
+- 計測は canonical `walkProductionSurface` 直接使用（初回 probe 330 file
+  → 331 file 再計測 — A-416-1 手順の再適用）
+- 棄却 4 class とも実測 site 全数（6 + 0 + 0 + 5）を読んでの根拠 —
+  incident 出現時点の再計測条件を requirements に明記

@@ -676,3 +676,91 @@ registry 変更の意味論保存を契約で強制）。
 ### 信頼性レベル分布（REQ-416 追計分）
 
 **分析後**: 🔵 4（REQ-416-001〜004）/ 🟡 0
+
+## A-417-1: 第八回 sweep の候補選定と計測（2026-08-26）
+
+- **候補生成**: MDN legacy/deprecated 面・ESLint rule 群
+  (`no-eq-null` 系 promise swallow・React 18 removal list)・React 18
+  StrictMode 削除 API から 16 candidate を抽出。registry 78 kind との
+  重複は full registry 読みで除外済み。テーマ別の内訳: JS 標準の死んだ
+  API 面 4（Date.parse / decodeURI / dead UA field / instanceof Object）・
+  React 18 削除面 3（legacy root trio / unsafe lifecycle /
+  dangerouslySetInnerHTML）・sink/injection 面 3（postMessage '*' /
+  createElement('script') / →innerHTML 系は既存 kind）・sibling 形 2
+  （bare `Array(n)` は sparse-array-ctor の call 形・console
+  info/warn/error は console-debug-log の非 debug 形）・swallow 面 1
+  （`.catch(() => {})` は empty-catch の promise 形）。
+- **計測面の自己修正（A-416-1 と同一手順）**: 初回 probe script が
+  330 file で canonical `walkProductionSurface` の 331 file と不一致
+  （`.d.ts` 3 file の扱い違い）。probe を書き直して canonical walker
+  を直接 import し 331 file で再計測してから評決。
+- **計測結果**: 10 class exact-0・swallowed-rejection 1 site
+  （whisper-transcriber:121 — 下記 A-417-2）・console-nondebug-sink
+  3 site（logger.ts:25/30/35 — core 所有の logger transport）。
+  棄却へ回した 4 class は REQ-417-003 参照。
+
+**信頼性への影響**: REQ-417-001 を追加（🔵・331 file 実測 + 走査面
+canonical 一致の再適用）。
+
+## A-417-2: 実測 site 2 class の ALLOWED 判断根拠（REQ-417-001）
+
+- **swallowed-rejection 1 site（whisper-transcriber:121）**:
+  `await import('whisper-node').catch(() => null)` は README が
+  「whisper-node の読み込み可否を確認するだけで Whisper 推論を
+  実行しない」と文書化した dynamic-import 可否 probe。null は捨てる
+  ために生成されており（外側 try/catch + logger.warn は別経路の
+  error 用）、rejection を握り潰す incident shape と同一の綴りだが
+  意図が逆。ALLOWED 1 key（PROBE-DELIBERATE）で文脈を固定し、
+  他の `.catch`-to-void は即 RED。
+- **console-nondebug-sink 3 site（logger.ts:25/30/35）**: 既存
+  ALLOWED の console.debug LOGGER-IMPL row（:20・同一 file）と同型 —
+  info/warn/error が logger の level-gated transport そのもの。
+  file は @stv/core 所有（rel `src/utils/logger.ts` は package へ
+  解決される歴史パス）で in-tree 修正不可。ALLOWED 3 key
+  （LOGGER-IMPL）で固定。
+
+**信頼性への影響**: REQ-417-001 に ALLOWED 4 key の文脈根拠を追記
+（🔵・実コード読み + README/既存 row との同型性）。
+
+## A-417-3: pin 前棄却 4 class の根拠（REQ-417-003）
+
+- **dom0-handler-assign（6 site）**: 全 site が SpeechRecognition /
+  Audio（HTMLMediaElement）の型付き onXxx handler property で
+  lib.dom 現行仕様の正形。死んだ慣用ではなく母集団不一致
+  （REQ-416 finally 型の 2 例目）。
+- **throw-bare-error**: Error() は関数呼び出しでも自動 construct
+  （仕様）→ 挙動完全一致・incident なし（`a ** b` 型 2 例目）。
+- **void-zero-undefined**: `void 0` は undefined 読みの正統綴り。
+  死んだ慣用ではないため対象外。
+- **bare postMessage（5 worker site）**: worker postMessage に
+  targetOrigin 引数は無く、incident は wildcard 形のみ
+  （postmessage-wildcard として pin 済み・重複）。
+
+**信頼性への影響**: REQ-417-003 を追加（🔵・全 site 読み）。
+
+## 分析結果サマリー（REQ-417 分の追計）
+
+### 確認できた事項
+
+- 16 candidate class の実測（331 file・canonical walker 直接使用）
+- 12 kind pin（10 exact-0 + ALLOWED 4 site 同梱）と
+  ALLOWED 22 / ERADICATED 12 の確認
+- 棄却 4 class の全 site 実コード読み
+- 既存 fixture 2 件の負例差し替え（y12/z14 — 既存 kind の detect は
+  1 行も不変）
+
+### 追加/変更要件
+
+- REQ-417-001〜004（12 kind 追加・4 class 棄却記録・MW-081・
+  src 変更ゼロ）
+
+### 残課題
+
+- `postMessage(…, '*')` の行跨ぎ引数（origin が次行）は行 detector
+  不可視 — 実出現時に grep -A1 再計測
+- `.catch` の複数行/コメント付き noop body は行 detector 不可視
+  （empty-catch と同じ制約 — grep -A1 pass で現在 0 確認）
+
+### 信頼性レベル分布（REQ-417 追計分）
+
+**分析後**: 🔵 4（REQ-417-001〜004）/ 🟡 0
