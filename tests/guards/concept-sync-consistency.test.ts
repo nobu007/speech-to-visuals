@@ -214,6 +214,18 @@
  * is pinned to the §B-10 numbers so raising one is a deliberate,
  * diff-visible change to BOTH the pin and ontology_budget.yml.
  *
+ * Test-stage follow-up #14 (run 20260826-174327 test stage; residuals of the
+ * 20260826-172306 test eval + one sibling-site it did not call out): the #13
+ * value pin covered file_ceilings ONLY — the Q4/Q6 leg compares against
+ * budget.limits / budget.ratios, whose values were unpinned, so
+ * total_terms_max 80 → 800 (or draft_ratio_max 0.30 → 1.0) silently disarmed
+ * those caps the same way #13's teeth disarmed for file_ceilings. The spec's
+ * §C-8 ontology_budget example is the authority for those numbers, so they
+ * are pinned now too. Also resolved the eval's redundancy note: the census
+ * leg's key-set pin duplicated the value pin's coverage (toEqual fails on
+ * extra/missing keys), so the key-set expect was removed — the pinned-values
+ * leg is the single authority for keys AND values.
+ *
  * Scope decisions (conscious, keep future edits honest):
  *   - Evidence QUOTES are pinned modulo whitespace: single-line quotes are
  *     exact substrings, multi-line excerpts may be flattened with single
@@ -1277,19 +1289,12 @@ describe('concept-sync consistency guard (.concept/ bootstrap 5fd0dd60)', () => 
     // nothing held the OTHER stores to their caps, so a future増産 run
     // could push invariants past 60 (or mappings past 200) and stay green.
     // The caps live in ontology_budget.yml (repo-internal source of
-    // truth), not hardcoded here. The key-set pin is the typo teeth: a
-    // deleted or renamed ceiling must RED the leg instead of silently
-    // comparing against `undefined`.
+    // truth), not hardcoded here. Key-set and value teeth both live in the
+    // pinned-values leg below (toEqual fails on extra/missing keys too) —
+    // #14 removed this leg's own key-set expect, which duplicated that
+    // coverage; a deleted or renamed ceiling REDs the pin instead of being
+    // silently compared against `undefined` here.
     const fc = budget.file_ceilings;
-    expect(Object.keys(fc).sort()).toEqual([
-      'ambiguities_max',
-      'claims_max_bytes',
-      'claims_max_lines',
-      'conflicts_max',
-      'invariants_max',
-      'mappings_max',
-      'term_queue_max',
-    ]);
     const counts: Array<[string, number, number]> = [
       ['invariants', invariants.invariants.length, fc.invariants_max],
       ['ambiguities', ambiguities.ambiguities.length, fc.ambiguities_max],
@@ -1307,13 +1312,29 @@ describe('concept-sync consistency guard (.concept/ bootstrap 5fd0dd60)', () => 
     expect(offenders).toEqual([]);
   });
 
-  it('budget: B-10 ceiling values pinned to spec §B-10 (cap inflation REDs)', () => {
-    // The census leg catches a store OVER its cap and its key-set pin catches
-    // a deleted/renamed cap — but neither caught a silently RAISED cap:
-    // invariants_max 60 → 600 would keep an over-cap store green forever.
-    // §B-10 (10_concept_sync_system) is the upstream authority, so the
-    // numbers are pinned here; raising a ceiling must be a deliberate,
+  it('budget: B-10/§C-8 budget values pinned (cap inflation REDs)', () => {
+    // The census leg catches a store OVER its cap, but nothing caught a
+    // silently RAISED cap: invariants_max 60 → 600 (or total_terms_max 80 →
+    // 800, which disarms the Q4/Q6 leg above) would keep an over-cap store
+    // green forever. The upstream authority is 10_concept_sync_system —
+    // §B-10's table ("|claims.ndjson|最大 10,000行 or 10MB|", terms 最大 80)
+    // and §C-8's ontology_budget.yml example (limits/ratios verbatim) — so
+    // the numbers are pinned here; raising one must be a deliberate,
     // diff-visible change to BOTH this pin and ontology_budget.yml.
+    // toEqual also fails on extra/missing keys, so this leg is the single
+    // authority for key-set AND values (the census leg's duplicate key-set
+    // expect was removed in #14).
+    expect(budget.limits).toEqual({
+      total_terms_max: 80,
+      core_max: 20,
+      domain_max: 30,
+      aux_max: 30,
+    });
+    expect(budget.ratios).toEqual({
+      // YAML `0.30` loads as JS 0.3.
+      draft_ratio_max: 0.3,
+      queue_pending_max: 30,
+    });
     expect(budget.file_ceilings).toEqual({
       invariants_max: 60,
       ambiguities_max: 50,
@@ -1321,9 +1342,14 @@ describe('concept-sync consistency guard (.concept/ bootstrap 5fd0dd60)', () => 
       mappings_max: 200,
       term_queue_max: 50,
       claims_max_lines: 10000,
-      // §B-10 "or 10MB" — read as 10 × 1024 × 1024 bytes.
+      // §B-10's "or 10MB" is unit-ambiguous; read as MiB (10 × 1024 × 1024
+      // = 10485760) because the stricter reading fails safe — a decimal-MB
+      // intent makes this cap 4.9% tighter than required, never looser. If
+      // the spec ever states decimal explicitly, update this pin to 1e7.
       claims_max_bytes: 10 * 1024 * 1024,
     });
+    // ttl_runs / merge are deliberately unpinned: no guard leg consumes
+    // them, so pinning would freeze values nothing verifies against.
   });
 
   it('budget: decisions.md stays ≤ 200 lines (Rule 6 cache ceiling)', () => {
