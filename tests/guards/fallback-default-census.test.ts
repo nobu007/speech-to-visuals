@@ -364,10 +364,13 @@ describe('fallback-default census (REQ-405)', () => {
         'src/quality/enhanced-error-recovery.ts',
         /maxRetries: options\?\.maxRetries \?\? 3,/,
       ],
-      // decoded.role agrees with the HTTP middleware on 'authenticated'.
+      // decoded.role agrees with the HTTP middleware on 'authenticated' —
+      // operator AND boundary: `||` on both sides, so an empty-string role
+      // claim defaults identically (falsy-role parity; `??` here re-forked
+      // the user objects REST had already unified).
       [
         'src/api/websocket-handler.ts',
-        /decoded\.role \?\? 'authenticated'/,
+        /decoded\.role \|\| 'authenticated'/,
       ],
       [
         'src/api/middleware/auth.ts',

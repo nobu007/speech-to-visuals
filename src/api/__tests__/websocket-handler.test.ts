@@ -231,6 +231,25 @@ describe('WebSocket Handler — Auth Middleware', () => {
     // tier the HTTP auth middleware assigns for the identical decoded.role.
     expect(socket.data.user?.role).toBe('authenticated');
   });
+
+  it('should default an EMPTY-STRING role claim to the authenticated tier', async () => {
+    // Falsy-role boundary (sibling of the falsy-sub leg): `role: ''` is not
+    // a usable tier, and `??` used to store it verbatim — the eradicated ''
+    // spelling surviving one level below the REQ-405 unification, putting
+    // socket.data.user at odds with req.user for the SAME token. The `||`
+    // default restores the identity (cross-path oracle:
+    // tests/guards/jwt-secret-single-source.test.ts).
+    const { createWsAuthMiddleware } = await import('../websocket-handler');
+    const token = makeToken({ sub: 'user1', role: '' }, JWT_SECRET);
+    const socket = createMockSocket(token);
+    const middleware = createWsAuthMiddleware();
+    let nextError: Error | undefined;
+    middleware(socket, (err?: Error) => { nextError = err; });
+
+    expect(nextError).toBeUndefined();
+    expect(socket.data.user?.id).toBe('user1');
+    expect(socket.data.user?.role).toBe('authenticated');
+  });
 });
 
 describe('WebSocket Handler — registerWebSocketHandler', () => {

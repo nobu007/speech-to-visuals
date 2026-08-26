@@ -148,7 +148,10 @@ export function createWsAuthMiddleware() {
         // Same JWT claim default as the HTTP auth middleware (auth.ts):
         // a verified token carries the 'authenticated' tier even without a
         // role claim (REQ-405 — the two user objects must not disagree).
-        role: decoded.role ?? 'authenticated',
+        // `||`, not `??`: an EMPTY-STRING role is not a usable tier either —
+        // defaulting it keeps socket.data.user identical to req.user at the
+        // falsy boundary (pinned as the falsy-role parity leg).
+        role: decoded.role || 'authenticated',
       };
 
       next();
