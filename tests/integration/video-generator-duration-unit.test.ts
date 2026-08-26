@@ -237,8 +237,13 @@ describe('VideoGenerator scene-duration time-unit correctness (real methods)', (
       });
       expect(Number.isFinite(cfg.config.durationInFrames)).toBe(true);
       expect(cfg.config.durationInFrames).toBeGreaterThan(0);
-      // 10000ms / 1000 * 30fps = 300 frames
-      expect(cfg.config.durationInFrames).toBe(300);
+      // DERIVED from the canonical DEFAULT_FPS (mirrors video-generator's
+      // Math.ceil((totalDuration / 1000) * (options.fps || DEFAULT_FPS))):
+      // 10000 ms → 300 frames at 30 fps. A conscious DEFAULT_FPS retuning
+      // updates the pin instead of leaving a stale-RED bare frame count.
+      expect(cfg.config.durationInFrames).toBe(
+        Math.ceil((totalDuration / 1000) * DEFAULT_FPS),
+      );
     });
 
     it('durationInFrames equals calculateTotalFrames for sequential scenes', async () => {

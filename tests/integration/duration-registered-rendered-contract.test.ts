@@ -236,8 +236,16 @@ describe('Registered ≡ rendered durationInFrames (cross-path contract)', () =>
       // because the zero-duration pin above would stay GREEN through a future
       // floor "unification" (dropping the render floor to 1 frame); this one
       // would not.
-      expect(registered).toBe(15);
-      expect(rendered).toBe(30);
+      //
+      // Both expectations are DERIVED from FPS (= DEFAULT_FPS), not pinned as
+      // bare 15/30: a conscious DEFAULT_FPS retuning updates the pins instead
+      // of leaving a stale-RED, while dropping the render floor still REDs
+      // (derived 30 vs received 15 at 30 fps) — the derivations mirror the
+      // exact per-path formulas, render's including its Math.max floor.
+      const expectedRegistered = Math.ceil((500 / 1000) * FPS); // registration has no 1 s floor
+      const expectedRendered = Math.max(FPS, Math.ceil((500 / 1000) * FPS)); // render: min-1-second floor
+      expect(registered).toBe(expectedRegistered);
+      expect(rendered).toBe(expectedRendered);
       expect(registered).not.toBe(rendered);
     });
   });
