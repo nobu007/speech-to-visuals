@@ -359,3 +359,17 @@ invariants:
     checks:
       - type: "test"
         target: "tests/guards/sort-receiver-mutation-census.test.ts"
+  - id: "INV-EXP-002"
+    related_terms: ["ExportEngine"]
+    status: "stable"
+    strength: "hard"
+    statement: "同一の options.backgroundColor は全出力形式で同一色に展開する。PDF の hand-rolled hex parser は CSS 3-digit shorthand (#RGB → #RRGGBB, digit doubling) をブラウザ (SVG fill / Canvas fillStyle) と同じ意味で展開する"
+    rationale: "cross-format WYSIWYG 背離 bug class。6-digit 専用の substring スライスは `#fff` を (ff, f, '') → magenta、`#000` を blue に誤読し SVG/PNG と PDF の背景色が分岐する"
+    evidence:
+      - source: "src/export/multi-format-exporter.ts#L738-L740"
+        quote: "CSS 3-digit shorthand (#RGB → #RRGGBB by digit doubling): SVG `fill` and … Canvas `fillStyle` both expand it, so the PDF stream must too"
+      - source: "tests/unit/export/multi-format-exporter.test.ts#L250-L255"
+        quote: "WYSIWYG parity: the SAME options.backgroundColor flows into SVG … Browsers expand the CSS 3-digit shorthand … the PDF parser used to slice `fff` as (ff, f, '') → (255, 15, NaN→1)"
+    checks:
+      - type: "test"
+        target: "tests/unit/export/multi-format-exporter.test.ts"
