@@ -89,6 +89,20 @@
  * Rule 7 integration-first) is recorded as AMB-PROC-001 with an AUTO
  * decision to run Q3 on bug-class coverage instead.
  *
+ * Test-stage follow-up (run 20260826-124041 eval, 90/100): the増産 run's own
+ * additions were the least-pinned surface in this file. Its invariants cite
+ * one guard test each under `checks`, but nothing resolved those targets —
+ * a typo'd path or a dead npm script would pass silently (the same shape as
+ * the evidence-source leg, which caught the bootstrap's path typo). The
+ * invariant vocabulary leg pinned `strength` but not the §5.4 `status` enum
+ * nor INV- id uniqueness/pattern — exactly where a 10-entry batch edit could
+ * duplicate an id. And the run added AMB-PROC-001 plus its decisions.md
+ * section in one diff, but no leg pins the cache↔ambiguity correspondence,
+ * so a future run recording only one side would drift silently. Three legs
+ * close these: checks-target resolution (test → on-disk path or `npm test`,
+ * command → real package.json script, manual → non-empty), invariant
+ * status/id vocabulary, and the AUTO-cache linkage in both directions.
+ *
  * Scope decisions (conscious, keep future edits honest):
  *   - Evidence QUOTES are pinned modulo whitespace: single-line quotes are
  *     exact substrings, multi-line excerpts may be flattened with single
@@ -150,14 +164,17 @@ interface TermEntry {
 }
 interface InvariantEntry {
   id: string;
+  status: string;
   strength: string;
   related_terms?: string[];
   evidence?: Evidence[];
+  checks?: { type: string; target: string }[];
 }
 interface AmbiguityEntry {
   id: string;
   term: string;
   evidence?: Evidence[];
+  auto_decision?: { status: string; decision_key: string };
 }
 interface QueueItem {
   id: string;
@@ -421,6 +438,50 @@ describe('concept-sync consistency guard (.concept/ bootstrap 5fd0dd60)', () => 
     expect(dangling).toEqual([]);
   });
 
+  it('checks: every invariant carries ≥1 check with a schema type and a resolvable target', () => {
+    // Every invariant names how it is enforced under `checks`; the Q3増産
+    // run cites one guard test per new invariant there. Nothing resolved
+    // those targets, so a typo'd path or a dead gate would pass silently —
+    // the same blind spot the evidence-source leg closed for evidence.
+    // Contract per §5.4 / C-11:
+    //   - test    → target is a repo path that exists on disk (file or dir;
+    //               resolveSource routes src/<core-four>/ into @stv/core),
+    //               or an `npm test` invocation (INV-TEST-004's argumented
+    //               `npm test -- "guards"`)
+    //   - command → `npm [run] <script>` where the script exists in
+    //               package.json (same derivation as the autopilot leg)
+    //   - manual  → free-form instruction; pinned non-empty only
+    const pkg = JSON.parse(readSource('package.json')) as {
+      scripts: Record<string, string>;
+    };
+    const scripts = new Set(Object.keys(pkg.scripts));
+    const checkTypes = new Set(['test', 'command', 'manual']);
+    const offenders: string[] = [];
+    for (const inv of invariants.invariants) {
+      const checks = inv.checks ?? [];
+      if (checks.length === 0) offenders.push(`${inv.id}: no checks entry`);
+      for (const check of checks) {
+        if (!checkTypes.has(check.type)) {
+          offenders.push(`${inv.id}: unknown check type "${check.type}"`);
+        }
+        if (check.target.trim() === '') {
+          offenders.push(`${inv.id}: empty check target`);
+        }
+        if (check.type === 'test') {
+          if (!existsSync(resolveSource(check.target)) && !/^npm test\b/.test(check.target)) {
+            offenders.push(`${inv.id}: test target not on disk: ${check.target}`);
+          }
+        } else if (check.type === 'command') {
+          const match = check.target.match(/^npm (?:run )?(\S+)$/);
+          if (!match || !scripts.has(match[1])) {
+            offenders.push(`${inv.id}: command is not a real script: ${check.target}`);
+          }
+        }
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
+
   it('references: ambiguity terms and queue merge candidates resolve to canonical terms', () => {
     const dangling: string[] = [];
     for (const amb of ambiguities.ambiguities) {
@@ -596,6 +657,57 @@ describe('concept-sync consistency guard (.concept/ bootstrap 5fd0dd60)', () => 
     expect(decisionsMdLines).toBeLessThanOrEqual(200);
   });
 
+  it('AUTO cache: applied ambiguities have their decisions.md section; every section links a real ambiguity', () => {
+    // decisions.md is the ACTIVE AUTO-decision cache (regenerable, Rule 6).
+    // The増産 run added AMB-PROC-001 and its `## AUTO:ConceptSync.Q3-...`
+    // section in one diff — but nothing pinned the correspondence, so a
+    // future run recording only one side would drift silently. Both
+    // directions: (1) every applied auto_decision decision_key has its
+    // section; (2) every section's `Linked:` line names an ambiguity whose
+    // own decision_key is that section, or carries the explicit なし marker
+    // (the bootstrap direct-entry decision is run-level, no ambiguity).
+    const md = readSource('.concept/decisions.md');
+    const sectionKeys = [...md.matchAll(/^## (AUTO:\S+)$/gm)].map((m) => m[1]);
+    expect(new Set(sectionKeys).size).toBe(sectionKeys.length); // no dup sections
+    const appliedKeys = ambiguities.ambiguities
+      .map((a) => a.auto_decision)
+      .filter(
+        (d): d is { status: string; decision_key: string } =>
+          d?.status === 'applied',
+      )
+      .map((d) => d.decision_key);
+    expect(appliedKeys.length).toBeGreaterThan(0); // anti-vacuous
+    const missingSection = appliedKeys.filter((k) => !sectionKeys.includes(k));
+    expect(missingSection).toEqual([]);
+    const ambById = new Map(ambiguities.ambiguities.map((a) => [a.id, a]));
+    const offenders: string[] = [];
+    for (const section of md.split(/^## /m).slice(1)) {
+      const [keyLine, ...body] = section.split('\n');
+      const key = keyLine.trim();
+      const linkedLine = body.find((l) => l.startsWith('- Linked:'));
+      if (linkedLine === undefined) {
+        offenders.push(`${key}: section has no Linked line`);
+        continue;
+      }
+      const linked = linkedLine.slice('- Linked:'.length).trim();
+      if (/^AMB-/.test(linked)) {
+        const amb = ambById.get(linked);
+        if (!amb) {
+          offenders.push(`${key}: links unknown ambiguity ${linked}`);
+        } else if (amb.auto_decision?.decision_key !== key) {
+          offenders.push(
+            `${key}: links ${linked} whose decision_key is ${amb.auto_decision?.decision_key ?? '(none)'}`,
+          );
+        }
+      } else if (!linked.includes('なし')) {
+        offenders.push(
+          `${key}: Linked is neither an AMB- id nor the explicit none marker: ${linked}`,
+        );
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
+
   it('vocabulary: layer/status/strength/term ids use the schema enums, ids unique', () => {
     const layers = new Set(['core', 'domain', 'aux']);
     const statuses = new Set(['stable', 'draft']);
@@ -611,6 +723,20 @@ describe('concept-sync consistency guard (.concept/ bootstrap 5fd0dd60)', () => 
         .filter((i) => !strengths.has(i.strength))
         .map((i) => i.id),
     ).toEqual([]);
+    // §5.4 gives invariants the same draft|stable status enum as terms, and
+    // the 26-entry batch (16 bootstrap + 10増産) is exactly where a duplicate
+    // INV- id or a typo'd status would slip through uncounted — the strength
+    // check alone never looked at either.
+    expect(
+      invariants.invariants
+        .filter((i) => !statuses.has(i.status))
+        .map((i) => i.id),
+    ).toEqual([]);
+    const invariantIds = invariants.invariants.map((i) => i.id);
+    expect(new Set(invariantIds).size).toBe(invariantIds.length); // no duplicate INV- ids
+    expect(
+      invariantIds.filter((id) => !/^INV-[A-Z]+-\d+$/.test(id)),
+    ).toEqual([]); // INV-<CLASS>-<NNN> namespace
     const termIds = termEntries.map(([, t]) => t.id);
     expect(new Set(termIds).size).toBe(termIds.length); // no duplicate TERM- ids
     const queueIds = termQueue.queue.map((q) => q.id);
