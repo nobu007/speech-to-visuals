@@ -470,7 +470,7 @@ canonical_terms:
       - source: "src/framework/continuous-learner.ts"
         quote: "export class ContinuousLearner {"
       - source: "specs/speech-to-visuals/requirements.md"
-        quote: "継続的学習安全性完了（…continuous-learner destroy()/pearson NaNガード…）"
+        quote: "継続的学習安全性完了（…continuous-learner destroy()/pearson NaNガード…20新規テスト・REQ-267~269）"
   ExportVerifier:
     id: "TERM-EXPORT-VERIFIER"
     layer: "domain"

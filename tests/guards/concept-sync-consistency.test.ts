@@ -62,6 +62,17 @@
  * but unused (tombstones now get a structural backfill leg consuming those
  * fields; the count derivation itself stays as-is).
  *
+ * LLM-eval follow-up #3 (run 20260826-114716 test-stage eval, 91/100): the
+ * quote/tombstone verification logic moved into concept-quote-contract.ts so
+ * it can be pinned directly (session-239 lesson — a helper only exercised
+ * through live data has no contract). That module now enforces a ≥5-char
+ * floor on elided fragments (`X…a…Y` with a 1-char middle matched anywhere
+ * and passed for free; the one live quote with a 1-char `）` flank is
+ * extended with real source text in the same diff), and the tombstone
+ * backfill branches (malformed / still-canonical / id-reused) get fixture
+ * legs so they are proven RED-able while real tombstones are still 0. The
+ * paraphrase cap gains a 0.15 ratchet under its 0.30 contract ceiling.
+ *
  * Scope decisions (conscious, keep future edits honest):
  *   - Evidence QUOTES are pinned modulo whitespace: single-line quotes are
  *     exact substrings, multi-line excerpts may be flattened with single
@@ -92,6 +103,13 @@ import { existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { createRequire } from 'node:module';
 import { REPO_ROOT, resolveSource, readSource } from '@tests/guards/freeze-guard';
+import {
+  collectTombstoneViolations,
+  isUnverifiedParaphrase,
+  stripTrailingMarker,
+  verifyQuoteExcerpt,
+  type TombstoneEntry,
+} from '@tests/guards/concept-quote-contract';
 
 const nodeRequire = createRequire(import.meta.url);
 const yamlLoad = (nodeRequire('js-yaml') as { load: (input: string) => unknown })
@@ -130,10 +148,6 @@ interface QueueItem {
   decision: string;
   auto_merge_candidates?: { term: string; similarity?: number }[];
   evidence?: Evidence[];
-}
-interface TombstoneEntry {
-  term: string;
-  former_id: string;
 }
 interface Budget {
   limits: {
@@ -255,26 +269,6 @@ const QUEUE_DECISIONS = new Set(['pending', 'merged', 'rejected', 'accepted']);
 // Anything else is a typo'd or dead gate the old leg let through silently.
 const RAW_COMMAND_ALLOWLIST: readonly string[] = [];
 
-// A paraphrase marker is a TRAILING `…`/`...` suffix and nothing else. A
-// marker elsewhere in the quote is an elision inside a verbatim excerpt and
-// does NOT exempt the quote from substring verification.
-function stripTrailingMarker(quote: string): string {
-  const trimmed = quote.replace(/\s+$/, '');
-  if (trimmed.endsWith('…')) return trimmed.slice(0, -1);
-  if (trimmed.endsWith('...')) return trimmed.slice(0, -3);
-  return trimmed;
-}
-
-// True when the quote is exempt from substring verification: it carried a
-// trailing marker and its body has no (mid-quote) elision markers left.
-// These are the quotes the paraphrase-ratio cap below bounds.
-function isUnverifiedParaphrase(quote: string): boolean {
-  if (!quote) return false;
-  const trimmed = quote.replace(/\s+$/, '');
-  const body = stripTrailingMarker(trimmed);
-  return body.length !== trimmed.length && !/…|\.\.\./.test(body);
-}
-
 describe('concept-sync consistency guard (.concept/ bootstrap 5fd0dd60)', () => {
   it('js-yaml interop canary: load() round-trips a known snippet', () => {
     // If the createRequire interop broke (load === undefined), every loadYaml
@@ -352,23 +346,18 @@ describe('concept-sync consistency guard (.concept/ bootstrap 5fd0dd60)', () => 
     // B-9 backfill contract (eval follow-up #2, weakness 3): a tombstone is
     // the receipt for a GC deletion, so its term must NOT be a canonical
     // term anymore, and its former TERM- id must not have been reused by a
-    // surviving term. This consumes the TombstoneEntry fields the previous
-    // commit typed but never read. Empty today — structural until the first
-    // real deletion lands, at which point this leg has data to bite on.
+    // surviving term. Real data is empty today — the malformed /
+    // still-canonical / id-reused branches are proven RED-able by the
+    // fixture pins in the concept-quote-contract describe below, so the
+    // first real deletion lands on a leg already carrying teeth.
     const liveIds = new Set(termEntries.map(([, t]) => t.id));
-    const bad: string[] = [];
-    for (const tomb of tombstones.tombstones) {
-      if (!tomb.term || !/^TERM-/.test(tomb.former_id)) {
-        bad.push(`malformed: ${JSON.stringify(tomb)}`);
-      }
-      if (tomb.term in ontology.canonical_terms) {
-        bad.push(`still-canonical: ${tomb.term}`);
-      }
-      if (liveIds.has(tomb.former_id)) {
-        bad.push(`id-reused-by-live-term: ${tomb.former_id}`);
-      }
-    }
-    expect(bad).toEqual([]);
+    expect(
+      collectTombstoneViolations(
+        tombstones.tombstones,
+        ontology.canonical_terms,
+        liveIds,
+      ),
+    ).toEqual([]);
   });
 
   it('metrics: run_id matches run_state.last_run_id', () => {
@@ -473,29 +462,20 @@ describe('concept-sync consistency guard (.concept/ bootstrap 5fd0dd60)', () => 
     // excerpt, where every `…`/`...` INSIDE the quote stands for omitted
     // text: each flanking fragment must be a substring of the source AND
     // the fragments must occur in source order (a fabricated or reordered
-    // elision fails). Only a TRAILING marker declares a paraphrase (skipped
-    // here, bounded by the ratio leg below). The bootstrap shipped 15
-    // marker-less paraphrases and 5 quotes whose "elided" fragments were
-    // not actually verbatim — both fixed in the respective data-fix diffs.
-    const norm = (text: string): string => text.replace(/\s+/g, ' ');
+    // elision fails), with each fragment ≥5 trimmed chars (a 1-2 char
+    // fragment matches anywhere and weaves `X…a…Y` fabrications through —
+    // eval follow-up #3, weakness 1). Only a TRAILING marker declares a
+    // paraphrase (skipped here, bounded by the ratio leg below). The
+    // bootstrap shipped 15 marker-less paraphrases and 5 quotes whose
+    // "elided" fragments were not actually verbatim — both fixed in the
+    // respective data-fix diffs.
     const offenders: string[] = [];
     const check = (label: string, ev: Evidence): void => {
-      if (!ev.quote || isUnverifiedParaphrase(ev.quote)) {
-        return; // empty handled by existence/Q8 legs; trailing … = paraphrase
-      }
-      const content = norm(readSource(ev.source.split('#')[0]));
-      const body = stripTrailingMarker(ev.quote);
-      let pos = 0;
-      for (const fragment of body.split(/…|\.\.\./)) {
-        const needle = norm(fragment.trim());
-        if (!needle) continue; // marker at start/end of an elision
-        const at = content.indexOf(needle, pos);
-        if (at === -1) {
-          offenders.push(`${label}: ${ev.source} [not verbatim: ${needle.slice(0, 50)}]`);
-          return;
-        }
-        pos = at + needle.length; // next fragment must occur AFTER this one
-      }
+      const offender = verifyQuoteExcerpt(
+        ev.quote,
+        readSource(ev.source.split('#')[0]),
+      );
+      if (offender) offenders.push(`${label}: ${ev.source} [${offender}]`);
     };
     for (const [name, term] of termEntries) {
       for (const ev of term.evidence ?? []) check(`term ${name}`, ev);
@@ -528,6 +508,11 @@ describe('concept-sync consistency guard (.concept/ bootstrap 5fd0dd60)', () => 
       .filter((ev) => isUnverifiedParaphrase(ev.quote))
       .map((ev) => ev.source);
     expect(paraphrases.length / all.length).toBeLessThanOrEqual(0.3);
+    // Ratchet under the 0.30 contract ceiling (eval follow-up #3): current
+    // 15/117 = 12.8%, so this fires after ~3 marker-stamped quotes land
+    // without matching verbatim evidence — drift the cap alone would let
+    // hide inside its 2.3x headroom. Raise consciously, never silently.
+    expect(paraphrases.length / all.length).toBeLessThanOrEqual(0.15);
   });
 
   it('claims: every ndjson line parses and invariants hold (Q5 leg)', () => {
@@ -643,5 +628,132 @@ describe('concept-sync consistency guard (.concept/ bootstrap 5fd0dd60)', () => 
     }
     expect(missingScripts).toEqual([]); // npm-form → script must exist
     expect(nonConforming).toEqual([]); // anything else → contract violation
+  });
+});
+
+// ----------------------------------------------------------------------
+// concept-quote-contract helper pins (import path — session-239 receipt)
+//
+// The quote/tombstone legs above consume stripTrailingMarker /
+// isUnverifiedParaphrase / verifyQuoteExcerpt / collectTombstoneViolations
+// from concept-quote-contract.ts. Before follow-up #3 these were inline
+// closures only ever exercised through the live `.concept/` data, so their
+// edge cases had no direct pins (eval weakness 2) and the tombstone
+// branches were structurally dead while tombstones = 0 (eval weakness 4).
+// Pin the helpers' own contracts HERE so a regression in the module fails
+// in this file, next to the legs that depend on it — a pin that drifted
+// from the guard's logic would be vacuous, hence the shared module.
+describe('concept-quote-contract helpers (import path) — contract pin', () => {
+  it('stripTrailingMarker: leaves marker-less quotes untouched (incl. whitespace tail)', () => {
+    expect(stripTrailingMarker('export class Foo {')).toBe('export class Foo {');
+    expect(stripTrailingMarker('plain quote  ')).toBe('plain quote');
+  });
+
+  it('stripTrailingMarker: strips one trailing `…` or `...` suffix only', () => {
+    expect(stripTrailingMarker('looks like foo…')).toBe('looks like foo');
+    expect(stripTrailingMarker('looks like foo...')).toBe('looks like foo');
+    expect(stripTrailingMarker('trailing space …')).toBe('trailing space ');
+    // 4 dots: only the `...` suffix is a marker — the 4th `.` is content.
+    expect(stripTrailingMarker('four dots....')).toBe('four dots.');
+  });
+
+  it('isUnverifiedParaphrase: true only for a quote whose sole marker is the trailing suffix', () => {
+    expect(isUnverifiedParaphrase('no marker at all')).toBe(false);
+    expect(isUnverifiedParaphrase('')).toBe(false);
+    expect(isUnverifiedParaphrase('paraphrase…')).toBe(true);
+    expect(isUnverifiedParaphrase('paraphrase...')).toBe(true);
+    // Sloppy forms still route to the ratio-capped paraphrase bucket…
+    expect(isUnverifiedParaphrase('four dots....')).toBe(true);
+    expect(isUnverifiedParaphrase('…')).toBe(true); // marker-only body is empty
+    // …but any marker surviving in the body means elision, not paraphrase.
+    expect(isUnverifiedParaphrase('head…tail')).toBe(false);
+    expect(isUnverifiedParaphrase('head...tail')).toBe(false);
+    expect(isUnverifiedParaphrase('head…tail...')).toBe(false); // mixed markers
+    expect(isUnverifiedParaphrase('head...tail…')).toBe(false);
+  });
+
+  it('verifyQuoteExcerpt: verbatim excerpt passes; whitespace flattens; miss fails', () => {
+    const source = 'export function renderChart(\n  options: RenderOptions,\n) {';
+    expect(verifyQuoteExcerpt('export function renderChart(', source)).toBeNull();
+    expect(
+      verifyQuoteExcerpt('renderChart( options: RenderOptions, )', source),
+    ).toBeNull(); // multi-line flattened both sides
+    expect(verifyQuoteExcerpt('export function renderTable(', source)).toBe(
+      'not verbatim: export function renderTable(',
+    );
+  });
+
+  it('verifyQuoteExcerpt: in-order elision passes; reordered or fabricated fragments fail', () => {
+    const source = 'alpha anchor … middle noise … omega anchor';
+    expect(verifyQuoteExcerpt('alpha anchor…omega anchor', source)).toBeNull();
+    // Reorder is reported on the fragment that cannot be placed after the
+    // previous one — here `alpha anchor`, which only occurs BEFORE `omega`.
+    expect(verifyQuoteExcerpt('omega anchor…alpha anchor', source)).toMatch(
+      /^not verbatim: alpha anchor$/,
+    );
+    expect(
+      verifyQuoteExcerpt('alpha anchor…FABRICATED MIDDLE…omega anchor', source),
+    ).toMatch(/^not verbatim: FABRICATED MIDDLE$/);
+  });
+
+  it('verifyQuoteExcerpt: elided fragments below the 5-char floor fail (X…a…Y weaving)', () => {
+    // A 1-char middle matches anywhere between the flanks, so `head…x…tail`
+    // would pass order+substring verification while omitting nothing real.
+    const source = 'head anchor beta gamma tail anchor';
+    expect(verifyQuoteExcerpt('head anchor…a…tail anchor', source)).toMatch(
+      /^fragment too short/,
+    );
+    // Short flank at the end is equally unverifiable — and a lone short
+    // fragment after a leading marker cannot skip the floor either.
+    expect(verifyQuoteExcerpt('head anchor…x', source)).toMatch(
+      /^fragment too short/,
+    );
+    expect(verifyQuoteExcerpt('…x', source)).toMatch(/^fragment too short/);
+  });
+
+  it('verifyQuoteExcerpt: the floor scopes to elided quotes — a plain short quote stays substring-verified', () => {
+    // Scope decision: a marker-less quote is a full substring pin however
+    // short; the floor exists because elision fragments are the weaving
+    // vector, not because short quotes are invalid evidence.
+    expect(verifyQuoteExcerpt('beta', 'alpha beta gamma')).toBeNull();
+    expect(verifyQuoteExcerpt('delta', 'alpha beta gamma')).toBe(
+      'not verbatim: delta',
+    );
+  });
+
+  it('verifyQuoteExcerpt: trailing-marker paraphrase is exempt (bounded by the ratio leg)', () => {
+    const source = 'completely unrelated source text';
+    expect(verifyQuoteExcerpt('a loose summary of the source…', source)).toBeNull();
+  });
+
+  it('collectTombstoneViolations: empty list and clean tombstones yield no violations', () => {
+    expect(collectTombstoneViolations([], {}, new Set())).toEqual([]);
+    expect(
+      collectTombstoneViolations(
+        [{ term: 'DeletedConcept', former_id: 'TERM-DELETED-001' }],
+        { SurvivingConcept: { id: 'TERM-SURVIVING-001' } },
+        new Set(['TERM-SURVIVING-001']),
+      ),
+    ).toEqual([]);
+  });
+
+  it('collectTombstoneViolations: malformed / still-canonical / id-reused each report their branch', () => {
+    const canonical = { LiveConcept: { id: 'TERM-LIVE-001' } };
+    const liveIds = new Set(['TERM-LIVE-001']);
+    const violations = collectTombstoneViolations(
+      [
+        { term: '', former_id: 'TERM-X-001' }, // blank term
+        { term: 'NoPrefix', former_id: 'X-002' }, // former_id lacks TERM-
+        { term: 'LiveConcept', former_id: 'TERM-GONE-003' }, // resurrected
+        { term: 'Recycled', former_id: 'TERM-LIVE-001' }, // id reused
+      ],
+      canonical,
+      liveIds,
+    );
+    expect(violations.length).toBe(4);
+    expect(violations[0]).toMatch(/^malformed: /);
+    expect(violations[1]).toMatch(/^malformed: /);
+    expect(violations[2]).toBe('still-canonical: LiveConcept');
+    expect(violations[3]).toBe('id-reused-by-live-term: TERM-LIVE-001');
   });
 });
