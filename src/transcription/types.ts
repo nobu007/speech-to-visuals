@@ -18,6 +18,15 @@ export interface TranscriptionResult {
   duration: number;
   processingTime?: number;
   success?: boolean;
+  /**
+   * True when the segments were generated WITHOUT ASR inference — fixed
+   * placeholder sentences from an emitter with no whisper backend behind it
+   * (README「音声認識の現状」). A successful-looking result carrying this flag is
+   * NOT a measured transcription: TranscriptionPipeline's priority routing
+   * reads it so fabricated success cannot shadow the real browser engine
+   * (Web Speech) or be reported downstream as real content.
+   */
+  placeholder?: boolean;
   /** True when all transcription engines failed and placeholder segments were returned */
   fallback?: boolean;
   error?: string;

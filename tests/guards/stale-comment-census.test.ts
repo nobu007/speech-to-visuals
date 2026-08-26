@@ -203,7 +203,7 @@ const ALLOWED: Record<string, string> = {
   // ── CONFESSION axis (would-be-calculated / simulated / placeholder narration)
   'src/monitoring/performance-dashboard.ts:230':
     '`0.95 // Would be calculated from actual results` — quoted inside a backtick narration of REQ-391 history; the dashboard NO LONGER publishes that number, the comment narrates the fix.',
-  'src/transcription/whisper-transcriber.ts:279':
+  'src/transcription/whisper-transcriber.ts:290':
     '`placeholder text with no ASR behind it` — DISCLOSURE of a deliberate UX placeholder; the placeholder is INTENTIONAL (no live ASR backend in this build path) — the README it references documents the limit.',
   'src/visualization/enhanced-zero-overlap-layout.ts:1199':
     '`// Simulated` constants published frozen numbers as readings` — quoted inside a backtick narration of REQ-391 history; the layout NO LONGER publishes simulated constants, the comment narrates the fix.',

@@ -32,8 +32,8 @@
 
 「Whisper による高精度文字起こし（精度90-95%）」という旧記載は実装と整合しないため、以下の実態に置き換えました（2026-08 時点）。
 
-- サーバー優先経路 `src/transcription/whisper-transcriber.ts` は `whisper-node` の読み込み可否を確認するだけで、**Whisper 推論を実行しません**。セグメントは固定文（`generateHighQualityTranscript()`）から生成されます。
-- パイプライン `src/transcription/transcriber.ts` は上記を優先し、失敗時のみブラウザ環境で Web Speech API（`src/transcription/browser-transcriber.ts`）を試行します。全経路が失敗するとプレースホルダー（`[Transcription unavailable - placeholder content]`、confidence 0）を返します。
+- サーバー優先経路 `src/transcription/whisper-transcriber.ts` は `whisper-node` の読み込み可否を確認するだけで、**Whisper 推論を実行しません**。セグメントは固定文（`generateHighQualityTranscript()`）から生成され、結果には `placeholder: true` が開示されます（confidence は `PLACEHOLDER_SEGMENT_CONFIDENCE` の単一ソース）。
+- パイプライン `src/transcription/transcriber.ts` は推論を伴わない `placeholder` 結果を「成功」として採用せず、ブラウザ環境では Web Speech API（`src/transcription/browser-transcriber.ts`）へフォールバックします。全経路が失敗するとプレースホルダー（`[Transcription unavailable - placeholder content]`、confidence 0）を返します。
 - そのため実音声に対する文字起こし精度は**未測定**です。WER ベースの記録値は [QUALITY_METRICS.md](docs/architecture/QUALITY_METRICS.md) §3.1 の `~85%`（目標 >85%）を参照してください（旧 README 記載の「90-95%」とは一致しません）。
 - `npm run transcribe`（`public/jfk.wav`）も同じ固定文生成経路を通るため、実測には使えません。Whisper 推論の実装と精度測定は未実施の課題です。
 

@@ -57,6 +57,7 @@ milestones:
         target: "tests/guards/quality-monitor-dual-scale.test.ts"
     priority: "P1"
     status: "active"
+    progress_note: "2026-08-27: whisper placeholder 結果の捏造 success を開示化（TranscriptionResult.placeholder + 優先順位ルーティング修正）— placeholder が real 扱いされ REQ-393 transcriptionQuality に 0.95 が流入する経路を遮断。transcriptionAccuracy/avgSceneQuality の正解ラベル依存は残課題のまま。"
 
 work_policy:
   default_mode: "pr"
