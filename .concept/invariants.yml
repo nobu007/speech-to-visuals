@@ -275,6 +275,20 @@ invariants:
     checks:
       - type: "test"
         target: "tests/guards/jwt-secret-single-source.test.ts"
+  - id: "INV-SEC-003"
+    related_terms: ["ApiServer", "WebSocketHandler"]
+    status: "stable"
+    strength: "hard"
+    statement: "REST と WS の認証は必須 claim 要件も同一にする: `sub` を持たない verified token は両経路で拒否する（WS の `id: ''` 受入は REST だけが 401 になる片側通過を生む）"
+    rationale: "REQ-405 は role default のみ整合し sub 要件は未整合のままだった (missed sibling site)。同一 secret でも claim 要件が食い違えば、socket は全 REST route が拒否する token で認証される"
+    evidence:
+      - source: "tests/guards/jwt-secret-single-source.test.ts#L187"
+        quote: "a token WITHOUT a sub claim is rejected by both middlewares (claim-requirement parity)"
+      - source: "src/api/websocket-handler.ts#L141"
+        quote: "if (!decoded || !decoded.sub) {"
+    checks:
+      - type: "test"
+        target: "tests/guards/jwt-secret-single-source.test.ts"
   - id: "INV-EXP-001"
     related_terms: ["ExportEngine"]
     status: "stable"
