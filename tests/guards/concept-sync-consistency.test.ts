@@ -73,6 +73,22 @@
  * legs so they are proven RED-able while real tombstones are still 0. The
  * paraphrase cap gains a 0.15 ratchet under its 0.30 contract ceiling.
  *
+ * Invariant増産 run (2026-08-26T12:48:37Z, repo-autopilot Q3 quality phase):
+ * the bootstrap's Q3 weakness (16 invariants against 772 test files, the
+ * only FAIL left from the bootstrap eval) was attacked by extracting 10 more
+ * invariants from the guards' own bug-class headers (dagre phantom nodes,
+ * fps finiteness, time-origin, virtual-mock hang, JWT secret single-source,
+ * PDF CJK routing, finite-safe aggregation, quality-threshold single-source,
+ * white-space pre-line, sort-receiver mutation — each with verbatim guard
+ * evidence). Two contract gaps closed in the same diff: the invariant count
+ * had NO metrics↔entity pin (terms/claims/queue did — a silently deleted
+ * invariant would not have surfaced in ontology_metrics.json), and the ≥10
+ * floor predated the increase. metrics.invariants_total is now derived
+ * against invariants.yml and the floor ratchets to 26. The Q3 denominator
+ * itself (invariants/test-files ≥ 50% implies ~386 entries, colliding with
+ * Rule 7 integration-first) is recorded as AMB-PROC-001 with an AUTO
+ * decision to run Q3 on bug-class coverage instead.
+ *
  * Scope decisions (conscious, keep future edits honest):
  *   - Evidence QUOTES are pinned modulo whitespace: single-line quotes are
  *     exact substrings, multi-line excerpts may be flattened with single
@@ -167,6 +183,7 @@ interface Metrics {
   total_terms: number;
   by_layer: { core: number; domain: number; aux: number };
   draft_ratio: number;
+  invariants_total: number;
   queue_pending: number;
   claims_retained_lines: number;
   decisions_md_lines: number;
@@ -307,6 +324,14 @@ describe('concept-sync consistency guard (.concept/ bootstrap 5fd0dd60)', () => 
     );
   });
 
+  it('metrics: invariants_total equals the invariants.yml entry count', () => {
+    // Q3増産 run: every other entity census (terms, by_layer, claims lines,
+    // decisions lines, queue decisions, tombstones) already had its
+    // metrics↔entity derivation — the invariant count alone could drift
+    // silently (a deleted INV- left the stale number blessing the file).
+    expect(metrics.invariants_total).toBe(invariants.invariants.length);
+  });
+
   it('metrics: queue_pending equals the pending decisions in term_queue', () => {
     const pending = termQueue.queue.filter((q) => q.decision === 'pending');
     expect(metrics.queue_pending).toBe(pending.length);
@@ -389,7 +414,10 @@ describe('concept-sync consistency guard (.concept/ bootstrap 5fd0dd60)', () => 
         }
       }
     }
-    expect(invariants.invariants.length).toBeGreaterThanOrEqual(10);
+    // Anti-vacuous floor, ratcheted 10 → 26 by the Q3増産 run (16 bootstrap
+    // invariants + 10 extracted from guard bug-class headers). Lowering it is
+    // a conscious regression decision, never a cleanup side effect.
+    expect(invariants.invariants.length).toBeGreaterThanOrEqual(26);
     expect(dangling).toEqual([]);
   });
 

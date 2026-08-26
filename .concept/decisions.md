@@ -33,3 +33,13 @@
 - Expires After Runs: 20
 - Linked: AMB-VIS-001
 - Revert Triggers: primary_evidence_contradiction
+
+## AUTO:ConceptSync.Q3-denominator:bug-class-coverage
+- Status: ACTIVE
+- Chosen: Q3（invariant 抽出率）は bug-class 網羅基準で運用し、テスト全ファイル比は参考値。
+  16→26 invariants へ増産（guards の census / mutation-pinning から抽出）。全ファイル比 50% は
+  386 invariants を要求し Rule 7（統合優先）と構造的に衝突するため分母を再定義した。
+- Policy: integration-first（Rule 7 統合優先）+ blast_radius_min
+- Expires After Runs: 20
+- Linked: AMB-PROC-001
+- Revert Triggers: primary_evidence_contradiction
