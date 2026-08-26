@@ -30,11 +30,13 @@
  * scenes to BOTH paths and asserts equality, closing that gap at the
  * integration layer.
  *
- * It also pins the one INTENTIONAL divergence: a scene with `durationMs: 0`
- * (malformed input the pipeline never emits) is treated as 5 s
- * (DEFAULT_SCENE_DURATION_MS) by the render path's safety fallback but as 0 by
- * the registration path. Asserting that divergence here documents the design
- * decision so it is not silently "fixed".
+ * It also pins the INTENTIONAL divergences for malformed input the pipeline
+ * never emits: `durationMs: 0` is treated as 5 s (DEFAULT_SCENE_DURATION_MS)
+ * by the render path's safety fallback but as 0 by the registration path; and
+ * a truthy sub-second scene is floored to 1 s by the render path's
+ * minimum-1-second guarantee but not by registration. Asserting those
+ * divergences here documents the design decisions so they are not silently
+ * "fixed".
  */
 
 import { jest } from '@jest/globals';
@@ -139,6 +141,18 @@ describe('Registered ≡ rendered durationInFrames (cross-path contract)', () =>
     { name: 'single 5 s scene → 150 frames', scenes: sequential([5000]), expected: 150 },
     { name: 'three scenes 3+5+4 s → 360 frames', scenes: sequential([3000, 5000, 4000]), expected: 360 },
     {
+      // The ONLY case where the shared Math.ceil is observable: every other
+      // case is a whole-second multiple, so ceil is a no-op and a one-path
+      // ceil→round/floor regression (exactly this file's asymmetric-regression
+      // charter) would stay GREEN without this pin. 3667 + 3444 = 7111 ms →
+      // 213.33 frames → ceil 214 (round would say 213, floor 213). Both
+      // durations sit inside the [3000, 10000] ms clamp, so the shape stays
+      // pipeline-realistic.
+      name: 'two scenes 3667+3444 ms → 214 frames (ceil of 213.33, not 213)',
+      scenes: sequential([3667, 3444]),
+      expected: 214,
+    },
+    {
       name: 'five scenes 4+6+8+7+5 s → 900 frames',
       scenes: sequential([4000, 6000, 8000, 7000, 5000]),
       expected: 900,
@@ -179,7 +193,7 @@ describe('Registered ≡ rendered durationInFrames (cross-path contract)', () =>
     expect(registered).toBe(rendered);
   });
 
-  describe('intentional divergence for malformed zero-duration input (pinned, not a bug)', () => {
+  describe('intentional divergences for malformed input (pinned, not a bug)', () => {
     // The pipeline NEVER emits durationMs: 0 (it clamps to [3000, 10000] ms).
     // For such malformed input the two paths intentionally differ:
     //   - registration (calculateTotalFrames): 0 contributes 0 ms → 1-frame floor.
@@ -207,6 +221,23 @@ describe('Registered ≡ rendered durationInFrames (cross-path contract)', () =>
       const expectedRendered = (scenes.length * DEFAULT_SCENE_DURATION_MS / 1000) * FPS;
       expect(registered).toBe(1);
       expect(rendered).toBe(expectedRendered);
+      expect(registered).not.toBe(rendered);
+    });
+
+    it('sub-second scene (500 ms, truthy) → registered 15 frames, rendered floored to 1 s', async () => {
+      const scenes = sequential([500]);
+      const registered = calculateTotalFrames(scenes, FPS);
+      const rendered = await renderedFrames(renderer, scenes);
+      // 500 ms is TRUTHY, so the render-path substitute does NOT fire; instead
+      // its minimum-1-second floor (Math.max(resolvedFps, ·) in
+      // getComposition) pads the composition to 30 frames, while registration's
+      // Math.max(1, ·) floor leaves ceil(0.5 s × 30) = 15. The pipeline clamps
+      // to ≥ 3000 ms so this divergence is unreachable in production — pinned
+      // because the zero-duration pin above would stay GREEN through a future
+      // floor "unification" (dropping the render floor to 1 frame); this one
+      // would not.
+      expect(registered).toBe(15);
+      expect(rendered).toBe(30);
       expect(registered).not.toBe(rendered);
     });
   });
