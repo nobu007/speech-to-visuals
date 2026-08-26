@@ -368,10 +368,12 @@ invariants:
     evidence:
       - source: "src/export/multi-format-exporter.ts#L738-L740"
         quote: "CSS 3-digit shorthand (#RGB → #RRGGBB by digit doubling): SVG `fill` and … Canvas `fillStyle` both expand it, so the PDF stream must too"
-      - source: "tests/unit/export/multi-format-exporter.test.ts#L254-L259"
+      - source: "tests/unit/export/multi-format-exporter.test.ts#L301-L306"
         quote: "WYSIWYG parity: the SAME options.backgroundColor flows into SVG … Browsers expand the CSS 3-digit shorthand … the PDF parser used to slice `fff` as (ff, f, '') → (255, 15, NaN→1)"
-      - source: "tests/unit/export/multi-format-exporter.test.ts#L298-L305"
+      - source: "tests/unit/export/multi-format-exporter.test.ts#L345-L352"
         quote: "Canvas leg — completes the three-way parity inside ONE test. … background fillStyle FIRST … fillRect is used ONLY for the … the sole fillRect pin the background hand-off exactly"
+      - source: "tests/unit/export/multi-format-exporter.test.ts#L430-L432"
+        quote: "The `options.backgroundColor || '#ffffff'` fallback exists at three … sibling sites (exportSVG / exportPNG / exportPDF), but only the PDF … side had a bytes-level pin (the #fff control leg)."
     checks:
       - type: "test"
         target: "tests/unit/export/multi-format-exporter.test.ts"
