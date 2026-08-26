@@ -731,10 +731,16 @@ export class MultiFormatExporter {
   }
 
   /**
-   * Convert a hex color string (#RRGGBB) to PDF fill operator
+   * Convert a hex color string (#RRGGBB or the #RGB shorthand) to PDF fill operator
    */
   private pdfColorFill(hex: string): string {
-    const h = hex.replace('#', '');
+    const stripped = hex.replace('#', '');
+    // CSS 3-digit shorthand (#RGB → #RRGGBB by digit doubling): SVG `fill` and
+    // Canvas `fillStyle` both expand it, so the PDF stream must too — slicing
+    // `fff` as (ff, f, '') filled MAGENTA (and `#000` blue) instead of white/black.
+    const h = stripped.length === 3
+      ? [...stripped].map((ch) => ch + ch).join('')
+      : stripped;
     const r = parseInt(h.substring(0, 2), 16);
     const g = parseInt(h.substring(2, 4), 16);
     const b = parseInt(h.substring(4, 6), 16);

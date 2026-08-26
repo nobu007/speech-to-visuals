@@ -245,6 +245,31 @@ describe('REQ-168: MultiFormatExporter', () => {
       const result = await exporter.export(scene, makeOptions({ format: 'pdf' }));
       expect(result.success).toBe(true);
     });
+
+    it('expands 3-digit hex background shorthand exactly like SVG/Canvas (#fff → white)', async () => {
+      // WYSIWYG parity: the SAME options.backgroundColor flows into SVG
+      // `fill="${bgColor}"`, Canvas `ctx.fillStyle`, and the hand-rolled PDF
+      // content stream. Browsers expand the CSS 3-digit shorthand (#RGB →
+      // #RRGGBB by digit doubling), so `#fff` renders white in SVG/PNG — but
+      // the PDF parser used to slice `fff` as (ff, f, '') → (255, 15, NaN→1),
+      // filling MAGENTA (and `#000` → blue). The content stream is embedded
+      // uncompressed, so the fill operator is visible in the decoded bytes.
+      const decode = async (r: MFExportResult) =>
+        new TextDecoder().decode(await (r.data as Blob).arrayBuffer());
+
+      // Control: the default 6-digit #ffffff already fills white (proves the
+      // leg reads the background fill, not an arbitrary `rg` elsewhere).
+      const control = await decode(await exporter.export(makeScene(), makeOptions({ format: 'pdf' })));
+      expect(control).toContain('1.000 1.000 1.000 rg');
+
+      const white = await exporter.export(makeScene(), makeOptions({ format: 'pdf', backgroundColor: '#fff' }));
+      expect(white.success).toBe(true);
+      expect(await decode(white)).toContain('1.000 1.000 1.000 rg');
+
+      const black = await exporter.export(makeScene(), makeOptions({ format: 'pdf', backgroundColor: '#000' }));
+      expect(black.success).toBe(true);
+      expect(await decode(black)).toContain('0.000 0.000 0.000 rg');
+    });
   });
 
   // ─── TC-168-04: PNG export ────────────────────────────────────────────
