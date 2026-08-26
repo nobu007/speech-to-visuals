@@ -103,6 +103,20 @@
  * command → real package.json script, manual → non-empty), invariant
  * status/id vocabulary, and the AUTO-cache linkage in both directions.
  *
+ * Test-stage follow-up #5 (run 20260826-130957 test-stage eval, 91/100): the
+ * #4 legs' three residual contract-strength gaps. (1) A manual check was
+ * pinned non-empty only, so any prose passed as a gate; a manual target must
+ * now carry ≥1 path-like token that resolves on disk (all-tokens-must-exist
+ * is deliberately NOT the contract — INV-ARCH-003 names absent dirs on
+ * purpose). (2) The `/^npm test\b/` escape accepted any tail: `npm test --
+ * "typo"` is a gate that selects nothing and `npm test-foo` is not even a
+ * command; the form is parsed strictly now and a `-- pattern` argument must
+ * select ≥1 real test file under tests/. (3) The AUTO-cache loop demanded a
+ * Linked line from every `##` section while the duplicate check only covered
+ * `## AUTO:` — a legitimate future non-AUTO heading would have RED'd
+ * spuriously; Linked is required of AUTO: sections and merely validated
+ * elsewhere. All three legs RED-verified by mutation (matrix in the commit).
+ *
  * Scope decisions (conscious, keep future edits honest):
  *   - Evidence QUOTES are pinned modulo whitespace: single-line quotes are
  *     exact substrings, multi-line excerpts may be flattened with single
@@ -129,7 +143,7 @@
  */
 
 import { describe, it, expect } from '@jest/globals';
-import { existsSync, readdirSync } from 'node:fs';
+import { existsSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { createRequire } from 'node:module';
 import { REPO_ROOT, resolveSource, readSource } from '@tests/guards/freeze-guard';
@@ -303,6 +317,61 @@ const QUEUE_DECISIONS = new Set(['pending', 'merged', 'rejected', 'accepted']);
 // Anything else is a typo'd or dead gate the old leg let through silently.
 const RAW_COMMAND_ALLOWLIST: readonly string[] = [];
 
+// A manual check target is a free-form instruction (§5.4 defines no richer
+// schema), but "manual と自称すれば何でも通る" was the eval's contract-strength
+// gap — a manual gate that cannot name a file or directory it touches is
+// unfalsifiable prose. Minimum structural pin: ≥1 path-like token (contains
+// `/` or ends in a known file extension) resolves under resolveSource.
+// Deliberately NOT all-tokens-must-exist: instructions like INV-ARCH-003's
+// `ls src/（types/config/utils/lib 不在確認）` name absent paths on purpose.
+const PATH_LIKE_TOKEN = /[A-Za-z0-9_.\-/]+/g;
+const PATH_EXTENSION = /\.(?:ts|tsx|js|jsx|mjs|cjs|json|md|yml|yaml|html|css)$/;
+function firstResolvablePathToken(target: string): string | null {
+  for (const token of target.match(PATH_LIKE_TOKEN) ?? []) {
+    if (!(token.includes('/') || PATH_EXTENSION.test(token))) continue;
+    const trimmed = token.replace(/\/+$/, ''); // `src/` anchors on `src`
+    if (trimmed !== '' && existsSync(resolveSource(trimmed))) return trimmed;
+  }
+  return null;
+}
+
+// Strict shape of a test-type `npm test` invocation: bare `npm test`, or
+// `npm test -- <pattern>` where the pattern is a jest testPathPatterns
+// argument. Anything else starting with `npm` is malformed (the old
+// `/^npm test\b/` hatch let both `-- "typo"` and `npm test-foo` through).
+const NPM_TEST_FORM = /^npm test(?:\s+--\s+(.+))?$/;
+
+// Repo-relative *.test.* / *.spec.* files under tests/ — the universe a
+// `-- pattern` argument must select from. walkProductionFiles is NOT usable
+// here: it skips exactly the test files this leg needs to see.
+function collectTestFilePaths(dirRel = 'tests'): string[] {
+  const acc: string[] = [];
+  for (const entry of readdirSync(resolveSource(dirRel))) {
+    const rel = `${dirRel}/${entry}`;
+    if (statSync(resolveSource(rel)).isDirectory()) {
+      acc.push(...collectTestFilePaths(rel));
+    } else if (/\.(?:test|spec)\.[cm]?[jt]sx?$/.test(rel)) {
+      acc.push(rel);
+    }
+  }
+  return acc;
+}
+const testFilePaths = collectTestFilePaths();
+
+/** jest testPathPatterns semantics: regex if it compiles, else substring. */
+function selectsTestFile(patternArg: string): boolean {
+  const pattern = patternArg.trim().replace(/^["']|["']$/g, '');
+  let selector: RegExp | null = null;
+  try {
+    selector = new RegExp(pattern);
+  } catch {
+    selector = null; // invalid regex → fall back to literal substring
+  }
+  return testFilePaths.some((p) =>
+    selector ? selector.test(p) : p.includes(pattern),
+  );
+}
+
 describe('concept-sync consistency guard (.concept/ bootstrap 5fd0dd60)', () => {
   it('js-yaml interop canary: load() round-trips a known snippet', () => {
     // If the createRequire interop broke (load === undefined), every loadYaml
@@ -446,11 +515,16 @@ describe('concept-sync consistency guard (.concept/ bootstrap 5fd0dd60)', () => 
     // Contract per §5.4 / C-11:
     //   - test    → target is a repo path that exists on disk (file or dir;
     //               resolveSource routes src/<core-four>/ into @stv/core),
-    //               or an `npm test` invocation (INV-TEST-004's argumented
-    //               `npm test -- "guards"`)
+    //               or a STRICT `npm test [-- "pattern"]` invocation whose
+    //               pattern selects ≥1 real test file (NPM_TEST_FORM)
     //   - command → `npm [run] <script>` where the script exists in
-    //               package.json (same derivation as the autopilot leg)
-    //   - manual  → free-form instruction; pinned non-empty only
+    //               package.json (same derivation as the autopilot leg).
+    //               npm-form is this repo's entire gate vocabulary (AGENTS.md
+    //               検証コマンド) — a non-npm command here is a data bug to
+    //               fix, never a form to allowlist open-endedly
+    //   - manual  → free-form instruction that must still anchor on the
+    //               repo: ≥1 path-like token resolving on disk
+    expect(testFilePaths.length).toBeGreaterThanOrEqual(400); // selector floor
     const pkg = JSON.parse(readSource('package.json')) as {
       scripts: Record<string, string>;
     };
@@ -468,13 +542,28 @@ describe('concept-sync consistency guard (.concept/ bootstrap 5fd0dd60)', () => 
           offenders.push(`${inv.id}: empty check target`);
         }
         if (check.type === 'test') {
-          if (!existsSync(resolveSource(check.target)) && !/^npm test\b/.test(check.target)) {
+          if (/^npm\b/.test(check.target)) {
+            const m = check.target.match(NPM_TEST_FORM);
+            if (m === null) {
+              offenders.push(`${inv.id}: malformed npm test form: ${check.target}`);
+            } else if (m[1] !== undefined && !selectsTestFile(m[1])) {
+              offenders.push(
+                `${inv.id}: npm test pattern selects no test file: ${check.target}`,
+              );
+            }
+          } else if (!existsSync(resolveSource(check.target))) {
             offenders.push(`${inv.id}: test target not on disk: ${check.target}`);
           }
         } else if (check.type === 'command') {
           const match = check.target.match(/^npm (?:run )?(\S+)$/);
           if (!match || !scripts.has(match[1])) {
             offenders.push(`${inv.id}: command is not a real script: ${check.target}`);
+          }
+        } else if (check.type === 'manual') {
+          if (firstResolvablePathToken(check.target) === null) {
+            offenders.push(
+              `${inv.id}: manual target has no resolvable path anchor: ${check.target}`,
+            );
           }
         }
       }
@@ -685,8 +774,17 @@ describe('concept-sync consistency guard (.concept/ bootstrap 5fd0dd60)', () => 
       const [keyLine, ...body] = section.split('\n');
       const key = keyLine.trim();
       const linkedLine = body.find((l) => l.startsWith('- Linked:'));
+      // Eval follow-up #5: decisions.md's contract (§3 layout / C-10) covers
+      // AUTO-decision sections. The duplicate check above is AUTO:-scoped, so
+      // demanding Linked from EVERY `##` section was asymmetric — a legit
+      // future non-AUTO heading (release notes, cache-regen provenance…)
+      // would RED spuriously. Linked is REQUIRED of AUTO: sections; a Linked
+      // line a non-AUTO section does carry is still validated below, so a
+      // stray AMB- reference cannot hide in a prose section.
       if (linkedLine === undefined) {
-        offenders.push(`${key}: section has no Linked line`);
+        if (key.startsWith('AUTO:')) {
+          offenders.push(`${key}: section has no Linked line`);
+        }
         continue;
       }
       const linked = linkedLine.slice('- Linked:'.length).trim();
