@@ -844,7 +844,10 @@ export const IDIOM_KINDS: readonly IdiomKind[] = [
   // element; `.find(…)` is the short-circuit form (an index read like
   // `.filter(…)[i]` with a real i, or `[0]` on a non-filter receiver, is
   // not the shape).
-  { id: 'filter-index-zero', detect: /\.filter\(.*\)\s*\[\s*0\s*\]/ },
+  {
+    id: 'filter-index-zero',
+    detect: /\.filter\((?:[^()]|\([^()]*\))*\)\s*\[\s*0\s*\]/,
+  },
   // `setAttribute('onclick', …)` installs a string handler through the
   // CSP-unsafe inline path; addEventListener is the form (javascript-url /
   // inline-handler-attr are the two string-handler vectors).
@@ -2172,6 +2175,24 @@ describe('dead-idiom batch census (REQ-410)', () => {
     ).toHaveLength(1);
     expect(
       discoverIdiomSites('f.ts', 'const f = xs.find(isOn);\nconst g = xs.filter(isOn)[i];'),
+    ).toEqual([]);
+    // (ad1b) sibling-statement false-positive guard: `.filter(…)` on one
+    // statement and `[0]` on a DIFFERENT receiver must NOT be flagged
+    // (the `[0]` does not index the filtered array). The detector
+    // changed in MW-083 → MW-084 to forbid `.*` from crossing past a
+    // balanced `)`; this fixture pins the behavior so a future rewrite
+    // cannot silently re-introduce the greedy span.
+    expect(
+      discoverIdiomSites('f.ts', 'xs.filter(isOn); const first = groups.get(k)[0];'),
+    ).toEqual([]);
+    // (ad1c) chained-call false-positive guard: when `.filter(…)` is
+    // followed by `.length` (or any other non-`)` member access that
+    // gives back a different receiver), the trailing `[0]` indexes
+    // that receiver, not the filtered array. The balanced-arg regex
+    // stops at the `)` of `.filter(…)`; the original greedy `.*` would
+    // have read the trailing `)[0]` as a filter receiver.
+    expect(
+      discoverIdiomSites('f.ts', 'if (xs.filter(isOn).length > 0) { const y = pair(a)[0]; }'),
     ).toEqual([]);
     // (ad2) an `on`-prefixed setAttribute handler flagged; the sandbox attr
     // (ac2's negative) and addEventListener not.
