@@ -98,6 +98,64 @@ export function verifyQuoteExcerpt(
   return null;
 }
 
+/** A parsed `#L<start>` / `#L<start>-L<end>` fragment (1-based, inclusive). */
+export interface LineAnchor {
+  readonly start: number;
+  readonly end: number;
+}
+
+// A source is line-anchored only in the exact shapes the bootstrap emitted
+// (`path#L12`, `path#L12-L15`; the second `L` may be dropped). Bare paths and
+// heading fragments are NOT line anchors — they keep the file-level contract,
+// so this parser returning null must never be treated as an error.
+const LINE_ANCHOR_SHAPE = /^L(\d+)(?:-L?(\d+))?$/;
+
+/**
+ * Parse the line anchor off an evidence `source` string, or null when the
+ * source carries no `#L…` fragment. A reversed range (`#L15-L12`) normalizes
+ * to the same inclusive window rather than rejecting the entry.
+ */
+export function parseLineAnchor(source: string): LineAnchor | null {
+  const hash = source.indexOf('#');
+  if (hash === -1) return null;
+  const match = LINE_ANCHOR_SHAPE.exec(source.slice(hash + 1));
+  if (!match) return null;
+  const a = Number(match[1]);
+  const b = match[2] === undefined ? a : Number(match[2]);
+  return { start: Math.min(a, b), end: Math.max(a, b) };
+}
+
+/**
+ * Verify one evidence quote against ONLY the window its `#L…` anchor points
+ * at (the file's lines, on-disk order, 1-based). Returns null when
+ * acceptable, an offender reason otherwise — including when the anchor
+ * itself no longer fits the file.
+ *
+ * This is the pin the file-level verbatim leg cannot provide: that leg
+ * strips the fragment (`source.split('#')[0]`) and substring-checks the
+ * WHOLE file, so a quote that is still verbatim somewhere else in the file
+ * keeps a drifted anchor green forever. Here the window is the source of
+ * truth — quotes inside it pass, quotes merely elsewhere in the file fail.
+ *
+ * Paraphrases (trailing-marker) stay exempt, consistent with
+ * verifyQuoteExcerpt — the ratio cap, not the window, bounds them.
+ */
+export function verifyAnchorWindow(
+  quote: string,
+  source: string,
+  lines: readonly string[],
+): string | null {
+  const anchor = parseLineAnchor(source);
+  if (!anchor) return null; // bare path / other fragment: file-level contract
+  if (anchor.start < 1 || anchor.end > lines.length) {
+    return `anchor L${anchor.start}-L${anchor.end} outside file (${lines.length} lines)`;
+  }
+  return verifyQuoteExcerpt(
+    quote,
+    lines.slice(anchor.start - 1, anchor.end).join('\n'),
+  );
+}
+
 /**
  * B-9 deletion-backfill violations for a tombstone list: malformed entries
  * (blank term or non-TERM- former_id), terms that are still canonical, and
