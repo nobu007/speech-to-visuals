@@ -332,15 +332,26 @@ describe('REQ-168: MultiFormatExporter', () => {
       }
     });
 
-    it('fail-opens an out-of-contract length (#RGBA) per-channel instead of throwing — documented policy', async () => {
+    it('fail-opens an out-of-contract hex length (4-digit) per-channel instead of throwing — documented policy', async () => {
       // pdfColorFill's contract is #RGB / #RRGGBB. For anything else the
       // current policy is fail-open, not fail-fast: '#3C88' is not doubled
       // (only length===3 triggers doubling), so the channels slice as
       // (3C, 88, '') → (0.235, 0.533, NaN→1.000). Pinning this makes the
       // policy explicit, so extending to #RGBA support or switching to
       // fail-fast later is a conscious contract change, not a silent drift.
-      // (SVG would emit the raw string verbatim — 4-digit input is outside
-      // the documented background contract either way.)
+      // ('#3C88' is a generic out-of-contract-length example that merely
+      // LOOKS like CSS #RGBA — no #RRGGBBAA semantics are claimed.)
+      //
+      // SVG leg: generateSVG interpolates bgColor into the background rect's
+      // fill attribute with no length validation, so the SAME raw string
+      // (case included) reaches the SVG bytes verbatim — the cross-format
+      // counterpart of the PDF's lenient slice. A shared normalizer that
+      // sanitized or case-folded out-of-contract inputs at format dispatch
+      // would break this leg first.
+      const svg = await exporter.export(makeScene(), makeOptions({ format: 'svg', backgroundColor: '#3C88' }));
+      expect(svg.success).toBe(true);
+      expect(await (svg.data as Blob).text()).toContain('fill="#3C88"');
+
       const pdf = await exporter.export(makeScene(), makeOptions({ format: 'pdf', backgroundColor: '#3C88' }));
       expect(pdf.success).toBe(true);
       const pdfText = new TextDecoder().decode(await (pdf.data as Blob).arrayBuffer());
