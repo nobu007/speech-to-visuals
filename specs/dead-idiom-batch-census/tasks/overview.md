@@ -288,11 +288,30 @@ fixture (ac26) が `getElementsByClassName` を live HTMLCollection = 現行 API
 
 - [x] [TASK-0310: 第十回 discovery sweep — 同一 batch guard へ 7 kind 追加 + 1 class pin 前棄却（記録済み判断衝突型の初例） + MW-083 mutation 検証](TASK-0310.md) - 1.5h (TDD) 🔵 ✅完了
 
+## Phase 228: filter-index-zero detector の false-positive guard（REQ-419-004・TASK-0311）
+
+MW-083 採用時に LLM 評価で指摘された `/\.filter\(.*\)\s*\[\s*0\s*\]/` の
+greedy `.*` 脆性（同一行に `.filter(…)` と別 receiver への `[0]` が並存
+する場合に `)` cross で誤検出）を修正。detector を balanced-arg 版
+`/\.filter\((?:[^()]|\([^()]*\))*\)\s*\[\s*0\s*\]/` に置換し、
+fixture (ad1b) sibling-statement 形 / (ad1c) chained-call 形 の 2 negative
+を追加。kind registry は同数（filter-index-zero entry 1 件の detector
+文字列のみ更新）、src 変更ゼロ。PINNED_MIN_ENTRIES は MW-084 追加で
+77→78。
+
+**成果物**: detector balanced-arg 化 + fixture (ad1b)/(ad1c) 2 negative +
+REQ-419-004 requirements 節 + MW-084 ledger エントリ + overview Phase 228
+
+### タスク一覧
+
+- [x] [TASK-0311: filter-index-zero detector の false-positive guard 固定 — balanced-arg 化 + (ad1b)/(ad1c) negative fixture + MW-084 検証](TASK-0311.md) - 0.5h (test-stage) 🔵 ✅完了
+
 ### 依存関係
 
-- Phase 217〜226 の `IDIOM_KINDS` registry と discovery primitive に直接追記
-  （新規 guard file なし — batch 契約の趣旨）
-- 計測は canonical `walkProductionSurface` 直接使用（331 file・
-  A-416-1 手順の維持）
-- 棄却 1 class は REQ-418 fixture (ac26) の記録済み負例判断との突き合わせ
-  — live collection を dead と見なす判定は別 family の議論として requirements に明記
+- Phase 227 の `IDIOM_KINDS` registry の filter-index-zero entry の
+  detector 文字列のみ更新（kind 増減なし）
+- MW-083 (a) の陽性経路（`xs.filter(isNum)[0]` 注入で 1 failed）の
+  不変確認を MW-084 (c) で独立記録
+- MW-084 (a)(b) の fail-open 経路（sibling-statement / chained-call）は
+  REQ-419-004 で「allowed 振る舞い」と明文化
+

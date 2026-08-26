@@ -822,6 +822,19 @@ ALLOWED **23 key** / ERADICATED **13 key**（不変）・kind registry **125 ent
 **When**: 4 独立 mutation（`src/analysis/untrusted-json-core.ts` 末尾への `xs.filter(isNum)[0]` 注入 / 同位置への `document.execCommand('copy')` 注入 / 同位置への `setImmediate(callback)` 注入 / 同位置への `process.nextTick(callback)` 注入）を適用する
 **Then**: 4 mutation とも各 1 failed completeness RED（`:125 [filter-index-zero]` / `:126 [exec-command-legacy]` / `:127 [setimmediate-call]` / `:128 [process-nexttick]` 帰着）・revert で 8/8 GREEN 復元・`git status --short src/` 0 file（src 変更ゼロ sweep）
 
+### REQ-419-004: filter-index-zero detector の false-positive guard 固定
+
+**背景**: MW-083 採用時の detector regex `/\.filter\(.*\)\s*\[\s*0\s*\]/` は引数 span を greedy `.*` で表現しており、同一行に `.filter(…)` と別 receiver への `[0]` が並存する場合（`xs.filter(isOn); const a = m.get(k)[0];` / `if (xs.filter(isOn).length > 0) { const y = pair(a)[0]; }`）に `\)` が後続式の閉じ括弧まで跨り、redundant な hit を出して RED 化する脆さを抱える。PINNED guard は **fail-closed** が基本姿勢（誤検出は正当な CI を恒常 RED 化させる）であり、**fail-open 側**（見逃し）のリスク受容が好ましい。
+
+**Given**: guard が GREEN の tree
+**When**: detector を balanced-arg 版 `/\.filter\((?:[^()]|\([^()]*\))*\)\s*\[\s*0\s*\]/` に置換し、(ad1b) `xs.filter(isOn); const first = groups.get(k)[0];`（sibling-statement 形）と (ad1c) `if (xs.filter(isOn).length > 0) { const y = pair(a)[0]; }`（chained-call 形）の 2 negative fixture を追加する
+**Then**:
+- 9/9 GREEN 維持（8 既存 + ad1b / ad1c の 2 negative が同一 it 内で 0 site を確認）
+- detector は positive 形 `xs.filter(isOn)[0]` を 1 hit で捕捉し続ける（MW-083 (a) の RED 経路を保持）
+- 2 mutation 形（`xs.filter(isOn); const a = m.get(k)[0];` / `xs.filter(isOn).length + m.get(k)[0];`）は **8/8 GREEN** のまま（fail-open）— これが `REQ-419-004` の allowed 振る舞い
+
+**走査影響**: kind registry は同数（filter-index-zero entry 1 件の detector 文字列のみ更新・sibling kind 増減なし）。PINNED_MIN_ENTRIES は MW-084 追加で 77→78。`tests/guards/mutation-witness-ledger.test.ts` の `entries.length` 期待は自動伸長するため手動更新不要。
+
 ## 最小限の非機能要件
 
 - **性能**: 追加検証は既存 walk の行 scan のみ（file 再読みなし・guard 実行 < 1s）
