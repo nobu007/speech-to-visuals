@@ -41,4 +41,32 @@ export const RULES: FrozenLiteralRule[] = [
     ],
     minSweptFiles: 200,
   },
+
+  /**
+   * Claim-parity follow-up (INV-SEC-003): `jwt.verify` sites are a census of
+   * TWO. The behavioral parity leg in jwt-secret-single-source.test.ts proves
+   * the two known middlewares reject the same tokens — but a THIRD verify
+   * site (a new route family, a batch-auth helper, a copied edge handler)
+   * would mint another auth path nobody taught the parity contract, and
+   * until this rule every shape of that site passed silently. This is the
+   * missed-sibling-site bug class with teeth: a new site is only legal by
+   * extending this census consciously AND adding it to the claim-parity
+   * behavioral leg (sub-less token rejected) in the same diff.
+   */
+  {
+    id: 'jwt.verify sites census-pinned to the two claim-parity middlewares (claim-parity follow-up)',
+    roots: ['src'],
+    exclude: {
+      'src/api/middleware/auth.ts':
+        'the REST sibling — its `!decoded.sub` guard is source-anchored in jwt-secret-single-source.test.ts',
+      'src/api/websocket-handler.ts':
+        'the WS sibling — same claim-parity source anchor pins its sub guard',
+    },
+    patterns: [
+      // A token-verification call outside the census is a new auth path the
+      // parity contract has never heard of.
+      /jwt\.verify\s*\(/,
+    ],
+    minSweptFiles: 200,
+  },
 ];

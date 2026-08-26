@@ -207,6 +207,32 @@ describe('REST and WS auth resolve the SAME secret (round 26 drift oracle)', () 
     expect(wsSocket.data.user).toBeUndefined();
     expect(wsNext).toHaveBeenCalledWith(expect.any(Error));
   });
+
+  it('a token with an EMPTY-STRING sub claim is rejected by both middlewares (falsy-sub boundary)', () => {
+    setEnv({ JWT_SECRET: 'round-26-cross-path-secret' });
+    // `!decoded.sub` is a truthiness check and that is deliberate: unlike the
+    // falsy-guard-on-legit-0 bug class, there is NO legitimate falsy sub. An
+    // empty-string subject is an anonymous identity — the exact value the WS
+    // path used to authenticate as `id: ''`. A "claim is present" refactor
+    // (`decoded.sub === undefined`) would pass this token on both paths;
+    // this leg is what makes that refactor loud.
+    const emptySub = jwt.sign({ sub: '', email: 'u@example.com' }, requireJwtSecret());
+
+    const restReq = {
+      headers: { authorization: `Bearer ${emptySub}` },
+      user: undefined,
+    } as unknown as AuthenticatedRequest;
+    const restRes = { status: jest.fn().mockReturnThis(), json: jest.fn() };
+    authMiddleware(restReq, restRes as never, jest.fn());
+    expect(restReq.user).toBeUndefined();
+    expect(restRes.status).toHaveBeenCalledWith(401);
+
+    const wsSocket: TestSocket = { handshake: { auth: { token: emptySub } }, data: {} };
+    const wsNext = jest.fn();
+    createWsAuthMiddleware()(wsSocket as never, wsNext);
+    expect(wsSocket.data.user).toBeUndefined();
+    expect(wsNext).toHaveBeenCalledWith(expect.any(Error));
+  });
 });
 
 // ---------------------------------------------------------------------------

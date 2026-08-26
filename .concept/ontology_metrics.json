@@ -1,11 +1,11 @@
 {
-  "run_id": "2026-08-26T19:08:54Z",
+  "run_id": "2026-08-26T19:26:27Z",
   "total_terms": 41,
   "by_layer": { "core": 14, "domain": 21, "aux": 6 },
   "draft_ratio": 0.22,
   "invariants_total": 27,
   "queue_pending": 2,
-  "claims_retained_lines": 74,
+  "claims_retained_lines": 75,
   "decisions_md_lines": 45,
   "gc_actions": { "merged": 2, "deleted": 0, "deprecated": 0 }
 }
