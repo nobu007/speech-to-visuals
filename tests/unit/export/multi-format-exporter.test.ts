@@ -113,12 +113,16 @@ describe('REQ-168: MultiFormatExporter', () => {
     it('uses custom background color', async () => {
       const result = await exporter.export(
         makeScene(),
-        makeOptions({ format: 'svg', backgroundColor: '#000000' }),
+        makeOptions({ format: 'svg', backgroundColor: '#000000', width: 800, height: 600 }),
       );
 
       expect(result.success).toBe(true);
       const svgText = await (result.data as Blob).text();
-      expect(svgText).toContain('#000000');
+      // Rect-anchored match: the background rect is the only <rect> whose
+      // attribute list is exactly width/height/fill (nodes carry x/y/stroke/
+      // rx), so a bare `fill="#000000"` containment could pass on a bgColor
+      // that leaked into a node fill while the background hand-off broke.
+      expect(svgText).toContain('<rect width="800" height="600" fill="#000000"/>');
     });
 
     it('escapes XML special characters in node labels', async () => {
@@ -277,11 +281,14 @@ describe('REQ-168: MultiFormatExporter', () => {
       // #3C8 (uppercase: CSS hex is case-insensitive) pins every channel
       // independently: digit doubling → 33 CC 88 → 0.200/0.800/0.533, a triple
       // no node/text fill in the stream produces. The SAME raw string flows
-      // into SVG `fill="#3C8"` (browser expands) and Canvas `fillStyle`, so the
-      // PDF triple above is the WYSIWYG parity anchor for all three formats.
-      const svg = await exporter.export(makeScene(), makeOptions({ format: 'svg', backgroundColor: '#3C8' }));
+      // into the SVG background rect (browser expands) and Canvas `fillStyle`,
+      // so the PDF triple above is the WYSIWYG parity anchor for all three
+      // formats. The SVG expect is rect-anchored (width/height/fill only —
+      // nodes carry x/y/stroke/rx), so a '#3C8' that leaked into a node fill
+      // cannot mask a broken background hand-off.
+      const svg = await exporter.export(makeScene(), makeOptions({ format: 'svg', backgroundColor: '#3C8', width: 800, height: 600 }));
       expect(svg.success).toBe(true);
-      expect(await (svg.data as Blob).text()).toContain('fill="#3C8"');
+      expect(await (svg.data as Blob).text()).toContain('<rect width="800" height="600" fill="#3C8"/>');
 
       const pdf = await exporter.export(makeScene(), makeOptions({ format: 'pdf', backgroundColor: '#3C8' }));
       expect(pdf.success).toBe(true);
@@ -296,15 +303,26 @@ describe('REQ-168: MultiFormatExporter', () => {
       // strokes / '#3b82f6' / 'white'), and fillRect is used ONLY for the
       // background (nodes go through roundRect+fill) — so first assignment +
       // the sole fillRect pin the background hand-off exactly.
+      // The fake ctx is Proxy-backed: ONLY those two pinned hand-offs are
+      // recorded, and every other canvas API resolves to a no-op. The old
+      // fixed method-set fixture made renderer growth a TypeError
+      // (`ctx.save is not a function` → export fails → this test REDs on
+      // fixture staleness, looking like a contract break); with the Proxy,
+      // renderToCanvas can start calling save()/setLineDash()/… and only a
+      // drift in the PINNED hand-offs can fail this leg.
       const fillStyleAssignments: string[] = [];
       const fillRectCalls: number[][] = [];
-      const ctx = {
-        set fillStyle(value: string) { fillStyleAssignments.push(value); },
-        strokeStyle: '', lineWidth: 0, font: '', textAlign: '', textBaseline: '',
-        fillRect: (...args: number[]) => { fillRectCalls.push(args); },
-        beginPath: () => {}, moveTo: () => {}, lineTo: () => {}, stroke: () => {},
-        roundRect: () => {}, fill: () => {}, fillText: () => {},
-      };
+      const noop = (): void => {};
+      const ctx = new Proxy(
+        {
+          set fillStyle(value: string) { fillStyleAssignments.push(value); },
+          fillRect: (...args: number[]) => { fillRectCalls.push(args); },
+        },
+        {
+          get: (target, prop) =>
+            prop in target ? Reflect.get(target, prop) : noop,
+        },
+      );
       const canvas = {
         width: 0,
         height: 0,
@@ -347,10 +365,13 @@ describe('REQ-168: MultiFormatExporter', () => {
       // (case included) reaches the SVG bytes verbatim — the cross-format
       // counterpart of the PDF's lenient slice. A shared normalizer that
       // sanitized or case-folded out-of-contract inputs at format dispatch
-      // would break this leg first.
-      const svg = await exporter.export(makeScene(), makeOptions({ format: 'svg', backgroundColor: '#3C88' }));
+      // would break this leg first. The expect is rect-anchored (the
+      // background rect's attribute list is exactly width/height/fill), so a
+      // '#3C88' that leaked into a node fill cannot mask a broken background
+      // hand-off the way a bare `fill="#3C88"` containment would.
+      const svg = await exporter.export(makeScene(), makeOptions({ format: 'svg', backgroundColor: '#3C88', width: 800, height: 600 }));
       expect(svg.success).toBe(true);
-      expect(await (svg.data as Blob).text()).toContain('fill="#3C88"');
+      expect(await (svg.data as Blob).text()).toContain('<rect width="800" height="600" fill="#3C88"/>');
 
       const pdf = await exporter.export(makeScene(), makeOptions({ format: 'pdf', backgroundColor: '#3C88' }));
       expect(pdf.success).toBe(true);
