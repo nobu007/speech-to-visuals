@@ -59,7 +59,7 @@ canonical_terms:
       includes: ["音声→テキスト変換の段越し制御", "ファイルサイズ/形式検証"]
       excludes: ["内容分析", "言語検出の本体"]
     lifecycle: []
-    related_terms: ["WhisperTranscriber", "StreamingTranscriber", "BrowserTranscriber"]
+    related_terms: ["WhisperTranscriber", "StreamingTranscriber"]
     evidence:
       - source: "src/transcription/transcriber.ts"
         quote: "export class TranscriptionPipeline {"
@@ -123,7 +123,7 @@ canonical_terms:
       includes: ["ノード座標決定", "オーバーラップ解消", "キャンバス寸法計算"]
       excludes: ["図解タイプ検出", "動画レンダリング"]
     lifecycle: []
-    related_terms: ["LayoutStrategy", "OverlapResolver", "CanvasCalculator"]
+    related_terms: ["LayoutStrategy", "OverlapResolver"]
     evidence:
       - source: "src/visualization/layout-engine.ts"
         quote: "export class LayoutEngine extends BaseLayoutEngine {"
@@ -191,7 +191,7 @@ canonical_terms:
       includes: ["シーン→動画レンダリング", "fps/解像度の伝搬"]
       excludes: ["手動編集機能（憲法禁止）", "エクスポート形式変換（ExportEngine）"]
     lifecycle: []
-    related_terms: ["SceneGraph", "ExportEngine", "ActualVideoRenderer"]
+    related_terms: ["SceneGraph", "ExportEngine"]
     evidence:
       - source: "src/pipeline/video-generator.ts"
         quote: "export class VideoGenerator {"
@@ -227,7 +227,7 @@ canonical_terms:
     evidence:
       - source: "src/export/enhanced-export-engine.ts"
         quote: "export class EnhancedExportEngine {"
-      - source: "tests/export/__tests__/xss-security.test.ts#L396"
+      - source: "src/export/__tests__/xss-security.test.ts#L396"
         quote: "describe('XSS Security: escapeJsonForScript helper', () => {"
   GeminiAnalyzer:
     id: "TERM-GEMINI-ANALYZER"
@@ -399,7 +399,7 @@ canonical_terms:
       includes: ["REST エンドポイント", "バッチ処理 API", "エラーハンドラミドルウェア"]
       excludes: ["WebSocket リアルタイム通知（WebSocketHandler）"]
     lifecycle: []
-    related_terms: ["WebSocketHandler", "BatchProcessingAPI"]
+    related_terms: ["WebSocketHandler"]
     evidence:
       - source: "src/api/server.ts"
         quote: "Express REST API サーバー実装"
@@ -449,7 +449,7 @@ canonical_terms:
       includes: ["反復品質評価", "改善提案"]
       excludes: ["継続学習の重み更新（ContinuousLearner）"]
     lifecycle: []
-    related_terms: ["ContinuousLearner", "FrameworkIntegratedPipeline"]
+    related_terms: ["ContinuousLearner"]
     evidence:
       - source: "src/framework/auto-improvement-engine.ts"
         quote: "export class AutoImprovementEngine {"
