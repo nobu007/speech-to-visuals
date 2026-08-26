@@ -416,8 +416,8 @@ export class PerformanceDashboard {
 
     // Memory optimization
     if (current.memory.heapUsed / (1024 * 1024) > this.thresholds.memory.heapUsedMB * 0.8) {
-      if (global.gc) {
-        global.gc();
+      if (globalThis.gc) {
+        globalThis.gc();
       }
     }
 

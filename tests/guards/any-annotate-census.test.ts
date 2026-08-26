@@ -67,7 +67,7 @@ import {
  * for `any[]` array form, or end-of-line). The `\b` on `any` prevents
  * `anything` / `anyone` / `anywhere` matches.
  */
-const COLON_ANY_RE = /:\s*any\b\s*(?=[,;)\]>}=[\|]|$)/;
+const COLON_ANY_RE = /:\s*any\b\s*(?=[,;)\]>}=[|]|$)/;
 
 /**
  * `<any>` generic argument — `<...any...>` where `any` is among the

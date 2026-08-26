@@ -176,7 +176,7 @@ const ALLOWED: Record<string, string> = {
   'src/quality/regression-detector.ts:318':
     '`legacy 0 return … which is the bug this function fixes` — historical confession + resolution in one line; the function returns null now (the fix).',
   'src/framework/iteration-manager.ts:443':
-    '`default \">=\" (preserves the legacy default for backward compat)` — descriptive documentation of the comparison operator\'s chosen direction; the predecessor-default is the choice, not a confession.',
+    '`default ">=" (preserves the legacy default for backward compat)` — descriptive documentation of the comparison operator\'s chosen direction; the predecessor-default is the choice, not a confession.',
   'src/framework/iteration-manager.ts:477':
     '`legacy >= default is a tautology at threshold 0` — same WHY pattern; documents the bug the fix corrects.',
   'src/framework/iteration-manager.ts:506':

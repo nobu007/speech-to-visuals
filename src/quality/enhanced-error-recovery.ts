@@ -281,7 +281,7 @@ export class EnhancedErrorRecovery {
   private initializePreventiveActions(): void {
     this.preventiveActions.set('memory_cleanup', async () => {
       // Trigger garbage collection and cache cleanup
-      if (global.gc) global.gc();
+      if (globalThis.gc) globalThis.gc();
       await globalCache.clear();
     });
 

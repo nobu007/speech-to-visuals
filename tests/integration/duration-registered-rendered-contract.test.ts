@@ -31,9 +31,10 @@
  * integration layer.
  *
  * It also pins the one INTENTIONAL divergence: a scene with `durationMs: 0`
- * (malformed input the pipeline never emits) is treated as 10 s by the render
- * path's safety fallback but as 0 by the registration path. Asserting that
- * divergence here documents the design decision so it is not silently "fixed".
+ * (malformed input the pipeline never emits) is treated as 5 s
+ * (DEFAULT_SCENE_DURATION_MS) by the render path's safety fallback but as 0 by
+ * the registration path. Asserting that divergence here documents the design
+ * decision so it is not silently "fixed".
  */
 
 import { jest } from '@jest/globals';
@@ -179,18 +180,20 @@ describe('Registered ≡ rendered durationInFrames (cross-path contract)', () =>
     // The pipeline NEVER emits durationMs: 0 (it clamps to [3000, 10000] ms).
     // For such malformed input the two paths intentionally differ:
     //   - registration (calculateTotalFrames): 0 contributes 0 ms → 1-frame floor.
-    //   - render (getComposition): `durationMs || 10000` treats 0 as missing → 10 s.
-    // The render path's safety default is deliberate and covered by
-    // actualVideoRenderer-duration-integration.test.ts ("scenes with zero
-    // durationMs default to 10000ms"). Pinning the divergence here keeps a
-    // future "unification" from silently changing render behaviour without a
-    // conscious decision + test update.
-    it('durationMs:0 → registered 1 frame, rendered 600 frames (two 10 s defaults)', async () => {
+    //   - render (getComposition): `durationMs || DEFAULT_SCENE_DURATION_MS`
+    //     treats 0 as missing → 5 s per scene (REQ-405 unified the render path
+    //     onto the canonical 5000 — it previously invented an ad-hoc 10000,
+    //     double the canonical substitute).
+    // The render path's safety default is deliberate and single-sourced by
+    // tests/guards/scene-duration-limits-single-source.test.ts. Pinning the
+    // divergence here keeps a future "unification" from silently changing
+    // render behaviour without a conscious decision + test update.
+    it('durationMs:0 → registered 1 frame, rendered 300 frames (two 5 s defaults)', async () => {
       const scenes = sequential([0, 0]);
       const registered = calculateTotalFrames(scenes, FPS);
       const rendered = await renderedFrames(renderer, scenes);
       expect(registered).toBe(1);
-      expect(rendered).toBe(600);
+      expect(rendered).toBe(300);
       expect(registered).not.toBe(rendered);
     });
   });

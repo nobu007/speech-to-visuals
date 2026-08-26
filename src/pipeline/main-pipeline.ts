@@ -1425,8 +1425,8 @@ export class MainPipeline {
 
       case 'optimize_memory':
         // メモリ最適化戦略
-        if (typeof global !== 'undefined' && global.gc) {
-          global.gc();
+        if (globalThis.gc) {
+          globalThis.gc();
         }
         break;
 

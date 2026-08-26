@@ -385,3 +385,294 @@ browser-transcriber.ts:449 の `declare global {` block 内であることを
 ### 信頼性レベル分布（REQ-413 追計分）
 
 **分析後**: 🔵 4（REQ-413-001〜004）/ 🟡 0
+
+## A-414-1: 第五回 discovery sweep の候補選定と計測（2026-08-25）
+
+**背景**: REQ-410〜413 で構文・API の legacy 領域を採掘済み。sweep #5 は
+「比較演算の恒偽形・legacy spelling 系・実行環境破壊系・locale 決定論
+系」を対象に候補を立て、前回同様 src 単独 grep と core-four grep の
+両方で計測した（console-debug-log / tolocalestring-bare は core 側のみ
+に site があった — 両方計測の価値の再実証）。
+
+**計測結果（17 candidate）**:
+
+| candidate | src | core | 備考 |
+|-----------|-----|------|------|
+| `x === NaN` 双方向 | 0 | 0 | 恒偽比較（Object.is が NaN-safe 形） |
+| `~xs.indexOf(y)` 系 | 0 | 0 | bitwise-trick membership |
+| `throw '…'` / `` throw `…` `` | 0（prod）| 0 | test fixture 4 件は off-walk |
+| `.lastIndexOf(x) === s.length - 1` | 0 | 0 | pre-endsWith |
+| `new Date().getTime()/.valueOf()` | 0 | 0 | pre-Date.now（getHours は正規 API で class 外） |
+| `+new Date`（unary） | 0 | 0 | binary 連結 `'…' + new Date()` は lookbehind で除外 |
+| `x + ''` | 0 | 0 | legacy string coercion |
+| `.keyCode` / `.which` | 0 | 0 | deprecated event member |
+| `.caller` / `.callee` | 0 | 0 | strict-mode 禁止 member |
+| `document.all` | 0 | 0 | IE 検出 idiom |
+| `Array.prototype.X.call(`（slice 以外） | 0 | 0 | arraylike-slice-call の一般形 |
+| `console.log/debug(` | 0 | 1 | core logger 自身 |
+| `process.exit(` | 1 | 0 | api/index gracefulShutdown |
+| `.toLocaleString()`（引数なし） | 0 | 1 | core safeToLocaleString 内 |
+| `.charCodeAt(` | 15 | 0 | 棄却 (a) |
+| `if (x = y)` 系 | 15 | — | 棄却 (b) |
+| `.charAt(` | 0（prod）| 0 | 棄却 (c) |
+
+**判断**: 11 class を exact-0 kind 化、3 class を各 1 site の ALLOWED
+roster 化。ALLOWED 3 site の文脈はすべて実コード読みで確認
+（logger :20 の level gate は隣接行・api/index :64 は全 service 停止 log
+の後の epilogue・guards :114 は typeof+Number.isFinite gate 内）。
+
+**信頼性への影響**: REQ-414-001/002 を追加（🔵）。
+
+## A-414-2: pin 前棄却 3 class の根拠（REQ-414-003）
+
+- **`.charCodeAt(`（15 src site・core 0）**: 計測全 site が code-unit-domain
+  正利用 — language-detector の kana range 判定は BMP（:73/:103/:120）・
+  security-admin の constant-time compare は code unit を要求（:61）・
+  layout-rng の hash は code unit 加算（:21）・apng-encoder /
+  export-verifier / intelligent-cache の chunk-type・header・RLE marker
+  byte は ASCII/255 域（:60-63/:274/:189-191）・multi-format-exporter の
+  octal/hex escape は Latin-1/BMP（:790/:844/:719）。
+  codePointAt との差は astral plane でのみ出るため、現状 site に fix は
+  ゼロ。15 row の per-site prose は full family 相当の投資（Math.max
+  前例）— **astral-plane text math site 出現時点で再計測**を guard header
+  に明記して棚上げ。
+- **`if (x = y)` 系（15 hit）**: 計測 hit 全てが condition paren 内の
+  arrow（`.some(kp => …)` 等・diagram-detector :384 等）か正典
+  `while ((match = RE.exec(text)) !== null)` loop（scene-segmenter :385
+  等）。行 regex は arrow-fat `=>` と assignment `=` を paren depth なし
+  には区別できず、区別なし pin は全 arrow 内部表現を誤検出する純 noise。
+  REQ-413 `.map(async)` と同じ「消費側/構文脈で可否が決まる」検出不可能型。
+- **`.charAt()`（production 0 site）**: bracket access と挙動等価
+  （in-range は同一値・out-of-range は '' vs undefined の falsy 差のみ）。
+  実測 0 件かつ incident shape なし — Math.pow と同じ挙動等価型。
+  style 嗜好の ratchet は guard の「load-bearing, not style」契約を希釈
+  するため採らない。
+
+**REQ-413-003 との対比**: 棄却理由型の再利用 — 「投資不釣合型」
+（charCodeAt・Math.max と同型）・「検出不可能型」（arrow/構文脈・
+`.map(async)` と同型）・「挙動等価型」（charAt・Math.pow と同型）。
+3 理由型すべてに 2 例目が揃い、sweep #6 以降の棄却判断はこの分類に
+帰着可能になった。
+
+**信頼性への影響**: REQ-414-003 を追加（🔵・全 site read 根拠付き）。
+
+## 分析結果サマリー（REQ-414 分の追計）
+
+### 確認できた事項
+
+- 17 candidate class の実測（src + core-four・331 file）
+- console-debug-log / tolocalestring-bare が core 側のみの site であること
+  （両側計測の必要性を再実証）
+- ALLOWED 3 site の文脈（level gate 隣接・shutdown log → exit 順序・
+  finite branch 共存）が実コード読みで確認できたこと
+- charCodeAt 15 site 全てが code-unit-domain 正利用であること
+
+### 追加/変更要件
+
+- REQ-414-001〜004（14 kind 追加・3 site ALLOWED・棄却 3 class 記録・MW-078）
+
+### 残課題
+
+- 跨ぎ行 idiom は引き続き AST pass が必要（sweep #1 からの持ち越し）
+- unary-plus-date は `=`/`(`/`return` 直後形のみ（`y || +new Date` は
+  死角 — REQ-410-008 (h) に明記・現行 0 件）
+
+### 信頼性レベル分布（REQ-414 追計分）
+
+**分析後**: 🔵 4（REQ-414-001〜004）/ 🟡 0
+
+## A-415-1: 第六回 discovery sweep の候補選定と計測（2026-08-25）
+
+**背景**: REQ-410〜414 で legacy 構文・比較恒偽形・API 系を採掘済み。
+sweep #6 は「browser/Node 移植性・CJS/ESM 綴り・非同期 dialog・
+locale・legacy HTML API」面を対象に候補を立て、detector 最終形 regex
+を確定してから src + core-four 両方で再計測した（detector 改善の
+たびに再計測 — minified-boolean-literal は前置演算子文脈 class +
+行頭形に改善、blocking-dialog は `window.` 修飾形式を取り込み、
+useragent-sniffing は `userAgentData` 除外 lookahead を追加）。
+
+**計測結果（23 candidate）**:
+
+| candidate | src | core | 備考 |
+|-----------|-----|------|------|
+| `.trimLeft/Right(` | 0 | 0 | trimStart/End が正規形 |
+| `RegExp.$1` 系 static | 0 | 0 | legacy match capture |
+| `throw {` | 0 | 0 | throw は Error 系のみ |
+| `throw null` | 0 | 0 | 同上 |
+| `javascript:` URL | 0 | 0 | test は off-walk |
+| `alert/confirm/prompt(` | 1 | 0 | ALLOWED（confirm gate） |
+| `XMLHttpRequest` | 0 | 0 | fetch 世代 |
+| `= !0` / `!1` minified 真偽 | 0 | 0 | tsc が生成しない綴り |
+| `require(` | 0 | 0 | ESM 統一 |
+| `module.exports` / `exports.x=` | 0 | 0 | 同上 |
+| `__dirname` / `__filename` | 0 | 0 | 同上 |
+| `global.` | 5 | 0 | **unify**（globalThis.gc） |
+| `document.cookie` | 0 | 0 | storage helper 経由 |
+| `navigator.userAgent` 参照 | 3 | 0 | ALLOWED（report-only ×3） |
+| `.localeCompare(x)`（引数 1 つ） | 0 | 0 | locale は明示指定 |
+| `new Intl.X()`（引数なし） | 0 | 0 | 同上 |
+| `.innerHTML =` | 0 | 0 | React は setInnerHTML helper / dangerouslySetInnerHTML |
+| `window.event` | 0 | 0 | DOM 2 世代以降不存在 |
+| `.returnValue =`（event） | 0 | 0 | preventDefault 世代 |
+| `.anchor()/.bold()` 等 HTML 生成 | 0 | 0 | string HTML method |
+| `__defineGetter__` 系 | 0 | 0 | defineProperty 世代 |
+| `.toLocaleUpperCase()`（引数なし） | 0 | 0 | locale 明示指定 |
+| `.substring(` | 23 | — | 棄却（投資不釣合型 3 例目） |
+
+**判断**: 19 class を exact-0 kind 化、`global.` 5 site を
+`globalThis.gc` へ unify（batch 形式初の VIOLATION cluster 同梱 —
+REQ-412 parseint-no-radix と同型）、2 class 計 4 site を ALLOWED
+roster 化。ALLOWED 4 site の文脈はすべて実コード読みで確認
+（GuardMetricsDashboard :90 は reset 前の confirm gate・
+production-error-handler :271/:461 は telemetry 文脈 object への
+field 代入・browser-transcriber :257 は browser 名 diagnostics で
+能力判定は直前の feature detection）。
+
+**信頼性への影響**: REQ-415-001/002 を追加（🔵）。
+
+## A-415-2: `global.gc` 5 site unify の等価性根拠（REQ-415-002）
+
+**計測**: `(?<![.\w$])global\s*\.` の 5 site / 6 出現は全て gc 呼び出し
+— performance-dashboard :419-420（`if (global.gc)` + `global.gc()`）・
+main-pipeline :1428-1429（`typeof global !== 'undefined' && global.gc`
+guard + `global.gc()`）・enhanced-error-recovery :284
+（`if (global.gc) global.gc();`）。
+
+**等価性**: Node では `global === globalThis`（同一 object・
+`--expose-gc` の gc は globalThis 直下に露出）、browser/ESM bundle では
+`global` は未定義（bundlers の shim 有無は構成依存）で `globalThis` のみ
+ES2020 標準。よって (a) Node 実行下は完全同一挙動、(b) browser では
+`global.gc` の unguarded 評価は ReferenceError（潜在 crash）だが
+`globalThis.gc` は feature-miss の falsy、(c) main-pipeline の
+`typeof global !== 'undefined'` guard は `global` 綴りが原因の
+workaround で `globalThis` では不要。semantic 等価の綴り統一として
+3 file を同一 shape に整え、anchor + count pin（3 file 合計 6 出現）で
+部分 revert を検出（MW-079 (b) で 3 面 RED を実測）。
+
+**信頼性への影響**: REQ-415-002 を追加（🔵・仕様ベース等価性 +
+unify 後 walk 再計測 exact-0）。
+
+## A-415-3: pin 前棄却 legacy-substring の根拠（REQ-415-003）
+
+- **`.substring(`（23 src site）**: class 本義の incident shape は
+  `substring(indexA, indexB)` の**引数 swap**（legacy 仕様: indexA >
+  indexB で引数を交換する — slice と異なる non-monotonic 挙動）。
+  計測全 23 site は (i) `substring(0, N)` 形の 0-start 切り詰め
+  （truncate 系 — swap 不可能）か (ii) `Math.min/Math.max` 正規化
+  済み span（swap が発生しない引数順に明示的に並べた形）。到達可能
+  な bug 形が存在せず、fix ゼロの 23 row per-site prose は
+  charCodeAt・Math.max(...xs) と同型の投資不釣合 — **swap 可能形
+  出現時点で再計測**を guard header に明記して棚上げ（投資不釣合型
+  3 例目）。
+
+**信頼性への影響**: REQ-415-003 を追加（🔵・全 23 site 分類根拠付き）。
+
+## 分析結果サマリー（REQ-415 分の追計）
+
+### 確認できた事項
+
+- 23 candidate class の実測（src + core-four・331 file・detector 最終形
+  regex で再計測）
+- `global.gc` 5 site / 3 file が batch 形式初の VIOLATION cluster で
+  あったこと（portability 面で unify 価値あり）
+- ALLOWED 4 site の文脈（confirm gate・UA report-only ×3）が実コード
+  読みで確認できたこと
+- legacy-substring 23 site 全てが swap 不可能形であること
+
+### 追加/変更要件
+
+- REQ-415-001〜004（22 kind 追加・5 site unify・4 site ALLOWED・棄却
+  1 class 記録・MW-079）
+
+### 残課題
+
+- 跨ぎ行 idiom は引き続き AST pass が必要（sweep #1 からの持ち越し）
+- minified-boolean-literal の行頭形は template literal 内 `!0` を
+  拾う可能性（現行 0 件 — 文字列内 hit 時に detector 精密化）
+
+### 信頼性レベル分布（REQ-415 追計分）
+
+**分析後**: 🔵 4（REQ-415-001〜004）/ 🟡 0
+
+## A-416-1: 第七回 sweep の候補選定と計測（2026-08-26）
+
+- **候補生成**: 従来どおり MDN legacy/deprecated 面と JSDoc/ESLint
+  (`no-async-promise-executor`・`no-delete-var` 等) の rule 群から
+  10 candidate を抽出。registry 71 kind との重複は full registry 読み
+  で除外済み（getYear・keyCode・document.write 系は REQ-415 で取得
+  済み）。atob/btoa は REQ-415 の escape/unescape と同系列の codec 面。
+- **計測面の自己修正**: 初回計測が 278 file で過去 sweep の 331 file
+  と不一致。原因は走査 script の repo src filter が `/\.ts$/` で
+  `.tsx` 53 file を落としていたこと。canonical `walkProductionFiles`
+  の `/\.(ts|tsx)$/` に照合して再計測（detector の見落としは exact-0
+  false-pin に直結するため、走査面の一致を sweep の前提条件とした）。
+- **計測結果**: 7 class exact-0（async-promise-executor /
+  array-delete-hole / instanceof-primitive-wrapper / atob-btoa /
+  inner-html-op-assign / insert-adjacent-html /
+  sparse-array-ctor-literal）。`.length = 0` 10 site・`.splice(…)`
+  27 site・finally 内 return 0（finally block 13）は評決棄却へ。
+
+**信頼性への影響**: REQ-416-001 を追加（🔵・331 file 実測 + 走査面
+canonical 一致の明示）。
+
+## A-416-2: inner-html-op-assign を既存 kind の拡張ではなく新 entry にした理由（REQ-416-001）
+
+`inner-html-assignment`（REQ-415・`\.innerHTML\s*=`）は compound
+代入 `+=` を検出しない。`.innerHTML +=` は（XSS 面で）`=` 再代入より
+危険な accumulated-injection 形だが、既存 kind の detect regex を
+`=`→`=`? に緩めると検出域が広がり、REQ-415 時点の ALLOWED 判断
+（`innerHTML =` site の文脈根拠）を暗黙に再評判したのと同じ意味論に
+なる。よって (a) 既存 kind は不変、(b) compound 形は別 kind として
+登録（class 追加 = 1 entry の契約どおり）、(c) fixture (aa5) で
+`=` 形が inner-html-assignment に帰着することを負例で分離固定。
+実測は両 kind とも 0 site。
+
+**信頼性への影響**: REQ-416-001 に kind 分離根拠を追記（🔵・
+registry 変更の意味論保存を契約で強制）。
+
+## A-416-3: pin 前棄却 3 class の根拠（REQ-416-003）
+
+- **`.length = 0`（10 site）**: 全 site が CappedArray 系の意図的
+  drain（clear() 実装を含む）。正しい clear 慣用そのもので incident
+  なし — 10 row の per-site prose は投資不釣合（4 例目）。
+- **`.splice(…)`（27 site）**: 全 site が queue primitive（優先度
+  挿入・dequeue・DLQ purge）として正当。receiver-mutation 概念は
+  family 16（REQ-407）で正典化済みで重複（5 例目）。
+- **`return` in `finally`（finally 13 site・return 0）**: 行 detector
+  では block-scope が不可視（naive regex は finally block 終了後の
+  return まで偽陽性 — audio-preprocessor.ts で実測）。brace-depth
+  scan まで書くと「AST が要る」判定と同コスト。加えて **site 母集団
+  ≠ incident 母集団**: finally 行 detector の site 母集団は「全
+  finally block」（13 site すべて cleanup-only の正当形）で、incident
+  （finally 内 return）は 0 — pin は今後の正当な try/finally 追加の
+  たびに roster 行を課す逆薬剤になる。検出不可能型 2 例目 + 母集団
+  不一致の初例として成文化。
+
+**信頼性への影響**: REQ-416-003 を追加（🔵・全 site 読み + 母集団
+不一致軸の追加）。
+
+## 分析結果サマリー（REQ-416 分の追計）
+
+### 確認できた事項
+
+- 10 candidate class の実測（331 file・走査面を canonical
+  `walkProductionFiles` と一致させてから評決）
+- 7 class exact-0 pin と ALLOWED 18 / ERADICATED 12 不変の確認
+- 棄却 3 class の全 site（10 + 27 + 13）実コード読み
+- MW-080 で 4 kind の独立 RED（kind 帰着を offender list で確認）
+
+### 追加/変更要件
+
+- REQ-416-001〜004（7 kind 追加・3 class 棄却記録・MW-080・
+  src 変更ゼロ）
+
+### 残課題
+
+- 変数長 `new Array(n)` は sparse 保証がないため literal 形のみ pin
+  （変数形出現時に再計測）
+- finally 内 return・`.splice` aliasing の incident 実出現時に
+  AST pass の投資判断を重新評価
+
+### 信頼性レベル分布（REQ-416 追計分）
+
+**分析後**: 🔵 4（REQ-416-001〜004）/ 🟡 0
