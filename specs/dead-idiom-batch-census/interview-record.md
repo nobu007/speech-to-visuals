@@ -764,3 +764,82 @@ canonical 一致の再適用）。
 ### 信頼性レベル分布（REQ-417 追計分）
 
 **分析後**: 🔵 4（REQ-417-001〜004）/ 🟡 0
+
+## A-418-1: 第九回 sweep の候補選定と計測（2026-08-26）
+
+**分析日時**: 2026-08-26
+**カテゴリ**: 技術選定（dead-idiom class の母集団計測）
+**背景**: REQ-410 steering batch 契約の 9 回目。未計測の dead-idiom class
+群（IE/dead-DOM member・React legacy API・markup sink sibling・言語 dead
+慣用・surrogate 分離系）を同一 walk で評決する必要があった。
+
+**判断**: 29 candidate を canonical `walkProductionSurface`（331 file）
+直接使用で計測し、26 class を exact-0 pin・1 class（dead-ua-platform）を
+ALLOWED 1 site 同梱・1 class（string-char-split）を unify 同梱・1 class
+（react-default-props）を pin 前棄却とした。
+
+**根拠**: 計測 log（candidate 29 件の実測 site 数・hit 行 text 付き）。
+walk は guard と同一 walker import なので評決母集団と guard 母集団が一致
+（A-416-1 手順の維持）。
+
+**信頼性への影響**: REQ-418-001 を追加（🔵・全候補実測）。
+
+## A-418-2: string-char-split unify の等価性根拠（REQ-418-001）
+
+**分析日時**: 2026-08-26
+**カテゴリ**: データモデル（分類器の文字反復レベル）
+**背景**: `text.split('')` は astral code point（CJK ext-B 漢字・絵文字）
+を lone surrogate 半片に分割する。日本語 text pipeline では実害になり得る
+lazy hazard として unify を検討した。
+
+**判断**: ratio 計算は全入力で完全等価。classifyChar の range table
+（@stv/core unicode-script-ranges: KANA 0x3040-0x31FF・CJK 0x3400-0xFAFF・
+English A-Z）は surrogate block 0xD800-0xDFFF と交差しないため、astral
+文字は旧綴り（2 半片・両方 Other）も新綴り（1 code point・Other）も
+いかなる ratio にも寄与しない。要素数 = code point 数となり、同一 file の
+hasKana/scoreLatinLanguage が使う `for (const char of text)` 綴りと整合
+（将来 astral CJK-ext range 追加時に loop 再変更が不要）。
+
+**根拠**: src/analysis/language-detector.ts:73-94（classifyChar 実装）・
+node_modules/@stv/core/src/lib/unicode-script-ranges.ts（range 値）・
+language-detector test 68/68 GREEN（挙動同一の実測）。
+
+**信頼性への影響**: ERADICATED 1 key 追加（🔵・range 交差の実値確認）。
+
+## A-418-3: pin 前棄却 1 class の根拠（REQ-418-003）
+
+- **react-default-props（1 site）**: `src/remotion/Root.tsx:42` の
+  `<Composition defaultProps={defaultVideoProps}>` は Remotion Framework
+  自身の prop（calculateMetadata への入力 API）。React 18.3 が function
+  component で warn する `Component.defaultProps` とは無関係の同名衝突
+  で、site 母集団 ≠ incident 母集団（REQ-417 dom0-handler-assign 型の
+  3 例目）。
+
+**信頼性への影響**: REQ-418-003 を追加（🔵・site 実コード読み）。
+
+## 分析結果サマリー（REQ-418 分の追計）
+
+### 確認できた事項
+
+- 29 candidate class の実測（331 file・canonical walker 直接使用）
+- 28 kind pin（26 exact-0 + ALLOWED 1 site 同梱 + unify 1 site 同梱）
+  と ALLOWED 23 / ERADICATED 13 の確認
+- 棄却 1 class の site 実コード読み（Remotion Composition prop の
+  同名衝突）
+- 既存 fixture 1 件の負例差し替え（(ab3) platform → language —
+  既存 kind の detect は 1 行も不変）
+
+### 追加/変更要件
+
+- REQ-418-001〜004（28 kind 追加・1 class 棄却記録・MW-082・
+  src 変更は unify 1 site のみ）
+
+### 残課題
+
+- `document.createEvent` 以外の optional-chain 抜け（`window?.execScript`
+  等は lookbehind 設計で既に捕捉可・(ac6)/(ac21) で member 形を検証済み）
+  の実出現時に grep -A1 再計測
+
+### 信頼性レベル分布（REQ-418 追計分）
+
+**分析後**: 🔵 4（REQ-418-001〜004）/ 🟡 0

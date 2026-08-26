@@ -534,7 +534,7 @@ export class LanguageDetector {
  * Legacy function wrapper maintained for backward compatibility.
  */
 export function detectLanguage(text: string): LanguageDetectionResult {
-  const chars = text.split('');
+  const chars = [...text];
   let kanaCount = 0;
   let cjkCount = 0;
   let latinCount = 0;
