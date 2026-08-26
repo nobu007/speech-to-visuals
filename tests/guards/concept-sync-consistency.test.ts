@@ -203,6 +203,17 @@
  * claims-anchor leg restated #10's window-fits contract inline; the rebased
  * branch keeps #10's helper-backed leg and #11's vocabulary cross-field leg.
  *
+ * Test-stage follow-up #13 (run 20260826-172306 test stage; residuals of the
+ * 20260826-163645 implement eval): #12's census enforced §B-10's LINE form
+ * for claims but not the byte form ("10k lines OR 10MB" — a handful of
+ * pathological lines stays under 10k while blowing past 10MB), and nothing
+ * caught a silently RAISED cap (invariants_max 60 → 600 would keep an
+ * over-cap store green forever; the #12 key-set pin only has teeth for
+ * delete/rename). Both closed: claims_max_bytes joins the census (28.5KB
+ * today, Buffer.byteLength over the read source), and every ceiling value
+ * is pinned to the §B-10 numbers so raising one is a deliberate,
+ * diff-visible change to BOTH the pin and ontology_budget.yml.
+ *
  * Scope decisions (conscious, keep future edits honest):
  *   - Evidence QUOTES are pinned modulo whitespace: single-line quotes are
  *     exact substrings, multi-line excerpts may be flattened with single
@@ -318,6 +329,7 @@ interface Budget {
     mappings_max: number;
     term_queue_max: number;
     claims_max_lines: number;
+    claims_max_bytes: number;
   };
 }
 interface Charter {
@@ -404,9 +416,12 @@ for (const term of Object.values(ontology.canonical_terms)) {
   if (term.status === 'draft') draftCount += 1;
 }
 
-const claimLines = readSource('.concept/claims.ndjson')
-  .split('\n')
-  .filter((line) => line.trim() !== '');
+const claimsNdjson = readSource('.concept/claims.ndjson');
+const claimLines = claimsNdjson.split('\n').filter((line) => line.trim() !== '');
+// B-10 caps claims.ndjson at 10k lines OR 10MB. The byte form is what a
+// line-count census can never see: a handful of pathological lines stays far
+// under 10k while blowing past the size cap.
+const claimsNdjsonBytes = Buffer.byteLength(claimsNdjson, 'utf8');
 const decisionsMdLines = lineCountOf(readSource('.concept/decisions.md'));
 
 /** wc -l convention: split on \n and drop one trailing empty fragment. */
@@ -1258,7 +1273,7 @@ describe('concept-sync consistency guard (.concept/ bootstrap 5fd0dd60)', () => 
   it('budget: B-10 file ceilings — every store under its ontology_budget file_ceilings cap', () => {
     // 10_concept_sync_system §B-10 sets per-store ceilings (invariants 60,
     // ambiguities 50, conflicts 50, mappings 200, term_queue 50, claims
-    // 10k lines). The Q4/Q6 leg above covers term-count limits only —
+    // 10k lines / 10MB). The Q4/Q6 leg above covers term-count limits only —
     // nothing held the OTHER stores to their caps, so a future増産 run
     // could push invariants past 60 (or mappings past 200) and stay green.
     // The caps live in ontology_budget.yml (repo-internal source of
@@ -1268,6 +1283,7 @@ describe('concept-sync consistency guard (.concept/ bootstrap 5fd0dd60)', () => 
     const fc = budget.file_ceilings;
     expect(Object.keys(fc).sort()).toEqual([
       'ambiguities_max',
+      'claims_max_bytes',
       'claims_max_lines',
       'conflicts_max',
       'invariants_max',
@@ -1280,14 +1296,34 @@ describe('concept-sync consistency guard (.concept/ bootstrap 5fd0dd60)', () => 
       ['conflicts', conflicts.conflicts.length, fc.conflicts_max],
       ['mappings', Object.keys(mappings.mappings).length, fc.mappings_max],
       ['term_queue', termQueue.queue.length, fc.term_queue_max],
-      // B-10 caps lines OR 10MB; the line count is the binding form here
-      // (73 lines ≈ tens of KB — three orders of magnitude from 10MB).
+      // B-10 caps claims at 10k lines OR 10MB — both forms are enforced
+      // (tens of KB today, so neither is near binding).
       ['claims lines', claimLines.length, fc.claims_max_lines],
+      ['claims bytes', claimsNdjsonBytes, fc.claims_max_bytes],
     ];
     const offenders = counts
       .filter(([name, count, cap]) => count > cap)
       .map(([name, count, cap]) => `${name}: ${count} > cap ${cap}`);
     expect(offenders).toEqual([]);
+  });
+
+  it('budget: B-10 ceiling values pinned to spec §B-10 (cap inflation REDs)', () => {
+    // The census leg catches a store OVER its cap and its key-set pin catches
+    // a deleted/renamed cap — but neither caught a silently RAISED cap:
+    // invariants_max 60 → 600 would keep an over-cap store green forever.
+    // §B-10 (10_concept_sync_system) is the upstream authority, so the
+    // numbers are pinned here; raising a ceiling must be a deliberate,
+    // diff-visible change to BOTH this pin and ontology_budget.yml.
+    expect(budget.file_ceilings).toEqual({
+      invariants_max: 60,
+      ambiguities_max: 50,
+      conflicts_max: 50,
+      mappings_max: 200,
+      term_queue_max: 50,
+      claims_max_lines: 10000,
+      // §B-10 "or 10MB" — read as 10 × 1024 × 1024 bytes.
+      claims_max_bytes: 10 * 1024 * 1024,
+    });
   });
 
   it('budget: decisions.md stays ≤ 200 lines (Rule 6 cache ceiling)', () => {
