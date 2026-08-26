@@ -168,6 +168,19 @@
  * precedent) and the classifier is pinned in its own describe
  * (session-239 lesson).
  *
+ * Test-stage follow-up #9/#10 (runs 20260826-144330 / -155632): #9 pinned
+ * evidence quotes to their `#Lx` line windows (before it, the verbatim leg
+ * stripped the fragment and substring-checked the WHOLE file, so a quote
+ * still verbatim elsewhere in the file kept a drifted anchor green forever;
+ * its first run caught two live stale anchors). #10 extends the anchor
+ * contract to the surfaces that cite locations WITHOUT a quote:
+ * claims.ndjson sources get the bounds half (a window pointing past EOF —
+ * the cited file shrank via split/refactor/trim — is location drift the #8
+ * path-existence leg cannot see), and every cited source gets typo teeth
+ * (`#L12a`, `#L12-L` fail the anchor grammar and previously degraded
+ * silently to the file-level contract parseLineAnchor hands to headings).
+ * Both new helpers are pinned in the contract describe (session-239 lesson).
+ *
  * Scope decisions (conscious, keep future edits honest):
  *   - Evidence QUOTES are pinned modulo whitespace: single-line quotes are
  *     exact substrings, multi-line excerpts may be flattened with single
@@ -201,8 +214,10 @@ import { REPO_ROOT, resolveSource, readSource } from '@tests/guards/freeze-guard
 import {
   collectTombstoneViolations,
   isUnverifiedParaphrase,
+  malformedAnchorFragment,
   parseLineAnchor,
   stripTrailingMarker,
+  verifyAnchorFits,
   verifyAnchorWindow,
   verifyQuoteExcerpt,
   type TombstoneEntry,
@@ -1033,6 +1048,67 @@ describe('concept-sync consistency guard (.concept/ bootstrap 5fd0dd60)', () => 
     expect(missing).toEqual([]);
   });
 
+  it('claims: line anchors fit their file — a claim citing #Lx past EOF is location drift', () => {
+    // Follow-up #9 pinned evidence QUOTES to their #Lx windows (a quote still
+    // verbatim elsewhere in the file no longer keeps a drifted anchor green).
+    // claims.ndjson cites the same `path#L7` / `path#L62-L65` shape with NO
+    // quote to substring-verify, so #8's path-existence leg is all that
+    // guards it — a cited file that shrinks below its window (split, refactor,
+    // trim) leaves the claim pointing past EOF, green forever. The bounds
+    // half is the whole contract a quote-less citation can carry: the window
+    // must EXIST in the live file (same `split('\n')` line convention as the
+    // evidence anchor leg).
+    let anchored = 0;
+    const offenders: string[] = [];
+    for (const line of claimLines) {
+      const claim = JSON.parse(line) as Claim; // shape pinned by the Q5 leg
+      if (!parseLineAnchor(claim.source)) continue; // bare path — #8's leg
+      anchored++;
+      const offender = verifyAnchorFits(
+        claim.source,
+        readSource(claim.source.split('#')[0]).split('\n').length,
+      );
+      if (offender) offenders.push(`${claim.source} [${offender}]`);
+    }
+    // Anti-vacuous floor: 42 anchored claims today (of 73 sources). Mass
+    // anchor-stripping must fall through this floor loudly, not silently
+    // empty the leg. Raise with the census, never silently.
+    expect(anchored).toBeGreaterThanOrEqual(40);
+    expect(offenders).toEqual([]);
+  });
+
+  it('sources: a `#L…`-shaped fragment that fails the anchor grammar is a typo, not a heading', () => {
+    // parseLineAnchor returns null for every non-anchor fragment BY DESIGN
+    // (bare paths and heading slugs keep the file-level contract), so a
+    // typo'd anchor (`#L12a`, `#L12-L`) degrades silently to file-level: the
+    // citation keeps claiming a line location nothing resolves, and the #9/#10
+    // window legs skip it as if it were a heading. Teeth, wherever a source
+    // is cited (evidence entities + claims): a fragment that starts `L`+digit
+    // but fails the grammar is an offender. Case-sensitive by design —
+    // `#l10n` is the heading-slug shape this contract leaves alone.
+    const offenders: string[] = [];
+    const check = (label: string, source: string): void => {
+      const offender = malformedAnchorFragment(source);
+      if (offender) offenders.push(`${label}: ${source} [${offender}]`);
+    };
+    for (const [name, term] of termEntries) {
+      for (const ev of term.evidence ?? []) check(`term ${name}`, ev.source);
+    }
+    for (const inv of invariants.invariants) {
+      for (const ev of inv.evidence ?? []) check(inv.id, ev.source);
+    }
+    for (const amb of ambiguities.ambiguities) {
+      for (const ev of amb.evidence ?? []) check(amb.id, ev.source);
+    }
+    for (const item of termQueue.queue) {
+      for (const ev of item.evidence ?? []) check(item.id, ev.source);
+    }
+    for (const line of claimLines) {
+      check('claim', (JSON.parse(line) as Claim).source);
+    }
+    expect(offenders).toEqual([]);
+  });
+
   it('budget: terms / layers / draft ratio / queue pending inside ontology_budget limits (Q4, Q6)', () => {
     expect(termNames.length).toBeLessThanOrEqual(budget.limits.total_terms_max);
     expect(layerCounts.core ?? 0).toBeLessThanOrEqual(budget.limits.core_max);
@@ -1328,6 +1404,46 @@ describe('concept-quote-contract helpers (import path) — contract pin', () => 
     expect(
       verifyAnchorWindow('loose summary of the window…', 'f.ts#L1', lines),
     ).toBeNull();
+  });
+
+  it('verifyAnchorFits: bounds-only window check for quote-less citations (claims)', () => {
+    // The message mirrors verifyAnchorWindow's out-of-range branch so a
+    // claims offender reads the same as an evidence one.
+    expect(verifyAnchorFits('f.ts#L3', 3)).toBeNull(); // exact EOF fits
+    expect(verifyAnchorFits('f.ts#L2-L3', 3)).toBeNull();
+    expect(verifyAnchorFits('f.ts#L4', 3)).toMatch(
+      /^anchor L4-L4 outside file \(3 lines\)$/,
+    );
+    expect(verifyAnchorFits('f.ts#L2-L9', 3)).toMatch(
+      /^anchor L2-L9 outside file \(3 lines\)$/,
+    );
+    // `L0` parses (the grammar is \d+) but 0 is not a 1-based line — the
+    // bounds branch is what catches it.
+    expect(verifyAnchorFits('f.ts#L0', 3)).toMatch(
+      /^anchor L0-L0 outside file \(3 lines\)$/,
+    );
+    // No anchor → file-level contract (the #8 existence leg governs).
+    expect(verifyAnchorFits('f.ts', 3)).toBeNull();
+    expect(verifyAnchorFits('f.ts#overview', 3)).toBeNull();
+  });
+
+  it('malformedAnchorFragment: `L`+digit prefix that fails the grammar is a typo offender', () => {
+    expect(malformedAnchorFragment('f.ts#L12a')).toMatch(
+      /^malformed line anchor: #L12a$/,
+    );
+    expect(malformedAnchorFragment('f.ts#L12-L')).toMatch(
+      /^malformed line anchor: #L12-L$/,
+    );
+    expect(malformedAnchorFragment('f.ts#L12-L15-L20')).not.toBeNull();
+    expect(malformedAnchorFragment('f.ts#L12#L15')).not.toBeNull(); // second hash breaks the shape
+    // Well-formed anchors, bare paths and heading slugs stay null.
+    expect(malformedAnchorFragment('f.ts#L12')).toBeNull();
+    expect(malformedAnchorFragment('f.ts#L12-L15')).toBeNull();
+    expect(malformedAnchorFragment('f.ts#L12-15')).toBeNull();
+    expect(malformedAnchorFragment('f.ts')).toBeNull();
+    expect(malformedAnchorFragment('docs/x.md#overview')).toBeNull();
+    // Case-sensitive by design: `#l10n` is the heading-slug convention.
+    expect(malformedAnchorFragment('docs/i18n.md#l10n')).toBeNull();
   });
 
   it('collectTombstoneViolations: empty list and clean tombstones yield no violations', () => {

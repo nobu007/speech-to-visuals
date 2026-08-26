@@ -11,7 +11,7 @@
  * Exported here so the guard and its contract pins share ONE definition —
  * a pin that drifts from the guard's logic is a vacuous pin.
  *
- * Two contracts live here:
+ * Three contracts live here:
  *
  *   Quote verification — a quote is (a) a verbatim excerpt
  *   (whitespace-normalized substring, single-line or flattened multi-line),
@@ -20,6 +20,14 @@
  *   the source AND occur in source order, or (c) a paraphrase, declared by
  *   a TRAILING `…`/`...` suffix alone, which is exempt from verification
  *   and bounded by the guard's paraphrase-ratio cap instead.
+ *
+ *   Citation anchors — a `path#L12-L15` source may claim a line window:
+ *   verifyAnchorWindow pins an evidence QUOTE inside that window of the
+ *   live file, verifyAnchorFits checks the window fits the file at all (for
+ *   quote-less citations like claims.ndjson sources), and
+ *   malformedAnchorFragment flags an `L`+digit fragment that fails the
+ *   anchor grammar — a typo degrading to the file-level contract, not a
+ *   heading.
  *
  *   Tombstone backfill — a tombstone is the receipt for a GC deletion, so
  *   its term must no longer be canonical and its former TERM- id must not
@@ -154,6 +162,54 @@ export function verifyAnchorWindow(
     quote,
     lines.slice(anchor.start - 1, anchor.end).join('\n'),
   );
+}
+
+/**
+ * Bounds-only half of the anchor contract, for citations that carry NO quote
+ * — the `source` fields of claims.ndjson. Evidence entries verify their quote
+ * content inside the window (verifyAnchorWindow); a claim has no quote text
+ * to substring-verify, but the window's EXISTENCE claim — "this fact lives at
+ * lines 62-65" — is still checkable against the live file. `lineCount` is the
+ * file's `split('\n')` length, the same convention verifyAnchorWindow uses
+ * (a trailing newline yields one final empty fragment, so the last real line
+ * still fits).
+ */
+export function verifyAnchorFits(
+  source: string,
+  lineCount: number,
+): string | null {
+  const anchor = parseLineAnchor(source);
+  if (!anchor) return null; // bare path / other fragment: file-level contract
+  if (anchor.start < 1 || anchor.end > lineCount) {
+    return `anchor L${anchor.start}-L${anchor.end} outside file (${lineCount} lines)`;
+  }
+  return null;
+}
+
+// A `#` fragment that begins `L` followed by a digit but fails
+// LINE_ANCHOR_SHAPE (`#L12a`, `#L12-L`, `#L12#L15`) is a typo'd line anchor,
+// not a heading slug — parseLineAnchor rightly returns null for it, but
+// without this check that null degrades SILENTLY to the file-level contract:
+// the citation keeps claiming a line location nothing resolves, and the
+// window legs skip it as if it were a heading. Detection is deliberately
+// case-SENSITIVE: lowercase fragments (`#l10n`) are the heading-slug
+// convention, and flagging them would false-positive on anchors this
+// contract does not govern.
+const ANCHOR_TYPO_PREFIX = /^L\d/;
+
+/**
+ * A `#L…`-shaped fragment that fails the anchor grammar is a typo, not a
+ * heading: returns an offender reason, or null when the source is a bare
+ * path, a heading fragment, or a well-formed anchor.
+ */
+export function malformedAnchorFragment(source: string): string | null {
+  const hash = source.indexOf('#');
+  if (hash === -1) return null;
+  const fragment = source.slice(hash + 1);
+  if (!ANCHOR_TYPO_PREFIX.test(fragment)) return null;
+  return LINE_ANCHOR_SHAPE.test(fragment)
+    ? null
+    : `malformed line anchor: #${fragment}`;
 }
 
 /**
