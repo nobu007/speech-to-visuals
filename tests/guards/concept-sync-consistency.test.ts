@@ -181,6 +181,28 @@
  * silently to the file-level contract parseLineAnchor hands to headings).
  * Both new helpers are pinned in the contract describe (session-239 lesson).
  *
+ * Test-stage follow-up #11 (run 20260826-160430 test stage; the residuals of the 20260826-143546 implement eval plus the charter sibling-site gap):
+ * the resolution contracts covered invariants checks, YAML evidence,
+ * mappings descriptors — but two surfaces still escaped them entirely.
+ * (1) charter.yml, Source-of-Truth #1, had its OWN gates unread: §5.1
+ * milestone `acceptance` entries and `work_policy.quality_gates` passed
+ * unvalidated (the Charter shape did not even carry them). They now resolve
+ * through the SAME per-type contract as invariant checks via a shared
+ * `checkTargetOffenders` resolver (one definition, two call sites — the
+ * missed-sibling-site class). The first run caught a real casualty: MS-001
+ * declared `type: test` on the command-form gate `npm run verify:all` —
+ * corrected to `type: command` in the same diff (the script is real).
+ * (2) claims.ndjson records: `artifact_type`/`about`/`claim_type` passed
+ * unread (now pinned to the FULL concept-sync C-1 schema enums, not the
+ * observed subset), nothing related claim_type to confidence even though
+ * Rule 1 of the sync 絶対的指針 makes the pair an obligation (推測は
+ * hypothesis, confidence ≤ 0.4 — 5 bootstrap claims sat at 0.5, clamped in
+ * the same diff).
+ *
+ * Rebase note (2026-08-27): #11 was authored in parallel with #10 and its
+ * claims-anchor leg restated #10's window-fits contract inline; the rebased
+ * branch keeps #10's helper-backed leg and #11's vocabulary cross-field leg.
+ *
  * Scope decisions (conscious, keep future edits honest):
  *   - Evidence QUOTES are pinned modulo whitespace: single-line quotes are
  *     exact substrings, multi-line excerpts may be flattened with single
@@ -292,7 +314,17 @@ interface Budget {
 }
 interface Charter {
   product_goal: { north_star: string };
-  milestones: { id: string; name: string; status: string }[];
+  milestones: {
+    id: string;
+    name: string;
+    status: string;
+    priority: string;
+    acceptance: { type: string; target: string }[];
+  }[];
+  work_policy: {
+    default_mode: string;
+    quality_gates: { must_pass: string[] };
+  };
 }
 interface Metrics {
   run_id: string;
@@ -310,6 +342,9 @@ interface Claim {
   confidence: number;
   priority: string;
   source: string;
+  artifact_type: string;
+  about: string;
+  claim_type: string;
 }
 
 function loadYaml<T>(rel: string): T {
@@ -396,6 +431,30 @@ const CONCEPT_FILES = [
 // vocabulary leg below and must be added here consciously; silently counting
 // as neither pending nor merged would skew the metrics derivations.
 const QUEUE_DECISIONS = new Set(['pending', 'merged', 'rejected', 'accepted']);
+
+// claims.ndjson record vocabulary — concept-sync C-1 schema enums, pinned as
+// the FULL schema set, not the observed subset: a legitimately novel-but-
+// schema-legal value (`db`, `lifecycle`, …) must pass, a typo'd `spek` must
+// RED until the schema itself changes. Same posture as QUEUE_DECISIONS.
+const CLAIM_ARTIFACT_TYPES = new Set([
+  'spec',
+  'design',
+  'code',
+  'test',
+  'db',
+  'ops',
+  'unknown',
+]);
+const CLAIM_ABOUT = new Set([
+  'definition',
+  'lifecycle',
+  'boundary',
+  'invariant',
+  'transition',
+  'data_constraint',
+  'error_handling',
+]);
+const CLAIM_TYPES = new Set(['fact', 'hypothesis']);
 
 // Repo contract: every quality-gate command is `npm [run] <script>` (CI and
 // local gates are npm scripts only — AGENTS.md 検証コマンド). A command that
@@ -494,6 +553,52 @@ function evaluateNpmTestPatterns(tail: string): PatternSelection {
     if (testFilePaths.some((p) => selector.test(p))) anyMatch = true;
   }
   return anyMatch ? { ok: true } : { ok: false, reason: 'selects-nothing' };
+}
+
+/**
+ * Resolve one §5.4/C-11 checks-shaped target against repo truth. Follow-up
+ * Follow-up #11: extracted from the invariants checks leg so charter milestone
+ * acceptance can resolve through the SAME contract — one definition, two
+ * call sites, no fork (the missed-sibling-site bug class). Returns offender
+ * strings WITHOUT the `<id>: ` prefix; callers prepend their own label.
+ * A `type` outside the three branches resolves nothing and stays silent —
+ * vocabulary enforcement is the caller's leg, not this helper's.
+ */
+function checkTargetOffenders(
+  type: string,
+  target: string,
+  scripts: ReadonlySet<string>,
+): string[] {
+  const offenders: string[] = [];
+  if (type === 'test') {
+    if (/^npm\b/.test(target)) {
+      const m = target.match(NPM_TEST_FORM);
+      if (m === null) {
+        offenders.push(`malformed npm test form: ${target}`);
+      } else if (m[1] !== undefined) {
+        const selection = evaluateNpmTestPatterns(m[1]);
+        if (!selection.ok) {
+          offenders.push(
+            selection.reason === 'invalid-regex'
+              ? `npm test pattern is an invalid regex — jest downgrades it to the FULL suite ("Running all tests instead"), the gate stops meaning what the invariant cites: ${selection.pattern}`
+              : `npm test pattern selects no test file (jest exits 1 "No tests found"): ${target}`,
+          );
+        }
+      }
+    } else if (!existsSync(resolveSource(target))) {
+      offenders.push(`test target not on disk: ${target}`);
+    }
+  } else if (type === 'command') {
+    const match = target.match(/^npm (?:run )?(\S+)$/);
+    if (!match || !scripts.has(match[1])) {
+      offenders.push(`command is not a real script: ${target}`);
+    }
+  } else if (type === 'manual') {
+    if (firstResolvablePathToken(target) === null) {
+      offenders.push(`manual target has no resolvable path anchor: ${target}`);
+    }
+  }
+  return offenders;
 }
 
 // A §5.5 code_symbol is `<path>::<descriptor>`. Follow-up #8: nothing
@@ -734,35 +839,15 @@ describe('concept-sync consistency guard (.concept/ bootstrap 5fd0dd60)', () => 
         if (check.target.trim() === '') {
           offenders.push(`${inv.id}: empty check target`);
         }
-        if (check.type === 'test') {
-          if (/^npm\b/.test(check.target)) {
-            const m = check.target.match(NPM_TEST_FORM);
-            if (m === null) {
-              offenders.push(`${inv.id}: malformed npm test form: ${check.target}`);
-            } else if (m[1] !== undefined) {
-              const selection = evaluateNpmTestPatterns(m[1]);
-              if (!selection.ok) {
-                offenders.push(
-                  selection.reason === 'invalid-regex'
-                    ? `${inv.id}: npm test pattern is an invalid regex — jest downgrades it to the FULL suite ("Running all tests instead"), the gate stops meaning what the invariant cites: ${selection.pattern}`
-                    : `${inv.id}: npm test pattern selects no test file (jest exits 1 "No tests found"): ${check.target}`,
-                );
-              }
-            }
-          } else if (!existsSync(resolveSource(check.target))) {
-            offenders.push(`${inv.id}: test target not on disk: ${check.target}`);
-          }
-        } else if (check.type === 'command') {
-          const match = check.target.match(/^npm (?:run )?(\S+)$/);
-          if (!match || !scripts.has(match[1])) {
-            offenders.push(`${inv.id}: command is not a real script: ${check.target}`);
-          }
-        } else if (check.type === 'manual') {
-          if (firstResolvablePathToken(check.target) === null) {
-            offenders.push(
-              `${inv.id}: manual target has no resolvable path anchor: ${check.target}`,
-            );
-          }
+        // Follow-up #11: the per-type resolution now lives in the shared
+        // checkTargetOffenders resolver (pinned below) so charter acceptance
+        // runs the identical contract.
+        for (const offender of checkTargetOffenders(
+          check.type,
+          check.target,
+          scripts,
+        )) {
+          offenders.push(`${inv.id}: ${offender}`);
         }
       }
     }
@@ -1048,6 +1133,43 @@ describe('concept-sync consistency guard (.concept/ bootstrap 5fd0dd60)', () => 
     expect(missing).toEqual([]);
   });
 
+  it('claims: record vocabulary is the C-1 schema; Rule-1 cross-field — a hypothesis never carries confidence > 0.4', () => {
+    // Follow-up #11, leg 2 — the Q5 leg pins priority / confidence range /
+    // term_canonical, but artifact_type / about / claim_type passed unread,
+    // and nothing related claim_type to confidence even though Rule 1 of the
+    // sync system's 絶対的指針 makes the pair an obligation: 出典なしの事実を
+    // 確定として書かない — 推測は hypothesis, confidence ≤ 0.4. This is the
+    // value+operator-in-ONE-place class: the two fields live in the same
+    // record, so only a cross-field leg can see a hypothesis graded like a
+    // sourced fact. First run caught 5 bootstrap claims typed hypothesis at
+    // confidence 0.5 — clamped to the 0.4 band ceiling in the same diff.
+    const offenders: string[] = [];
+    for (const line of claimLines) {
+      const claim = JSON.parse(line) as Claim;
+      if (!CLAIM_ARTIFACT_TYPES.has(claim.artifact_type)) {
+        offenders.push(
+          `${claim.source}: artifact_type "${claim.artifact_type}" outside the C-1 schema`,
+        );
+      }
+      if (!CLAIM_ABOUT.has(claim.about)) {
+        offenders.push(
+          `${claim.source}: about "${claim.about}" outside the C-1 schema`,
+        );
+      }
+      if (!CLAIM_TYPES.has(claim.claim_type)) {
+        offenders.push(
+          `${claim.source}: claim_type "${claim.claim_type}" outside fact|hypothesis`,
+        );
+      }
+      if (claim.claim_type === 'hypothesis' && claim.confidence > 0.4) {
+        offenders.push(
+          `${claim.source}: hypothesis at confidence ${claim.confidence} — Rule-1 band is ≤ 0.4`,
+        );
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
+
   it('claims: line anchors fit their file — a claim citing #Lx past EOF is location drift', () => {
     // Follow-up #9 pinned evidence QUOTES to their #Lx windows (a quote still
     // verbatim elsewhere in the file no longer keeps a drifted anchor green).
@@ -1239,6 +1361,61 @@ describe('concept-sync consistency guard (.concept/ bootstrap 5fd0dd60)', () => 
       expect(ms.name.length).toBeGreaterThan(0);
       expect(milestoneStatuses.has(ms.status)).toBe(true);
     }
+  });
+
+  it('charter: milestone acceptance targets resolve like invariant checks; milestone vocabulary and gates are real', () => {
+    // Follow-up #11, leg 1 — charter.yml is Source-of-Truth #1, yet its OWN
+    // gates were the least verified surface in .concept/: §5.1 milestone
+    // `acceptance` entries and `work_policy.quality_gates` passed unread
+    // (the Charter shape did not even carry them), so a typo'd path or a
+    // dead gate blessed by the top of the hierarchy drifted silently — the
+    // same blind spot the checks-target leg closed for invariants (#4).
+    // Resolution goes through the shared checkTargetOffenders resolver, so
+    // the contract cannot fork between the two call sites. First run caught
+    // a real casualty: MS-001 declared `type: test` on the command-form
+    // gate `npm run verify:all` — a gate that selects no tests mislabeled
+    // as one; corrected to `type: command` in the same diff.
+    const pkg = JSON.parse(readSource('package.json')) as {
+      scripts: Record<string, string>;
+    };
+    const scripts = new Set(Object.keys(pkg.scripts));
+    const acceptanceTypes = new Set(['test', 'command', 'manual']); // C-11
+    const priorities = new Set(['P0', 'P1', 'P2']); // §5.1
+    const modes = new Set(['pr', 'commit', 'dry_run']); // §5.1 work_policy
+    const offenders: string[] = [];
+    const msIds = charter.milestones.map((ms) => ms.id);
+    expect(new Set(msIds).size).toBe(msIds.length); // no duplicate MS- ids
+    for (const ms of charter.milestones) {
+      if (!priorities.has(ms.priority)) {
+        offenders.push(`${ms.id}: priority "${ms.priority}" outside P0|P1|P2`);
+      }
+      const acceptance = ms.acceptance ?? [];
+      if (acceptance.length === 0) {
+        // A milestone without an acceptance gate is unfalsifiable — same
+        // rationale as the invariants `no checks entry` offender.
+        offenders.push(`${ms.id}: no acceptance entry`);
+      }
+      for (const acc of acceptance) {
+        if (!acceptanceTypes.has(acc.type)) {
+          offenders.push(`${ms.id}: unknown acceptance type "${acc.type}"`);
+        }
+        if (acc.target.trim() === '') {
+          offenders.push(`${ms.id}: empty acceptance target`);
+        }
+        for (const offender of checkTargetOffenders(
+          acc.type,
+          acc.target,
+          scripts,
+        )) {
+          offenders.push(`${ms.id} acceptance: ${offender}`);
+        }
+      }
+    }
+    expect(modes.has(charter.work_policy.default_mode)).toBe(true);
+    const gates = charter.work_policy.quality_gates.must_pass;
+    expect(gates.length).toBeGreaterThan(0); // anti-vacuous
+    expect(gates.filter((g) => !scripts.has(g))).toEqual([]);
+    expect(offenders).toEqual([]);
   });
 
   it('autopilot: commands are npm-form referencing real scripts; non-npm needs the explicit allowlist', () => {
@@ -1555,6 +1732,44 @@ describe('checks-target helpers (local) — contract pin', () => {
     expect(firstResolvablePathToken('review the architecture by intuition')).toBeNull();
     expect(firstResolvablePathToken('types/config/utils/lib は存在しない')).toBeNull();
     expect(firstResolvablePathToken('/')).toBeNull(); // bare slash trims to empty
+  });
+
+  it('checkTargetOffenders: per-branch verdicts for BOTH call sites (invariants checks + charter acceptance)', () => {
+    // Follow-up #11: the resolver is shared by two legs now, so a regression
+    // in any branch fails BOTH surfaces at once — pin each branch's verdict
+    // shape here, next to the sub-helpers it composes.
+    const scripts = new Set(['test', 'verify:all']);
+    // test branch, npm form
+    expect(checkTargetOffenders('test', 'npm test -- "guards"', scripts)).toEqual(
+      [],
+    );
+    // The charter MS-001 pre-fix shape: a command-form gate mislabeled as a
+    // test is malformed under the test branch, not merely weak.
+    expect(checkTargetOffenders('test', 'npm run verify:all', scripts)).toEqual([
+      'malformed npm test form: npm run verify:all',
+    ]);
+    // test branch, disk form
+    expect(checkTargetOffenders('test', 'package.json', scripts)).toEqual([]);
+    expect(checkTargetOffenders('test', 'no-such-file.ts', scripts)).toEqual([
+      'test target not on disk: no-such-file.ts',
+    ]);
+    // command branch
+    expect(checkTargetOffenders('command', 'npm run verify:all', scripts)).toEqual(
+      [],
+    );
+    expect(checkTargetOffenders('command', 'npm run nope', scripts)).toEqual([
+      'command is not a real script: npm run nope',
+    ]);
+    // manual branch
+    expect(checkTargetOffenders('manual', 'ls src/ のレビュー', scripts)).toEqual(
+      [],
+    );
+    expect(checkTargetOffenders('manual', 'review by intuition', scripts)).toEqual(
+      ['manual target has no resolvable path anchor: review by intuition'],
+    );
+    // Types outside the three branches are the CALLER's vocabulary leg —
+    // the resolver itself stays silent rather than guessing a branch.
+    expect(checkTargetOffenders('rubber', 'anything', scripts)).toEqual([]);
   });
 });
 
