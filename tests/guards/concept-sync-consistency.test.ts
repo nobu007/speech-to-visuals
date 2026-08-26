@@ -226,6 +226,17 @@
  * extra/missing keys), so the key-set expect was removed — the pinned-values
  * leg is the single authority for keys AND values.
  *
+ * Test-stage follow-up #15 (run 20260826-180241 test stage; residual of the
+ * 20260826-174327 test eval): the byte census read Buffer.byteLength of the
+ * DECODED text — §B-10 caps the FILE, and decode→re-encode is not
+ * size-preserving (an invalid sequence decodes to U+FFFD and re-encodes to
+ * 3 bytes). The census now reads the statSync size (disk truth), with an
+ * equality leg pinning it to the decoded length so any divergence REDs
+ * instead of passing silently. The eval's other suggestion (metrics-side
+ * draft-ratio / queue-pending derivation legs) was verified ALREADY
+ * covered: the metrics legs pin both to the recount that the Q4/Q6 leg
+ * checks against budget.ratios.
+ *
  * Scope decisions (conscious, keep future edits honest):
  *   - Evidence QUOTES are pinned modulo whitespace: single-line quotes are
  *     exact substrings, multi-line excerpts may be flattened with single
@@ -434,6 +445,11 @@ const claimLines = claimsNdjson.split('\n').filter((line) => line.trim() !== '')
 // line-count census can never see: a handful of pathological lines stays far
 // under 10k while blowing past the size cap.
 const claimsNdjsonBytes = Buffer.byteLength(claimsNdjson, 'utf8');
+// §B-10's "10MB" caps the FILE, so the byte census below reads the on-disk
+// size (statSync), not the re-encoded decoded length — the two can diverge
+// on invalid UTF-8 (a stray 0xFF decodes to U+FFFD and re-encodes to 3
+// bytes), and the equality leg fails loudly if they ever do.
+const claimsOnDiskBytes = statSync(resolveSource('.concept/claims.ndjson')).size;
 const decisionsMdLines = lineCountOf(readSource('.concept/decisions.md'));
 
 /** wc -l convention: split on \n and drop one trailing empty fragment. */
@@ -1302,14 +1318,27 @@ describe('concept-sync consistency guard (.concept/ bootstrap 5fd0dd60)', () => 
       ['mappings', Object.keys(mappings.mappings).length, fc.mappings_max],
       ['term_queue', termQueue.queue.length, fc.term_queue_max],
       // B-10 caps claims at 10k lines OR 10MB — both forms are enforced
-      // (tens of KB today, so neither is near binding).
+      // (tens of KB today, so neither is near binding). The byte form reads
+      // the on-disk size: the cap governs the file, not the decoded text.
       ['claims lines', claimLines.length, fc.claims_max_lines],
-      ['claims bytes', claimsNdjsonBytes, fc.claims_max_bytes],
+      ['claims bytes', claimsOnDiskBytes, fc.claims_max_bytes],
     ];
     const offenders = counts
       .filter(([name, count, cap]) => count > cap)
       .map(([name, count, cap]) => `${name}: ${count} > cap ${cap}`);
     expect(offenders).toEqual([]);
+  });
+
+  it('budget: claims byte census reads the disk — stat size equals the decoded byte length', () => {
+    // The census's byte input is the statSync size (the file is what §B-10
+    // caps). This leg trips when the decoded/re-encoded length stops being
+    // a faithful proxy for it: invalid UTF-8 decodes to U+FFFD and
+    // re-encodes to 3 bytes, so a 1-byte corruption today OVER-counts (the
+    // safe direction), but the drift is not bounded by anything and must
+    // never pass silently. A BOM stays byte-equal (U+FEFF re-encodes to its
+    // own 3 bytes) — it is instead caught by the JSON.parse leg, which
+    // rejects a non-object first line.
+    expect(claimsOnDiskBytes).toBe(claimsNdjsonBytes);
   });
 
   it('budget: B-10/§C-8 budget values pinned (cap inflation REDs)', () => {
