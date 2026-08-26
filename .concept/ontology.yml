@@ -178,7 +178,7 @@ canonical_terms:
     related_terms: ["SceneSegmenter", "VideoGenerator", "ExportEngine"]
     evidence:
       - source: "src/pipeline/scene-graph-builder.ts#L73-L80"
-        quote: "export function buildSceneGraph(input: BuildSceneGraphInput): SceneGraph { ... // startMs/endMs are MILLISECONDS (segmenter contract); startTime/endTime are SECONDS"
+        quote: "export function buildSceneGraph(input: BuildSceneGraphInput): SceneGraph { ... // startMs/endMs are MILLISECONDS (segmenter contract); startTime/endTime are // SECONDS"
       - source: "tests/pipeline/smoke-orchestrator-render-plan.test.ts#L71"
         quote: "describe('render-plan consistency with buildMultiScenes sequential timing', () => {"
   VideoGenerator:
@@ -564,7 +564,7 @@ canonical_terms:
     related_terms: ["GuardHarness"]
     evidence:
       - source: "specs/speech-to-visuals/requirements.md#L3-L10"
-        quote: "spine:anchor:begin … parent: speech-to-visuals/architecture.md … role: detailed"
+        quote: "spine:anchor:begin … parent: `speech-to-visuals/architecture.md` … role: `detailed`"
       - source: "package.json"
         quote: "\"spine:validate\": \"tsx scripts/validate-spine-manifest.ts\""
   MutationWitnessLedger:
