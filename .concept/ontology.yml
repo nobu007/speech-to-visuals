@@ -135,7 +135,7 @@ canonical_terms:
     id: "TERM-LAYOUT-STRATEGY"
     layer: "core"
     status: "stable"
-    definition: "図解タイプ別の配置戦略ファミリー（11タイプ全てに専用戦略: TreeStrategy / FlowStrategy / TimelineLayoutStrategy 等）と StrategySelector / レジストリからなる選択機構。"
+    definition: "図解タイプ別の配置戦略ファミリー（11タイプ全てに専用戦略: TreeStrategy / FlowStrategy / TimelineStrategy 等）と StrategySelector / レジストリからなる選択機構。"
     synonyms: ["レイアウト戦略", "strategy registry"]
     boundaries:
       includes: ["タイプ別配置アルゴリズム", "戦略選択（StrategySelector）", "フォールバック戦略"]
