@@ -33,7 +33,7 @@ invariants:
     rationale: "コア分離（V2.8）の境界維持。@stv/core 側は独自ラチェット（6,000行/90ファイル上限・境界検査 CI-fatal）で自己拘束する。"
     evidence:
       - source: "AGENTS.md#L50-L53"
-        quote: "コア層は外部パッケージ: types/ utils/ lib/ config/ は @stv-core (github:nobu007/stv-core, git 依存) に分離済み。"
+        quote: "コア層は外部パッケージ: types/ utils/ lib/ config/ は @stv-core (github:nobu007/stv-core, git 依存) に分離済み。…"
     checks:
       - type: "manual"
         target: "ls src/（types/config/utils/lib 不在確認）"
@@ -45,7 +45,7 @@ invariants:
     rationale: "秒/ミリ秒の ×1000 単位分岐は最多再発バグクラス。単一変換点に閉じることで撲滅する。"
     evidence:
       - source: "src/pipeline/scene-graph-builder.ts#L76-L80"
-        quote: "// startMs/endMs are MILLISECONDS (segmenter contract); startTime/endTime are SECONDS (video-generator reads `scene.startTime * 1000`). Mixing the two is the recurring ×1000 unit divergence — keep the one conversion here."
+        quote: "// startMs/endMs are MILLISECONDS (segmenter contract); startTime/endTime are SECONDS (video-generator reads `scene.startTime * 1000`). Mixing the two is the recurring ×1000 unit divergence — keep the one conversion here.…"
     checks:
       - type: "test"
         target: "tests/pipeline/"
@@ -57,7 +57,7 @@ invariants:
     rationale: "wrong-field-in-parallel-pipelines バグクラスの封じ込め（複数組み立て実装の分岐が過去の事故源）。"
     evidence:
       - source: "src/pipeline/scene-graph-builder.ts#L71-L73"
-        quote: "/** * Single-source SceneGraph assembler. See {@link BuildSceneGraphInput} for the divergence history this replaces. */ export function buildSceneGraph(input: BuildSceneGraphInput): SceneGraph {"
+        quote: "/** * Single-source SceneGraph assembler. See {@link BuildSceneGraphInput} for the divergence history this replaces. */ export function buildSceneGraph(input: BuildSceneGraphInput): SceneGraph {…"
     checks:
       - type: "manual"
         target: "grep -rn 'buildSceneGraph' src/（新規サイトの経由確認）"
@@ -123,7 +123,7 @@ invariants:
     rationale: "LLM 出力のパース失敗クラスを単一実装でサニタイズする（TC-313 で閉包済み）。"
     evidence:
       - source: "src/analysis/llm-utils.ts"
-        quote: "parseJsonFromLLMText（LLM 出力パースチョークポイント）"
+        quote: "parseJsonFromLLMText（LLM 出力パースチョークポイント）…"
       - source: "tests/guards/llm-sanitizer-guard-mutation-pinning.test.ts#L59"
         quote: "describe('LLM sanitizer — source anchors pinned (TC-302-01)', () => {"
     checks:
@@ -165,7 +165,7 @@ invariants:
     rationale: "実測: 全実行 79秒→11.5分。リーク診断はサブセットへ CLI フラグで付与する。"
     evidence:
       - source: "jest.config.cjs#L5-L10"
-        quote: "// 2026-08: was `maxWorkers: 2` with `detectOpenHandles: true` — the latter // jest skips worker spawning entirely when detectOpenHandles is set"
+        quote: "// 2026-08: was `maxWorkers: 2` with `detectOpenHandles: true` — the latter // jest skips worker spawning entirely when detectOpenHandles is set…"
     checks:
       - type: "manual"
         target: "grep -n detectOpenHandles jest.config.cjs（ヒット0が正常）"
