@@ -315,3 +315,29 @@ REQ-419-004 requirements 節 + MW-084 ledger エントリ + overview Phase 228
 - MW-084 (a)(b) の fail-open 経路（sibling-statement / chained-call）は
   REQ-419-004 で「allowed 振る舞い」と明文化
 
+
+## Phase 229: REQ-419-005 sweep #10 回収（PR #23 の 31 kind union・src 変更ゼロ）
+
+**目標**: strand した PR #23（34-kind 版 sweep #10・base 陳腐化で
+CONFLICTING）を回収。main は 7-kind 版（Phase 227）+ detector 精緻化
+（Phase 228）を先行採択済みのため、PR 側 34 kind のうち 3 kind は shape
+重複として dedupe（doc-execcommand / nonstandard-setimmediate /
+node-process-nexttick → exec-command-legacy / setimmediate-call /
+process-nexttick が管轄）、残る **31 kind を union**（125 → 155 entry）。
+fixture は (ad8)〜(ad38) へ re 採番。ALLOWED は PR 由来 4 key 追加で
+24 → 28（FrameworkDashboard は PR #9 の行 shift で :494 → :533 に
+re-point）。PR 側計測が発見した detector 初稿 bug 3 件も同梱回収
+（REQ-419-005 節に記載）。
+**成果物**: guard 31 kind union + fixture re 採番 + ALLOWED 4 key +
+REQ-419-005/006 spec 節 + MW-092（src 変更ゼロ recovery）
+
+### タスク一覧
+
+- [x] [TASK-0310: 第十回 discovery sweep（7-kind 版 main 採択分 + PR #23 回収 31 kind の union・MW-092 再実証）](TASK-0310.md) - 1h (recovery) 🔵 ✅完了
+
+### 依存関係
+
+- Phase 227/228 の registry・detector が正本 — PR #23 側の同域 detector は
+  dedupe 3 kind を除き全て探納（MW-084 の balanced-arg 化は共通）
+- 回収 kind の発火能力は現行 main tree への 3 mutation（MW-092）で再実証
+  （PR 側の計測は陳腐化 base に対するもの）

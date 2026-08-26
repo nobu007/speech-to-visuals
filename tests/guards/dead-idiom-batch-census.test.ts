@@ -316,7 +316,7 @@
  * ALLOWED / ERADICATED are the census-artifact three-way blocks (REQ-395):
  * the requirements prose must declare `ALLOWED 2 key` / `ERADICATED 2 key`.
  *
- *   <!-- census-pin:F19:dead-idiom-batch ALLOWED 23 key / ERADICATED 13 key -->
+ *   <!-- census-pin:F19:dead-idiom-batch ALLOWED 27 key / ERADICATED 13 key -->
  *
  * Documented ceilings (same honesty as the sibling censuses):
  *   - line-level detection sees one line at a time: a `==` split across a
@@ -839,7 +839,11 @@ export const IDIOM_KINDS: readonly IdiomKind[] = [
   // lone surrogate halves — `[...text]` iterates code points. The one
   // measured site was unified in-commit (see ERADICATED).
   { id: 'string-char-split', detect: /\.split\(\s*(['"`])\1\s*\)/ },
-  // --- REQ-419 tenth sweep (seven kinds, all measured on 2026-08-26) ---
+  // --- REQ-419 tenth sweep (recovered union: 7 kinds landed via MW-083 +
+  // 31 more recovered from PR #23's 34-kind sweep on 2026-08-28; the 3
+  // shape-duplicates doc-execcommand / nonstandard-setimmediate /
+  // node-process-nexttick were deduped into exec-command-legacy /
+  // setimmediate-call / process-nexttick — the MW-084-refined detectors) ---
   // `.filter(…)[0]` materializes the whole filtered array to read one
   // element; `.find(…)` is the short-circuit form (an index read like
   // `.filter(…)[i]` with a real i, or `[0]` on a non-filter receiver, is
@@ -869,6 +873,129 @@ export const IDIOM_KINDS: readonly IdiomKind[] = [
   // process.nextTick starves the event loop and is absent in browsers;
   // queueMicrotask is the portable form (scripts/ node shims are off-walk).
   { id: 'process-nexttick', detect: /process\.nextTick\s*\(/ },
+  // window.clipboardData is IE's clipboard object — undefined in every
+  // current engine (the DataTransfer lives on the event, not window).
+  { id: 'window-clipboard-data', detect: /window\.clipboardData/ },
+  // The bare `Buffer(n)` / `new Buffer(n)` ctor is Node-deprecated
+  // (zero-fill hazard, length-vs-content confusion); Buffer.alloc /
+  // Buffer.from are the forms. The lookbehind keeps ArrayBuffer out.
+  { id: 'legacy-buffer-ctor', detect: /(?<![.\w$])Buffer\s*\(/ },
+  // url.parse is the legacy Node url API (no WHATWG semantics, silent
+  // shape differences); the URL ctor is the form.
+  { id: 'node-url-parse', detect: /url\.parse\s*\(/ },
+  // The querystring module is the legacy percent-encoding API
+  // (URLSearchParams is the form — and the charset pitfalls are real).
+  { id: 'node-querystring', detect: /querystring\./ },
+  // Promise.defer() / .defer() is the long-removed non-standard deferred
+  // API (Promise.withResolvers is the modern spelling).
+  { id: 'promise-deferred', detect: /Promise\.defer\s*\(|\.defer\s*\(\s*\)/ },
+  // Object/Array.observe is the removed observation proposal
+  // (Proxy / MutationObserver are the live forms).
+  { id: 'object-observe', detect: /(?:Object|Array)\.observe\s*\(/ },
+  // System.import is the removed module-loader spelling; dynamic
+  // `import()` is the standard form.
+  { id: 'system-import', detect: /System\.import\s*\(/ },
+  // XDomainRequest is the IE9-only CORS transport.
+  { id: 'x-domain-request', detect: /XDomainRequest/ },
+  // ActiveXObject is the IE plugin/COM bridge.
+  { id: 'activex-object', detect: /ActiveXObject/ },
+  // console.table/dir/group/count/time/profile are devtools-only sinks
+  // that bypass the logger's level gate — the console family's third
+  // twin (log/debug and info/warn/error/trace/assert already pinned).
+  {
+    id: 'console-devtools-sink',
+    detect: /console\.(?:table|dir|group|groupEnd|groupCollapsed|count|time|timeEnd|timeLog|timeStamp|profile|profileEnd)\s*\(/,
+  },
+  // getComputedStyle(el, null) carries the legacy MANDATORY pseudoElt
+  // second arg; the one-arg form is the standard spelling.
+  {
+    id: 'getcomputedstyle-null-arg',
+    detect: /getComputedStyle\s*\([^)]*,\s*(?:null|undefined)\s*\)/,
+  },
+  // webkit/moz/ms/oMatchesSelector are the prefixed matches spellings;
+  // element.matches is the standard form.
+  { id: 'prefixed-matches-selector', detect: /(?:webkit|moz|ms|o)MatchesSelector/ },
+  // .scrollIntoViewIfNeeded() is the Safari-only non-standard scroll
+  // (scrollIntoView is the standard form everywhere).
+  { id: 'scroll-into-view-if-needed', detect: /\.scrollIntoViewIfNeeded\s*\(/ },
+  // forceUpdate is the React escape hatch that papers over a missed
+  // state/props dependency; the data flow must not need it.
+  { id: 'react-force-update', detect: /\.forceUpdate\s*\(/ },
+  // Runtime propTypes duplicate what tsc already proves in-repo — the
+  // `.propTypes =` static / PropTypes.x spellings are dead weight here.
+  { id: 'react-prop-types', detect: /\.propTypes\s*=\s*\{|\bPropTypes\./ },
+  // importScripts is the worker-only global — ReferenceError on the main
+  // thread (ES module import is the form).
+  { id: 'importscripts-global', detect: /(?<![.\w$])importScripts\s*\(/ },
+  // Error.captureStackTrace is a V8-only extension — ReferenceError in
+  // Firefox/Safari and in any non-V8 context of the isomorphic bundle.
+  { id: 'error-capture-stack-trace', detect: /Error\.captureStackTrace\s*\(/ },
+  // `x ? x : y` is `x || y` longhand: the falsy-vs-nullish hazard class
+  // ('' / 0 / false read as absent; `??` is the form). The reserved-word
+  // consequent (`cond ? null : y`) is NOT the shape — the draft detector
+  // false-positived on exactly that (memory-backend.ts:94) and the
+  // exclusion list was added before pinning.
+  {
+    id: 'self-ternary-default',
+    detect:
+      /(?<![\w$.])(?!null\b|undefined\b|true\b|false\b|this\b)([A-Za-z_$][\w$.]*)\s*\?\s*\1\s*:/,
+  },
+  // navigator.msXxx (msSaveBlob / msSaveOrOpenBlob …) are the IE-prefixed
+  // navigator extensions — undefined in every current engine.
+  { id: 'navigator-ms-prefixed', detect: /navigator\.ms[A-Z]/ },
+  // process.binding is the deprecated Node internal bridge — removed from
+  // the public API surface.
+  { id: 'process-binding', detect: /process\.binding\s*\(/ },
+  // window.external is the IE addon-scripting API (AddFavorite etc.) —
+  // undefined elsewhere.
+  { id: 'window-external', detect: /window\.external/ },
+  // getBoxObjectFor is the Netscape/Firefox-dead element-geometry API
+  // (getBoundingClientRect is the form) — document.layers' sibling.
+  { id: 'getbox-object-for', detect: /getBoxObjectFor/ },
+  // DOMNodeInserted / DOMAttrModified / … are the deprecated mutation
+  // EVENTS (per-spec dead, whole-document forced layout); MutationObserver
+  // is the form.
+  {
+    id: 'mutation-event-name',
+    detect: /DOM(?:AttrModified|NodeInserted|NodeRemoved|SubtreeModified|CharacterDataModified)/,
+  },
+  // window.status = is the status-bar write — a no-op in every current
+  // engine (the bookmark-hack relic).
+  { id: 'window-status-assign', detect: /window\.status\s*=/ },
+  // .fireEvent() is IE's dispatch spelling (dispatchEvent is the form).
+  { id: 'element-fire-event', detect: /\.fireEvent\s*\(/ },
+  // `children.map(…)` assumes children is an array — React passes a
+  // SINGLE element (not array-wrapped) for one child, so the call
+  // TypeErrors; React.Children.map / toArray are the forms.
+  { id: 'children-map-direct', detect: /children\.map\s*\(/ },
+  // Event.path is the non-standard accessor (undefined in Firefox/IE);
+  // composedPath() is the standard form. The lookbehind keeps identifier
+  // suffixes (largestFile.path) out — the draft matched exactly that at
+  // code-size-audit.ts:95 and the boundary was fixed before pinning.
+  { id: 'event-path-access', detect: /(?<![\w$])(?:event|evt|e)\.path\b/ },
+  // createCipher / createDecipher (no iv suffix) are the deprecated
+  // implicit-IV Node crypto ctors (removed; createCipheriv is the form —
+  // the 'iv' suffix escapes this regex).
+  { id: 'node-createcipher', detect: /create(?:Decipher|Cipher)\s*\(/ },
+  // Bare .toLocaleDateString() / .toLocaleTimeString() format with the
+  // RUNTIME default locale — tolocalestring-bare's date twin. The four
+  // measured sites are display-only (ALLOWED below); an export/CSV/PDF
+  // or comparison consumer is an unrostered RED.
+  {
+    id: 'localedatestring-bare',
+    detect: /\.toLocale(?:Date|Time)String\s*\(\s*\)/,
+  },
+  // `xs.splice(xs.indexOf(x), 1)` is the remove-by-value idiom whose
+  // not-found case is the incident: indexOf -1 makes splice(-1, 1)
+  // silently remove the LAST element. filter / findIndex+guard are forms.
+  { id: 'splice-indexof-remove', detect: /\.splice\(\s*[\w$.]+\.indexOf\(/ },
+  // unstable_batchedUpdates / unstable_renderSubtreeIntoContainer are the
+  // React exported-then-doomed unstable APIs (18 removes the need; 19
+  // removes the exports).
+  {
+    id: 'unstable-react-api',
+    detect: /unstable_batchedUpdates|unstable_renderSubtreeIntoContainer/,
+  },
 ];
 
 /** One discovered idiom site, classified against its kind's context rule. */
@@ -1028,6 +1155,22 @@ const ALLOWED: Record<string, string> = {
   // the string (the same REPORT-ONLY verdict, one field over).
   'src/monitoring/production-error-handler.ts:273':
     'REPORT-ONLY — getBrowserInfo() telemetry context field beside the :271 userAgent row (platform: navigator.platform); no behavior branches on the fixed hint string; a BRANCH on it is an unrostered RED.',
+  // [localedatestring-bare] all four sites are HUMAN-FACING wall-clock
+  // display (dashboard table cells, a detail line, an in-app log prefix).
+  // The drift class matters where locale-formatted output lands in a
+  // DETERMINISTIC artifact (CSV/PDF export — locale commas/eras are data
+  // corruption there, the tolocalestring-bare row's own rationale); for
+  // display the runtime locale IS the appropriate formatter. A site whose
+  // formatted value feeds comparison/export/caching is a different shape
+  // and an unrostered RED.
+  'src/components/AdminAnalyticsDashboard.tsx:56':
+    'DISPLAY-ONLY — formatTimestamp() renders the admin analytics table wall-clock column; runtime-default locale is the appropriate formatter for human display (the drift class matters for export output, not display).',
+  'src/components/AdminAnalyticsDashboard.tsx:606':
+    'DISPLAY-ONLY — report-history table cell timestamp; same judgment as the :56 formatTimestamp site in the same file (display, not export).',
+  'src/components/FrameworkDashboard.tsx:533':
+    'DISPLAY-ONLY — iteration detail Time: line rendered into the dashboard tree; same judgment as the AdminAnalytics :56 site (display, not export). Re-pointed from :494 after PR #9\'s mountedRef guards shifted the line.',
+  'src/components/Iteration43Interface.tsx:106':
+    'DISPLAY-ONLY — addIterationLog wall-clock prefix for the in-app iteration log list; the string is never parsed or exported (display, not export).',
 };
 
 /**
@@ -1107,6 +1250,7 @@ describe('dead-idiom batch census (REQ-410)', () => {
     expect(sites.filter((s) => s.kind === 'swallowed-rejection').length).toBeGreaterThanOrEqual(1);
     expect(sites.filter((s) => s.kind === 'console-nondebug-sink').length).toBeGreaterThanOrEqual(3);
     expect(sites.filter((s) => s.kind === 'dead-ua-platform').length).toBeGreaterThanOrEqual(1);
+    expect(sites.filter((s) => s.kind === 'localedatestring-bare').length).toBeGreaterThanOrEqual(4);
     // The kind registry is the steering contract — shrinking it is RED.
     expect(IDIOM_KINDS.map((k) => k.id)).toEqual([
       'coercing-isnan',
@@ -1234,6 +1378,37 @@ describe('dead-idiom batch census (REQ-410)', () => {
       'exec-command-legacy',
       'setimmediate-call',
       'process-nexttick',
+      'window-clipboard-data',
+      'legacy-buffer-ctor',
+      'node-url-parse',
+      'node-querystring',
+      'promise-deferred',
+      'object-observe',
+      'system-import',
+      'x-domain-request',
+      'activex-object',
+      'console-devtools-sink',
+      'getcomputedstyle-null-arg',
+      'prefixed-matches-selector',
+      'scroll-into-view-if-needed',
+      'react-force-update',
+      'react-prop-types',
+      'importscripts-global',
+      'error-capture-stack-trace',
+      'self-ternary-default',
+      'navigator-ms-prefixed',
+      'process-binding',
+      'window-external',
+      'getbox-object-for',
+      'mutation-event-name',
+      'window-status-assign',
+      'element-fire-event',
+      'children-map-direct',
+      'event-path-access',
+      'node-createcipher',
+      'localedatestring-bare',
+      'splice-indexof-remove',
+      'unstable-react-api',
     ]);
   });
 
@@ -2248,5 +2423,231 @@ describe('dead-idiom batch census (REQ-410)', () => {
     // (ad7) process.nextTick flagged; queueMicrotask not.
     expect(discoverIdiomSites('f.ts', 'process.nextTick(cb);')).toHaveLength(1);
     expect(discoverIdiomSites('f.ts', 'queueMicrotask(cb);')).toEqual([]);
+    // (ad8) window.clipboardData flagged; the event's own DataTransfer not.
+    expect(
+      discoverIdiomSites('f.ts', 'const cb = window.clipboardData;'),
+    ).toHaveLength(1);
+    expect(
+      discoverIdiomSites('f.ts', 'const cb = event.clipboardData;'),
+    ).toEqual([]);
+    // (ad9) the deprecated Buffer ctor flagged in BOTH spellings (one
+    // regex, `new Buffer(` and call-form); Buffer.from and ArrayBuffer not.
+    expect(
+      discoverIdiomSites('f.ts', 'const b = new Buffer(16);\nconst c = Buffer(16);'),
+    ).toHaveLength(2);
+    expect(
+      discoverIdiomSites('f.ts', 'const d = Buffer.from(hex);\nconst e = new ArrayBuffer(16);'),
+    ).toEqual([]);
+    // (ad10) url.parse flagged; the WHATWG URL ctor not.
+    expect(discoverIdiomSites('f.ts', 'const u = url.parse(raw);')).toHaveLength(1);
+    expect(discoverIdiomSites('f.ts', 'const u = new URL(raw);')).toEqual([]);
+    // (ad11) the querystring module flagged; URLSearchParams not.
+    expect(
+      discoverIdiomSites('f.ts', 'const q = querystring.parse(search);'),
+    ).toHaveLength(1);
+    expect(
+      discoverIdiomSites('f.ts', 'const q = new URLSearchParams(search);'),
+    ).toEqual([]);
+    // (ad12) Promise.defer()/.defer() flagged; withResolvers not.
+    expect(
+      discoverIdiomSites('f.ts', 'const d = Promise.defer();\nhandler.defer();'),
+    ).toHaveLength(2);
+    expect(
+      discoverIdiomSites('f.ts', 'const d = Promise.withResolvers();'),
+    ).toEqual([]);
+    // (ad13) Object/Array.observe flagged; MutationObserver not.
+    expect(
+      discoverIdiomSites('f.ts', 'Object.observe(cfg, cb);\nArray.observe(xs, cb);'),
+    ).toHaveLength(2);
+    expect(discoverIdiomSites('f.ts', 'new MutationObserver(cb);')).toEqual([]);
+    // (ad14) System.import flagged; dynamic import() not.
+    expect(discoverIdiomSites('f.ts', "System.import('mod');")).toHaveLength(1);
+    expect(
+      discoverIdiomSites('f.ts', "const m = await import('mod');"),
+    ).toEqual([]);
+    // (ad15) XDomainRequest flagged (fetch is the modern negative — XHR
+    // itself is legacy-xhr's own pinned shape).
+    expect(
+      discoverIdiomSites('f.ts', 'const x = new XDomainRequest();'),
+    ).toHaveLength(1);
+    expect(discoverIdiomSites('f.ts', 'const r = await fetch(url);')).toEqual([]);
+    // (ad16) ActiveXObject flagged; a real adapter class not.
+    expect(
+      discoverIdiomSites('f.ts', "const a = new ActiveXObject('X');"),
+    ).toHaveLength(1);
+    expect(
+      discoverIdiomSites('f.ts', 'const a = new ActiveXAdapter();'),
+    ).toEqual([]);
+    // (ad17) devtools-only console sinks flagged; the logger facade not.
+    expect(
+      discoverIdiomSites('f.ts', "console.time('op');\nconsole.table(rows);"),
+    ).toHaveLength(2);
+    expect(
+      discoverIdiomSites('f.ts', "logger.info('op done');"),
+    ).toEqual([]);
+    // (ad18) getComputedStyle's legacy null second arg flagged; the
+    // one-arg standard form not.
+    expect(
+      discoverIdiomSites('f.ts', 'const s = getComputedStyle(el, null);'),
+    ).toHaveLength(1);
+    expect(
+      discoverIdiomSites('f.ts', 'const s = getComputedStyle(el);'),
+    ).toEqual([]);
+    // (ad19) prefixed matches spellings flagged; element.matches not.
+    expect(
+      discoverIdiomSites('f.ts', 'el.webkitMatchesSelector(sel);\nel.mozMatchesSelector(sel);'),
+    ).toHaveLength(2);
+    expect(discoverIdiomSites('f.ts', 'el.matches(sel);')).toEqual([]);
+    // (ad20) scrollIntoViewIfNeeded flagged; scrollIntoView not.
+    expect(
+      discoverIdiomSites('f.ts', 'el.scrollIntoViewIfNeeded();'),
+    ).toHaveLength(1);
+    expect(discoverIdiomSites('f.ts', 'el.scrollIntoView();')).toEqual([]);
+    // (ad21) forceUpdate flagged; a state update not.
+    expect(discoverIdiomSites('f.ts', 'this.forceUpdate();')).toHaveLength(1);
+    expect(discoverIdiomSites('f.ts', 'setCount(c + 1);')).toEqual([]);
+    // (ad22) runtime propTypes flagged in both spellings (one line, one
+    // kind hit); displayName not.
+    expect(
+      discoverIdiomSites('f.ts', 'C.propTypes = { size: PropTypes.string };'),
+    ).toHaveLength(1);
+    expect(discoverIdiomSites('f.ts', "C.displayName = 'C';")).toEqual([]);
+    // (ad23) importScripts flagged; the ESM import not.
+    expect(
+      discoverIdiomSites('f.ts', "importScripts('worker-lib.js');"),
+    ).toHaveLength(1);
+    expect(
+      discoverIdiomSites('f.ts', "import { lib } from './worker-lib.js';"),
+    ).toEqual([]);
+    // (ad24) Error.captureStackTrace flagged; a plain Error not.
+    expect(
+      discoverIdiomSites('f.ts', 'Error.captureStackTrace(e);'),
+    ).toHaveLength(1);
+    expect(
+      discoverIdiomSites('f.ts', "const e = new Error('x');"),
+    ).toEqual([]);
+    // (ad25) the self-referential ternary flagged (identifier and
+    // property-path forms); distinct operands and the reserved-word
+    // consequent (`cond ? null : y` — the draft's false positive) not.
+    expect(
+      discoverIdiomSites('f.ts', 'const v = flag ? flag : fallback;\nconst w = a.b ? a.b : c;'),
+    ).toHaveLength(2);
+    expect(
+      discoverIdiomSites(
+        'f.ts',
+        'const v = flag ? on : off;\nreturn percent === null ? null : round(x);',
+      ),
+    ).toEqual([]);
+    // (ad26) the IE-prefixed navigator extension flagged; live navigator
+    // members not.
+    expect(
+      discoverIdiomSites('f.ts', "navigator.msSaveBlob(blob, 'x.png');"),
+    ).toHaveLength(1);
+    expect(
+      discoverIdiomSites('f.ts', 'navigator.storage.estimate();'),
+    ).toEqual([]);
+    // (ad27) process.binding flagged; the public import not.
+    expect(
+      discoverIdiomSites('f.ts', "const fs = process.binding('fs');"),
+    ).toHaveLength(1);
+    expect(
+      discoverIdiomSites('f.ts', "const fs = await import('node:fs');"),
+    ).toEqual([]);
+    // (ad28) window.external flagged; a live window member not.
+    expect(
+      discoverIdiomSites('f.ts', 'const ext = window.external;'),
+    ).toHaveLength(1);
+    expect(
+      discoverIdiomSites('f.ts', 'const s = window.getSelection();'),
+    ).toEqual([]);
+    // (ad29) getBoxObjectFor flagged; getBoundingClientRect not.
+    expect(
+      discoverIdiomSites('f.ts', 'const box = el.getBoxObjectFor();'),
+    ).toHaveLength(1);
+    expect(
+      discoverIdiomSites('f.ts', 'const box = el.getBoundingClientRect();'),
+    ).toEqual([]);
+    // (ad30) mutation EVENT names flagged; MutationObserver not.
+    expect(
+      discoverIdiomSites(
+        'f.ts',
+        "el.addEventListener('DOMNodeInserted', cb);\nel.addEventListener('DOMSubtreeModified', cb);",
+      ),
+    ).toHaveLength(2);
+    expect(discoverIdiomSites('f.ts', 'new MutationObserver(cb);')).toEqual([]);
+    // (ad31) the window.status write flagged; document.title not.
+    expect(
+      discoverIdiomSites('f.ts', "window.status = 'done';"),
+    ).toHaveLength(1);
+    expect(
+      discoverIdiomSites('f.ts', "document.title = 'done';"),
+    ).toEqual([]);
+    // (ad32) fireEvent flagged; dispatchEvent not.
+    expect(
+      discoverIdiomSites('f.ts', "el.fireEvent('onclick');"),
+    ).toHaveLength(1);
+    expect(
+      discoverIdiomSites('f.ts', "el.dispatchEvent(new Event('x'));"),
+    ).toEqual([]);
+    // (ad33) children.map flagged (single-child TypeError shape);
+    // React.Children.map / toArray not.
+    expect(
+      discoverIdiomSites('f.ts', 'const parts = children.map((c) => render(c));'),
+    ).toHaveLength(1);
+    expect(
+      discoverIdiomSites(
+        'f.ts',
+        'const a = React.Children.map(children, (c) => render(c));\nconst b = React.Children.toArray(children);',
+      ),
+    ).toEqual([]);
+    // (ad34) Event.path flagged in the evt/e spellings; composedPath and
+    // an unrelated identifier suffix (largestFile.path — the draft's false
+    // positive) not.
+    expect(
+      discoverIdiomSites('f.ts', 'const p = e.path;\nconst q = evt.path;'),
+    ).toHaveLength(2);
+    expect(
+      discoverIdiomSites('f.ts', 'const p = e.composedPath();\nconst s = metrics.largestFile.path;'),
+    ).toEqual([]);
+    // (ad35) the iv-less cipher ctors flagged; createCipheriv not.
+    expect(
+      discoverIdiomSites(
+        'f.ts',
+        "const c = crypto.createCipher('aes-128-cbc', key);\nconst d = crypto.createDecipher('aes-128-cbc', key);",
+      ),
+    ).toHaveLength(2);
+    expect(
+      discoverIdiomSites('f.ts', "const c = crypto.createCipheriv('aes-128-cbc', key, iv);"),
+    ).toEqual([]);
+    // (ad36) bare toLocale{Date,Time}String flagged; the explicit-locale
+    // and ISO forms not.
+    expect(
+      discoverIdiomSites(
+        'f.ts',
+        'const t = new Date(ts).toLocaleTimeString();\nconst d = new Date(ts).toLocaleDateString();',
+      ),
+    ).toHaveLength(2);
+    expect(
+      discoverIdiomSites(
+        'f.ts',
+        "const t = new Date(ts).toLocaleTimeString('ja-JP');\nconst i = new Date(ts).toISOString();",
+      ),
+    ).toEqual([]);
+    // (ad37) remove-by-value via indexOf+splice flagged; the filter form
+    // and a guarded index not.
+    expect(
+      discoverIdiomSites('f.ts', 'xs.splice(xs.indexOf(bad), 1);'),
+    ).toHaveLength(1);
+    expect(
+      discoverIdiomSites('f.ts', 'const ys = xs.filter((x) => x !== bad);'),
+    ).toEqual([]);
+    // (ad38) the doomed unstable React exports flagged; flushSync not.
+    expect(
+      discoverIdiomSites(
+        'f.ts',
+        'unstable_batchedUpdates(() => setX(1));\nunstable_renderSubtreeIntoContainer(C, el, container);',
+      ),
+    ).toHaveLength(2);
+    expect(discoverIdiomSites('f.ts', 'flushSync(() => setX(1));')).toEqual([]);
   });
 });

@@ -841,6 +841,84 @@ ALLOWED 24 key / ERADICATED 13 key・kind registry は 125 entry（不変）。
 
 **走査影響**: kind registry は同数（filter-index-zero entry 1 件の detector 文字列のみ更新・sibling kind 増減なし）。PINNED_MIN_ENTRIES は MW-084 追加で 77→78。`tests/guards/mutation-witness-ledger.test.ts` の `entries.length` 期待は自動伸長するため手動更新不要。
 
+### REQ-419-005: sweep #10 回収 — strand した PR #23 の 31 kind union（2026-08-28）
+
+**背景**: 第十回 sweep は二 stream で並走した。main 側は 7-kind 版（REQ-419-001〜004・
+MW-083/MW-084）を先行採択、34-kind 版（PR #23・483950dd）は base 陳腐化で
+CONFLICTING のまま strand していた。本 recovery は PR 側 34 kind のうち 3 kind
+（doc-execcommand / nonstandard-setimmediate / node-process-nexttick）を
+**shape 重複**として dedupe し（MW-083 の exec-command-legacy /
+setimmediate-call / process-nexttick が同一検出域を管轄 — MW-084 の精緻化は
+filter-index-zero のみで他 kind の detector は共通）、残る **31 kind を main の
+`IDIOM_KINDS` registry へ union** した（125 → 155 entry・src 変更ゼロ）。
+
+| kind（回収 31） | 実測 | 判定 |
+|------|------|------|
+| window-clipboard-data（`window.clipboardData`） | 0 | exact-0 pin — IE の clipboard object（現行 engine 全て undefined・DataTransfer は event 側） |
+| legacy-buffer-ctor（`Buffer(` / `new Buffer(`） | 0 | exact-0 pin — Node deprecated ctor（zero-fill hazard）・`Buffer.alloc/from` が正形（`ArrayBuffer` は lookbehind で検出域外） |
+| node-url-parse（`url.parse(`） | 0 | exact-0 pin — legacy Node url API・WHATWG `URL` ctor が正形 |
+| node-querystring（`querystring.`） | 0 | exact-0 pin — legacy percent-encoding API・`URLSearchParams` が正形 |
+| promise-deferred（`Promise.defer()` / `.defer()`） | 0 | exact-0 pin — 削除済み非標準 deferred API・`Promise.withResolvers` が正形 |
+| object-observe（`Object/Array.observe(`） | 0 | exact-0 pin — 削除済み observation proposal・Proxy / MutationObserver が正形 |
+| system-import（`System.import(`） | 0 | exact-0 pin — 削除済み module-loader 綴り・dynamic `import()` が正形 |
+| x-domain-request（`XDomainRequest`） | 0 | exact-0 pin — IE9 専用 CORS transport |
+| activex-object（`ActiveXObject`） | 0 | exact-0 pin — IE の plugin/COM bridge |
+| console-devtools-sink（`console.table/dir/group/count/time/profile` 系） | 0 | exact-0 pin — logger の level gate を迂回する devtools 専用 sink（console family の第 3 twin） |
+| getcomputedstyle-null-arg（`getComputedStyle(el, null)`） | 0 | exact-0 pin — 旧必須だった pseudoElt 第 2 引数の legacy 綴り |
+| prefixed-matches-selector（`webkit/moz/ms/oMatchesSelector`） | 0 | exact-0 pin — prefix 付き matches・`element.matches` が正形 |
+| scroll-into-view-if-needed（`.scrollIntoViewIfNeeded()`） | 0 | exact-0 pin — Safari 専用非標準 scroll・`scrollIntoView` が正形 |
+| react-force-update（`.forceUpdate(`） | 0 | exact-0 pin — state/props 依存の見落としを隠す escape hatch |
+| react-prop-types（`.propTypes =` / `PropTypes.`） | 0 | exact-0 pin — 実行時 prop 検証は in-repo tsc と重複（死重） |
+| importscripts-global（`importScripts(`） | 0 | exact-0 pin — worker 専用 global・main thread で ReferenceError |
+| error-capture-stack-trace（`Error.captureStackTrace(`） | 0 | exact-0 pin — V8 専用拡張（Firefox/Safari で ReferenceError） |
+| self-ternary-default（`x ? x : y`） | 0 | exact-0 pin — `x \|\| y` の longhand（falsy-vs-nullish hazard・`??` が正形）・**初稿は `cond ? null : y` の keyword consequent を誤検出 → reserved-word 排除リスト追加**（REQ-419-002） |
+| navigator-ms-prefixed（`navigator.msXxx`） | 0 | exact-0 pin — IE prefix navigator 拡張（msSaveBlob 等） |
+| process-binding（`process.binding(`） | 0 | exact-0 pin — deprecated Node 内部 bridge |
+| window-external（`window.external`） | 0 | exact-0 pin — IE addon API（他で undefined） |
+| getbox-object-for（`getBoxObjectFor`） | 0 | exact-0 pin — Netscape/Firefox 廃止 geometry API（document.layers sibling） |
+| mutation-event-name（`DOMNodeInserted` 系） | 0 | exact-0 pin — deprecated mutation EVENTS・MutationObserver が正形 |
+| window-status-assign（`window.status =`） | 0 | exact-0 pin — status bar write（現行全 engine で no-op） |
+| element-fire-event（`.fireEvent(`） | 0 | exact-0 pin — IE の dispatch 綴り・`dispatchEvent` が正形 |
+| children-map-direct（`children.map(`） | 0 | exact-0 pin — React children は単一 element の場合 array でない→TypeError・`React.Children.map/toArray` が正形 |
+| event-path-access（`event/evt/e.path`） | 0 | exact-0 pin — 非標準 Event.path（Firefox で undefined）・`composedPath()` が正形・**初稿は `largestFile.path` の識別子末尾 `e` を誤検出 → lookbehind 追加**（REQ-419-002） |
+| node-createcipher（`create(?:Decipher\|Cipher)\(`） | 0 | exact-0 pin — deprecated 暗黙 IV crypto ctor（`createCipheriv` が正形 — `iv` 接尾で検出域外）・**初稿 `create(?:De)?Cipher(` は `createDecipher`（De + 小文字 cipher）を検出漏れ → liveness fixture が RED で発見**（REQ-419-002） |
+| localedatestring-bare（`.toLocale(Date\|Time)String()`） | **4 site（src）** | ALLOWED 4 key — AdminAnalyticsDashboard:56/:606・FrameworkDashboard:494・Iteration43Interface:106・全て人間向け壁時計**表示**（dashboard 表 cell・詳細行・app 内 log 接頭）。drift class は決定論的成果物（CSV/PDF export）で実害化する（tolocalestring-bare row と同一 rationale）・表示は runtime locale が適正 formatter |
+| splice-indexof-remove（`xs.splice(xs.indexOf(x), …)`） | 0 | exact-0 pin — not-found 時 `splice(-1, 1)` が**最後尾要素を静かに削除**する remove-by-value idiom・`filter` / findIndex+guard が正形 |
+| unstable-react-api（`unstable_batchedUpdates` 等） | 0 | exact-0 pin — React の exported-then-doomed unstable API 群 |
+
+dedupe 3 kind（PR 側 id → 管轄する main 側 kind）: doc-execcommand →
+exec-command-legacy / nonstandard-setimmediate → setimmediate-call /
+node-process-nexttick → process-nexttick（fixture (ad5)/(ad6)/(ad7) が同一
+shape の検出・非検出境界を既に pin）。
+
+ALLOWED **28 key**（24 → 28・PR 由来 4 key は localedatestring-bare の
+DISPLAY-ONLY site — AdminAnalyticsDashboard:56/:606・Iteration43Interface:106
+は既存判断と同 file 同行の roster 化、FrameworkDashboard は PR #9 の
+mountedRef guard 追加による行 shift で **:494 → :533 に re-point**）/
+ERADICATED **13 key**（不変）・kind registry **155 entry**（125 → 155）。
+
+PR 側の計測工程が発見した detector 検出域 bug 3 件（self-ternary-default の
+keyword consequent 誤検出・event-path-access の識別子末尾誤検出・
+node-createcipher の `createDecipher` 検出漏れ）も本 union に同梱回収済み
+（boundary は fixture (ad21)/(ad30)/(ad31) の負例側で固定 — PR #23 記載の
+REQ-419-002 相当）。
+
+**Given（前提条件）**: union 後 registry（155 entry）・fixture (ad1)〜(ad38)
+**When（実行条件）**: `NODE_OPTIONS='--experimental-vm-modules --max-old-space-size=4096' npx jest --config jest.config.cjs --testPathPatterns dead-idiom-batch-census` を実行する
+**Then（期待結果）**: 8 test GREEN（kind 155 entry ratchet・ALLOWED 28 key / ERADICATED 13 key の three-way 句一致・現行 main tree で unrostered site 0）
+
+**テストケース**:
+
+- [x] **TC-419-04**: authority の kind ratchet 155 entry（31 回収 kind の順序固定・dedupe 3 id は registry に不存在）🔵
+- [x] **TC-419-05**: liveness fixture (ad8)〜(ad38)（回収 31 kind の検出・非検出境界 — re 採番済み・(ad5)/(ad6)/(ad7) は dedupe 先 kind の境界として存置）🔵
+- [x] **TC-419-06**: ALLOWED 28 key / ERADICATED 13 key の three-way 句一致（FrameworkDashboard :533 re-point を含む・stale key 0）🔵
+
+### REQ-419-006: MW-092 recovery mutation 検証
+
+**Given**: guard が GREEN の tree（union 直後の現行 main）
+**When**: 3 独立 mutation（`src/analysis/untrusted-json-core.ts` 末尾への `url.parse(rawUrl)` 注入 / 同位置への `console.time('sweep10r')` 注入 / 同位置への `children.map((c) => c)` 注入）を適用する
+**Then**: 3 mutation とも各 1 failed completeness RED（`:126 [node-url-parse]` / `[console-devtools-sink]` / `[children-map-direct]` 帰着）・revert で 8/8 GREEN 復元・`git status --short src/` 0 file（src 変更ゼロ recovery — PR 側の計測は陳腐化 base 対応のため回収時に現行 tree へ再実証）
+
 ## 最小限の非機能要件
 
 - **性能**: 追加検証は既存 walk の行 scan のみ（file 再読みなし・guard 実行 < 1s）
