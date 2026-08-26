@@ -117,6 +117,26 @@
  * spuriously; Linked is required of AUTO: sections and merely validated
  * elsewhere. All three legs RED-verified by mutation (matrix in the commit).
  *
+ * Test-stage follow-up #6 (run 20260826-132518 test-stage eval, 93/100): the
+ * #5 selector's named residuals, against VERIFIED jest behavior (jest 30.4.2
+ * from this repo's node_modules, not the eval's assumption). (1) The eval
+ * said an invalid pattern makes jest "fail at runtime" — it does not:
+ * jest-config buildTestPathPatterns catches isValid()=false, prints
+ * `Invalid testPattern ... Running all tests instead.` and RESETS the
+ * patterns to [], so the run widens to the full suite and stays green
+ * (empirically: exit 0, whole suite listed). The #5 substring fallback
+ * matched neither that nor sense; an invalid regex is now an offender with
+ * the true rationale — the cited gate silently stops meaning what the
+ * invariant cites. Same verification fixed the match model: patterns are
+ * per-argv-token and OR'd, compiled case-INSENSITIVELY, and a leading `./`
+ * anchors at the root (@jest/pattern TestPathPatternsExecutor). (2) manual
+ * is the weakest checks branch — its census is pinned exactly, so drifting
+ * INTO manual (or strengthening out of it) REDs until the pin is moved
+ * consciously. (3) the #5 regexes themselves had no direct pins
+ * (session-239 lesson): NPM_TEST_FORM / splitPatternArgs /
+ * evaluateNpmTestPatterns / firstResolvablePathToken each get a contract
+ * table at the bottom of this file.
+ *
  * Scope decisions (conscious, keep future edits honest):
  *   - Evidence QUOTES are pinned modulo whitespace: single-line quotes are
  *     exact substrings, multi-line excerpts may be flattened with single
@@ -336,8 +356,8 @@ function firstResolvablePathToken(target: string): string | null {
 }
 
 // Strict shape of a test-type `npm test` invocation: bare `npm test`, or
-// `npm test -- <pattern>` where the pattern is a jest testPathPatterns
-// argument. Anything else starting with `npm` is malformed (the old
+// `npm test -- <patterns>` where the tail holds argv-style patterns (quotes
+// group). Anything else starting with `npm` is malformed (the old
 // `/^npm test\b/` hatch let both `-- "typo"` and `npm test-foo` through).
 const NPM_TEST_FORM = /^npm test(?:\s+--\s+(.+))?$/;
 
@@ -358,18 +378,46 @@ function collectTestFilePaths(dirRel = 'tests'): string[] {
 }
 const testFilePaths = collectTestFilePaths();
 
-/** jest testPathPatterns semantics: regex if it compiles, else substring. */
-function selectsTestFile(patternArg: string): boolean {
-  const pattern = patternArg.trim().replace(/^["']|["']$/g, '');
-  let selector: RegExp | null = null;
-  try {
-    selector = new RegExp(pattern);
-  } catch {
-    selector = null; // invalid regex → fall back to literal substring
+/** Split a `--` tail shell-style: quoted spans group, bare runs split on space. */
+function splitPatternArgs(tail: string): string[] {
+  const args: string[] = [];
+  for (const m of tail.matchAll(/"([^"]*)"|'([^']*)'|(\S+)/g)) {
+    args.push(m[1] ?? m[2] ?? m[3] ?? '');
   }
-  return testFilePaths.some((p) =>
-    selector ? selector.test(p) : p.includes(pattern),
-  );
+  return args;
+}
+
+type PatternSelection =
+  | { ok: true }
+  | { ok: false; reason: 'invalid-regex'; pattern: string }
+  | { ok: false; reason: 'selects-nothing' };
+
+/**
+ * jest 30 `--testPathPatterns` semantics, mirrored from the installed
+ * @jest/pattern TestPathPatternsExecutor (30.4.2, this repo):
+ *   - each argv token is its own pattern and patterns are OR'd;
+ *   - every pattern compiles case-INSENSITIVELY against the repo-relative
+ *     path, with a leading `./` anchoring at the root (`./foo` ≙ `^foo`);
+ *   - an INVALID regex never substring-matches — jest-config's
+ *     buildTestPathPatterns downgrades it to the empty pattern list with
+ *     `Invalid testPattern ... Running all tests instead.` (verified: exit 0,
+ *     full suite). The gate then silently widens to everything, so it is an
+ *     offender here, not a pass; and `-- typo` (selects nothing) makes jest
+ *     exit 1 with "No tests found" (verified) — also an offender.
+ */
+function evaluateNpmTestPatterns(tail: string): PatternSelection {
+  let anyMatch = false;
+  for (const pattern of splitPatternArgs(tail)) {
+    const regexStr = pattern.replace(/^\.\//, '^'); // `./` → root anchor
+    let selector: RegExp;
+    try {
+      selector = new RegExp(regexStr, 'i');
+    } catch {
+      return { ok: false, reason: 'invalid-regex', pattern };
+    }
+    if (testFilePaths.some((p) => selector.test(p))) anyMatch = true;
+  }
+  return anyMatch ? { ok: true } : { ok: false, reason: 'selects-nothing' };
 }
 
 describe('concept-sync consistency guard (.concept/ bootstrap 5fd0dd60)', () => {
@@ -546,10 +594,15 @@ describe('concept-sync consistency guard (.concept/ bootstrap 5fd0dd60)', () => 
             const m = check.target.match(NPM_TEST_FORM);
             if (m === null) {
               offenders.push(`${inv.id}: malformed npm test form: ${check.target}`);
-            } else if (m[1] !== undefined && !selectsTestFile(m[1])) {
-              offenders.push(
-                `${inv.id}: npm test pattern selects no test file: ${check.target}`,
-              );
+            } else if (m[1] !== undefined) {
+              const selection = evaluateNpmTestPatterns(m[1]);
+              if (!selection.ok) {
+                offenders.push(
+                  selection.reason === 'invalid-regex'
+                    ? `${inv.id}: npm test pattern is an invalid regex — jest downgrades it to the FULL suite ("Running all tests instead"), the gate stops meaning what the invariant cites: ${selection.pattern}`
+                    : `${inv.id}: npm test pattern selects no test file (jest exits 1 "No tests found"): ${check.target}`,
+                );
+              }
             }
           } else if (!existsSync(resolveSource(check.target))) {
             offenders.push(`${inv.id}: test target not on disk: ${check.target}`);
@@ -569,6 +622,25 @@ describe('concept-sync consistency guard (.concept/ bootstrap 5fd0dd60)', () => 
       }
     }
     expect(offenders).toEqual([]);
+  });
+
+  it('checks: manual-type census is pinned exactly — drifting into the weakest branch must be a conscious act', () => {
+    // Eval #6: a manual target is verified only structurally (≥1 resolvable
+    // path token), the weakest of the three checks branches. The census is
+    // EXACT — a new manual check, or converting an existing one to/from
+    // manual, REDs here until this list is edited on purpose. The default
+    // direction for a new invariant is test/command; manual is the escape
+    // hatch for contracts no command can express (INV-ARCH-003's absent-dir
+    // review), not a convenience.
+    const manualIds = invariants.invariants
+      .filter((inv) => (inv.checks ?? []).some((c) => c.type === 'manual'))
+      .map((inv) => inv.id);
+    expect(manualIds).toEqual([
+      'INV-ARCH-001',
+      'INV-ARCH-003',
+      'INV-PIPE-002',
+      'INV-TEST-002',
+    ]);
   });
 
   it('references: ambiguity terms and queue merge candidates resolve to canonical terms', () => {
@@ -1007,5 +1079,85 @@ describe('concept-quote-contract helpers (import path) — contract pin', () => 
     expect(violations[1]).toMatch(/^malformed: /);
     expect(violations[2]).toBe('still-canonical: LiveConcept');
     expect(violations[3]).toBe('id-reused-by-live-term: TERM-LIVE-001');
+  });
+});
+
+// ----------------------------------------------------------------------
+// checks-target helper pins (local closures — session-239 lesson, #6)
+//
+// NPM_TEST_FORM / splitPatternArgs / evaluateNpmTestPatterns /
+// firstResolvablePathToken run against the live invariants.yml data (one
+// `npm test -- "guards"` entry, four manual entries) — never against a
+// shape they reject, because the live data is clean. Eval #6: pin the
+// helpers' own contracts so a future regex edit cannot silently reopen the
+// hatches #5/#6 closed while the live data stays green. The jest-behavior
+// expectations cite the installed jest 30.4.2: @jest/pattern
+// TestPathPatternsExecutor (per-token union, 'i' flag, `./`→`^` anchor)
+// and jest-config buildTestPathPatterns (invalid → "Running all tests
+// instead", verified exit 0; no-match → exit 1 "No tests found").
+describe('checks-target helpers (local) — contract pin', () => {
+  it('NPM_TEST_FORM: bare and `-- patterns` forms parse; the #5 hatches stay closed', () => {
+    const bare = 'npm test'.match(NPM_TEST_FORM);
+    expect(bare?.[0]).toBe('npm test');
+    expect(bare?.[1]).toBeUndefined();
+    expect('npm test -- "guards"'.match(NPM_TEST_FORM)?.[1]).toBe('"guards"');
+    // Multi-token tails are VALID input (jest ORs the tokens) — the
+    // evaluator judges them; the form does not reject them (eval #5's
+    // weakness 3: they must not read as "selects no test file" offenders).
+    expect('npm test -- zzz-absent guards'.match(NPM_TEST_FORM)).not.toBeNull();
+    expect('npm test-foo'.match(NPM_TEST_FORM)).toBeNull(); // not a command
+    expect('npm test --guards'.match(NPM_TEST_FORM)).toBeNull(); // `--` must be its own token
+    expect('npm test run'.match(NPM_TEST_FORM)).toBeNull(); // stray tail after bare form
+    expect('npm run test'.match(NPM_TEST_FORM)).toBeNull(); // command-branch form
+  });
+
+  it('splitPatternArgs: quoted spans group, bare runs split, order preserved', () => {
+    expect(splitPatternArgs('"a b" c')).toEqual(['a b', 'c']);
+    expect(splitPatternArgs("'x y' z")).toEqual(['x y', 'z']);
+    expect(splitPatternArgs('guards')).toEqual(['guards']);
+    expect(splitPatternArgs('   ')).toEqual([]);
+  });
+
+  it('evaluateNpmTestPatterns: case-insensitive substring-regex union across tokens, `./` anchors at root', () => {
+    expect(evaluateNpmTestPatterns('"guards"')).toEqual({ ok: true });
+    expect(evaluateNpmTestPatterns('EXPORT')).toEqual({ ok: true }); // jest compiles with the 'i' flag
+    expect(evaluateNpmTestPatterns('zzz-absent guards')).toEqual({ ok: true }); // per-token union
+    expect(evaluateNpmTestPatterns('./tests/guards')).toEqual({ ok: true }); // `./` ≙ `^` root anchor
+    expect(evaluateNpmTestPatterns('./no-such-prefix')).toEqual({
+      ok: false,
+      reason: 'selects-nothing',
+    });
+    expect(evaluateNpmTestPatterns('zzz-absent-entirely')).toEqual({
+      ok: false,
+      reason: 'selects-nothing',
+    });
+  });
+
+  it('evaluateNpmTestPatterns: an invalid regex is an offender even when another token matches', () => {
+    // jest does not error — it prints "Running all tests instead." and
+    // widens to the full suite (verified), so #5's substring fallback read
+    // a silently-widened gate as green. Report the raw offending token.
+    expect(evaluateNpmTestPatterns('"([unclosed"')).toEqual({
+      ok: false,
+      reason: 'invalid-regex',
+      pattern: '([unclosed',
+    });
+    expect(evaluateNpmTestPatterns('guards "+unclosed"')).toEqual({
+      ok: false,
+      reason: 'invalid-regex',
+      pattern: '+unclosed',
+    });
+  });
+
+  it('firstResolvablePathToken: first slash/extension token that exists on disk; absent-only prose fails', () => {
+    expect(firstResolvablePathToken('ls src/ のディレクトリ構成レビュー')).toBe('src');
+    expect(firstResolvablePathToken('verify package.json scripts')).toBe('package.json');
+    // INV-ARCH-003 deliberately names absent dirs — `src/` ahead of them is
+    // the resolvable anchor that satisfies the floor (all-tokens-must-exist
+    // is consciously NOT the contract).
+    expect(firstResolvablePathToken('ls src/（types/config/utils/lib 不在確認）')).toBe('src');
+    expect(firstResolvablePathToken('review the architecture by intuition')).toBeNull();
+    expect(firstResolvablePathToken('types/config/utils/lib は存在しない')).toBeNull();
+    expect(firstResolvablePathToken('/')).toBeNull(); // bare slash trims to empty
   });
 });
