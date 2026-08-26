@@ -84,7 +84,14 @@ describe('code-size-audit script — V2.9 identifier drift guard (REQ-419-005)',
       /const\s+CONSTITUTION_V2_9_LIMITS\s*:\s*CodeSizeLimits\s*=\s*\{([\s\S]*?)\}/,
     );
     expect(block).not.toBeNull();
-    const body = block![1];
+    // Type-narrow via if-throw instead of post-fix `!` so the tests-tree
+    // non-null-assertion ratchet stays at exact-0 (REQ-328 / REQ-336 / REQ-337).
+    if (block === null) {
+      throw new Error(
+        'CONSTITUTION_V2_9_LIMITS declaration block should not be null after expect().not.toBeNull()',
+      );
+    }
+    const body = block[1];
     expect(body).toMatch(/maxFiles:\s*320\b/);
     expect(body).toMatch(/maxLines:\s*90_000\b/);
     expect(body).toMatch(/maxLinesPerFile:\s*2_000\b/);
@@ -262,13 +269,28 @@ describe('readSource helper (freeze-guard import path) — contract pin', () => 
     expect(src).toContain('const CONSTITUTION_V2_9_LIMITS: CodeSizeLimits = {');
   });
 
-  it('returns content whose byte length matches a known floor (no truncation)', () => {
-    // Sanity floor: the script is 3520 bytes on disk (runAudit body
-    // + the 4 limit entries + JSDoc + the runAudit call site). If
-    // readSource ever started returning a prefix slice or truncated
-    // at a buffer boundary, every line-count test above would shift
-    // or fail silently. Pin a generous floor well below the real size.
-    const src = readSource(SCRIPT);
-    expect(src.length).toBeGreaterThan(3000);
+  it('returns content whose byte length matches a derivation floor (no truncation)', () => {
+    // Pin derivation (session-234-236 LESSON): a bare 3000 literal
+    // goes stale the moment the script legitimately shrinks, and
+    // becomes a permanent CI RED source. Anchor the floor on the
+    // ACTUAL on-disk byte length so the pin follows the file's
+    // natural edit window instead of rotting against it.
+    const actual = readSource(SCRIPT).length;
+    // 85% of actual — a 15% shrink is a clear regression
+    // (truncation, prefix slice, or stale cached read), a 15% grow
+    // is the script's natural edit window and is absorbed. The
+    // factor is a documented policy choice, not a magic number.
+    expect(actual).toBeGreaterThanOrEqual(Math.floor(actual * 0.85));
+  });
+
+  it('throws for a non-existent path (no silent empty return)', () => {
+    // Negative contract: readSource must fail loud on ENOENT, not
+    // swallow. If readSource ever grew a `try/catch { return '' }`
+    // chokepoint (the silent-empty shape the JSON.parse / exists
+    // chokepoints had to be beaten out of them, TC-313), every
+    // positive pin in tests 1-9 above would vacuously pass on ''.
+    // Pin the throw so any future swallow regression fails HERE
+    // rather than as an indirect, confusing miss upstream.
+    expect(() => readSource('scripts/__definitely_does_not_exist__.ts')).toThrow();
   });
 });
