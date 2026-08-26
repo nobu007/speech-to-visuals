@@ -198,3 +198,33 @@
 - **再計測条件**: 変数長 `new Array(n)` site 出現時（literal 形のみ
   pin）・`.length = 0` / `.splice` の aliasing incident 実出現時・
   finally 内 return の実出現時（AST pass の投資判断をその時点で）。
+
+## REQ-417 sweep #8（2026-08-26・Phase 225）
+
+- **計測**: 16 candidate class を canonical `walkProductionSurface`
+  （331 file・repo src/ + core-four）直接使用で計測。初回 probe が
+  `.d.ts` 扱い違いで 330 file → canonical walker import に差し替え
+  （A-416-1 の「走査面一致は評決の前提」手順の再適用）。
+- **評決の内訳**: exact-0 pin 10 kind（date-string-parse /
+  bare-decodeuri / dead-ua-field / react-legacy-root-api /
+  react-unsafe-lifecycle / dangerously-set-innerhtml / bare-array-ctor /
+  postmessage-wildcard / script-element-creation / instanceof-object）+
+  ALLOWED 同梱 2 kind（swallowed-rejection 1 site =
+  whisper-transcriber:121 dynamic-import 可否 probe（PROBE-DELIBERATE・
+  README 文書化）/ console-nondebug-sink 3 site = logger.ts:25/30/35
+  logger transport（LOGGER-IMPL・:20 console.debug row と同型・core
+  所有 file））。ALLOWED 22 / ERADICATED 12（不変）/ kind 90 entry。
+- **既存 fixture の負例明け渡し（kind 分離契約 3 例目）**: (y12)
+  console info/warn/error 負例 → logger facade 形に差し替え、(z14)
+  dangerouslySetInnerHTML 負例 → `{text}` children 形に差し替え。
+  既存 kind の detect regex は 1 行も不変（REQ-416
+  inner-html-op-assign と同じ契約）。
+- **棄却の根拠**: dom0-handler-assign 6 site は全て型付き onXxx
+  handler property（lib.dom 正形・母集団不一致 2 例目）。
+  throw-bare-error は Error() 関数呼び出し自動 construct で挙動完全
+  一致（`a ** b` 型 2 例目）。void 0 は undefined 読みの正統綴り。
+  bare postMessage 5 site は worker 形（targetOrigin 引数なし・
+  incident は wildcard 形のみ = pin 済み）。
+- **再計測条件**: 行跨ぎ postMessage origin 引数・複数行/コメント付き
+  `.catch` noop body の実出現時（grep -A1 pass で現在 0・src の
+  `.catch` 7 site 全数読みで確認済み）。

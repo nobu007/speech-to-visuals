@@ -316,7 +316,7 @@
  * ALLOWED / ERADICATED are the census-artifact three-way blocks (REQ-395):
  * the requirements prose must declare `ALLOWED 2 key` / `ERADICATED 2 key`.
  *
- *   <!-- census-pin:F19:dead-idiom-batch ALLOWED 18 key / ERADICATED 12 key -->
+ *   <!-- census-pin:F19:dead-idiom-batch ALLOWED 22 key / ERADICATED 12 key -->
  *
  * Documented ceilings (same honesty as the sibling censuses):
  *   - line-level detection sees one line at a time: a `==` split across a
@@ -674,6 +674,80 @@ export const IDIOM_KINDS: readonly IdiomKind[] = [
   // Array.from({ length: n }) is the form (literal-length single-arg only —
   // a variable-length ctor site gets measured if one ever appears).
   { id: 'sparse-array-ctor', detect: /new\s+Array\s*\(\s*\d+\s*\)/ },
+  // --- REQ-417 eighth sweep (twelve kinds, all measured on 2026-08-26) ---
+  // Date.parse / new Date('<literal>') off the ISO profile is
+  // implementation-dependent (Safari's classic NaN on '2026-08-26 00:00'
+  // shapes); the numeric ctor and hand-built UTC fields are the forms.
+  {
+    id: 'date-string-parse',
+    detect: /(?<![.\w$])Date\.parse\(|new\s+Date\(\s*['"`]/,
+  },
+  // Bare decodeURI leaves %2F %3F %23 … encoded (reserved characters);
+  // decodeURIComponent is the form — the decode sibling of bare-encodeuri.
+  { id: 'bare-decodeuri', detect: /(?<![.\w$])decodeURI\(/ },
+  // navigator.appName/appVersion/appCodeName/product are dead UA fields —
+  // fixed strings ("Netscape"/"Gecko"/"5.0 (Windows)") that answer nothing.
+  {
+    id: 'dead-ua-field',
+    detect: /navigator\.(?:appName|appVersion|appCodeName|product)\b/,
+  },
+  // findDOMNode / unmountComponentAtNode / ReactDOM.render are the React 18
+  // legacy root trio — removed under StrictMode, superseded by refs and
+  // createRoot().unmount().
+  {
+    id: 'react-legacy-root-api',
+    detect: /findDOMNode|unmountComponentAtNode|ReactDOM\.render\s*\(/,
+  },
+  // componentWillMount/ReceiveProps/Update (incl. UNSAFE_ spellings) are
+  // the unsafe lifecycles React 18 removed — componentWillUnmount is NOT
+  // one of them (the fixture's negative anchors the boundary).
+  {
+    id: 'react-unsafe-lifecycle',
+    detect: /(?<![.\w$])(?:UNSAFE_)?componentWill(?:Mount|ReceiveProps|Update)\b/,
+  },
+  // dangerouslySetInnerHTML is React's markup sink — insert-adjacent-html's
+  // sibling for the component surface; a future site demands a sanitizer
+  // context judgment (DOMPurify or equivalent) in the same change.
+  { id: 'dangerously-set-innerhtml', detect: /dangerouslySetInnerHTML/ },
+  // `Array(n)` (no new) is sparse-array-ctor's call-form twin — the same
+  // holey array, invisible to the new-prefixed regex (the lookbehind
+  // blocks `new Array(n)`; a double-space `new  Array(n)` slips through
+  // but stays caught by sparse-array-ctor — same incident, still RED).
+  {
+    id: 'bare-array-ctor',
+    detect: /(?<!new\s)(?<![.\w$])Array\s*\(\s*\d+\s*\)/,
+  },
+  // postMessage(…, '*') broadcasts to any origin — the unqualified-target
+  // shape (workers' single-arg postMessage has no origin parameter and is
+  // not this kind's incident).
+  {
+    id: 'postmessage-wildcard',
+    detect: /postMessage\s*\([^)]*['"]\*['"]/,
+  },
+  // createElement('script') is the script-injection sink — a future site
+  // demands a provenance judgment for whatever src/text it is given.
+  {
+    id: 'script-element-creation',
+    detect: /createElement\s*\(\s*['"]script['"]/,
+  },
+  // `x instanceof Object` is true for every object (arrays, dates, …) and
+  // false cross-realm — it answers no question typeof doesn't answer better.
+  { id: 'instanceof-object', detect: /instanceof\s+Object\b/ },
+  // `.catch(() => {})` / `.catch(() => null)` / `.catch(undefined)` is
+  // empty-catch's promise form — the rejection vanishes with no trace
+  // (line-granular, like empty-catch: a multi-line or commented body is
+  // invisible; measured with this detector plus a grep -A1 pass).
+  {
+    id: 'swallowed-rejection',
+    detect: /\.catch\s*\(\s*(?:\(\s*\)\s*=>\s*)?(?:\{\s*\}|undefined|null)\s*\)/,
+  },
+  // console.info/warn/error/trace outside the logger are stray sinks that
+  // bypass the level gate — console-debug-log's non-debug twin (log/debug
+  // stay that kind's sites).
+  {
+    id: 'console-nondebug-sink',
+    detect: /console\.(?:info|warn|error|trace)\s*\(/,
+  },
 ];
 
 /** One discovered idiom site, classified against its kind's context rule. */
@@ -805,6 +879,25 @@ const ALLOWED: Record<string, string> = {
     'REPORT-ONLY — telemetry payload field for error correlation; no behavior branches on the string.',
   'src/transcription/browser-transcriber.ts:257':
     'REPORT-ONLY — getBrowserCompatibility() diagnostics; the capability verdict is the feature detection (`isRecognitionSupported`), not the UA parse; a UA BRANCH is an unrostered RED.',
+  // [swallowed-rejection] the Node whisper path's dynamic-import
+  // availability probe — whether whisper-node LOADS is the whole question;
+  // a failed import resolves null and the null is deliberately discarded
+  // (README: the server route only probes loadability, it never runs
+  // inference). Every other .catch-to-void is a silent rejection swallow
+  // and an unrostered RED.
+  'src/transcription/whisper-transcriber.ts:121':
+    'PROBE-DELIBERATE — await import("whisper-node").catch(() => null) is the README-documented loadability probe (no inference runs on this route); the null is discarded by design; any other .catch(() => {})/null/undefined swallow is an unrostered RED.',
+  // [console-nondebug-sink] the logger's own transports — the sibling rows
+  // of the console.debug LOGGER-IMPL entry at :20 in the same file
+  // (@stv/core-owned): info/warn/error ARE the level-gated sinks. A
+  // console.info/warn/error/trace anywhere else bypasses the level gate
+  // and is an unrostered RED.
+  'src/utils/logger.ts:25':
+    'LOGGER-IMPL — console.info is the logger transport itself (the file the console.debug LOGGER-IMPL row at :20 lives in; @stv/core-owned); every other console.info/warn/error/trace on the surface bypasses the level gate.',
+  'src/utils/logger.ts:30':
+    'LOGGER-IMPL — console.warn is the logger transport itself (@stv/core-owned); every other console.info/warn/error/trace on the surface bypasses the level gate.',
+  'src/utils/logger.ts:35':
+    'LOGGER-IMPL — console.error is the logger transport itself (@stv/core-owned); every other console.info/warn/error/trace on the surface bypasses the level gate.',
 };
 
 /**
@@ -869,6 +962,8 @@ describe('dead-idiom batch census (REQ-410)', () => {
     expect(sites.filter((s) => s.kind === 'tolocalestring-bare').length).toBeGreaterThanOrEqual(1);
     expect(sites.filter((s) => s.kind === 'blocking-dialog').length).toBeGreaterThanOrEqual(1);
     expect(sites.filter((s) => s.kind === 'useragent-sniffing').length).toBeGreaterThanOrEqual(3);
+    expect(sites.filter((s) => s.kind === 'swallowed-rejection').length).toBeGreaterThanOrEqual(1);
+    expect(sites.filter((s) => s.kind === 'console-nondebug-sink').length).toBeGreaterThanOrEqual(3);
     // The kind registry is the steering contract — shrinking it is RED.
     expect(IDIOM_KINDS.map((k) => k.id)).toEqual([
       'coercing-isnan',
@@ -949,6 +1044,18 @@ describe('dead-idiom batch census (REQ-410)', () => {
       'inner-html-op-assign',
       'insert-adjacent-html',
       'sparse-array-ctor',
+      'date-string-parse',
+      'bare-decodeuri',
+      'dead-ua-field',
+      'react-legacy-root-api',
+      'react-unsafe-lifecycle',
+      'dangerously-set-innerhtml',
+      'bare-array-ctor',
+      'postmessage-wildcard',
+      'script-element-creation',
+      'instanceof-object',
+      'swallowed-rejection',
+      'console-nondebug-sink',
     ]);
   });
 
@@ -1449,15 +1556,17 @@ describe('dead-idiom batch census (REQ-410)', () => {
     );
     expect(sliceForm).toHaveLength(1);
     expect(sliceForm[0].kind).toBe('arraylike-slice-call');
-    // (y12) console.log/debug flagged (one line × one kind = one hit);
-    // info/warn/error and the logger facade not.
+    // (y12) console.log/debug flagged (one line × one kind = one hit); the
+    // logger facade not. (info/warn/error were the not-flagged side here
+    // until REQ-417's console-nondebug-sink claimed them — (ab12) owns
+    // that boundary now.)
     expect(
       discoverIdiomSites('f.ts', "console.log('x'); console.debug('y');"),
     ).toHaveLength(1);
     expect(
       discoverIdiomSites(
         'f.ts',
-        "console.info('z'); console.warn('w'); console.error('e'); logger.debug('m');",
+        "logger.info('z'); logger.warn('w'); logger.error('e'); logger.debug('m');",
       ),
     ).toEqual([]);
     // (y13) process.exit(…) flagged; the exitCode assignment not.
@@ -1550,11 +1659,13 @@ describe('dead-idiom batch census (REQ-410)', () => {
     expect(
       discoverIdiomSites('f.ts', "const fmt = new Intl.NumberFormat('ja-JP');"),
     ).toEqual([]);
-    // (z14) innerHTML assignment flagged; textContent and React's
-    // dangerouslySetInnerHTML prop not.
+    // (z14) innerHTML assignment flagged; textContent not. (React's
+    // dangerouslySetInnerHTML prop was the other not-flagged side here
+    // until REQ-417's dangerously-set-innerhtml claimed it — (ab6) owns
+    // that boundary now.)
     expect(discoverIdiomSites('f.ts', 'el.innerHTML = html;')).toHaveLength(1);
     expect(
-      discoverIdiomSites('f.ts', 'el.textContent = text; const r = <div dangerouslySetInnerHTML={{ __html: h }} />;'),
+      discoverIdiomSites('f.ts', 'el.textContent = text; const r = <div>{text}</div>;'),
     ).toEqual([]);
     // (z15) window.event / .returnValue flagged; the standard event members
     // (target, preventDefault) not.
@@ -1636,6 +1747,98 @@ describe('dead-idiom batch census (REQ-410)', () => {
     expect(discoverIdiomSites('f.ts', 'const xs = new Array(12);')).toHaveLength(1);
     expect(
       discoverIdiomSites('f.ts', 'const xs = new Array(1, 2, 3);\nconst ys = Array.from({ length: 12 });'),
+    ).toEqual([]);
+    // (ab) REQ-417 eighth-sweep kinds: each flags its dead form and
+    // leaves the modern spelling alone.
+    // (ab1) Date.parse and the string-literal ctor flagged; the numeric
+    // ctor not.
+    expect(
+      discoverIdiomSites('f.ts', "const a = Date.parse(text);\nconst b = new Date('2026-08-26');"),
+    ).toHaveLength(2);
+    expect(
+      discoverIdiomSites('f.ts', 'const c = new Date(2026, 7, 26);\nconst d = new Date(ms);'),
+    ).toEqual([]);
+    // (ab2) bare decodeURI flagged; decodeURIComponent not.
+    expect(discoverIdiomSites('f.ts', 'const u = decodeURI(path);')).toHaveLength(1);
+    expect(
+      discoverIdiomSites('f.ts', 'const u = decodeURIComponent(path); const e = decodeURIComponent(x, y);'),
+    ).toEqual([]);
+    // (ab3) dead UA fields flagged; userAgent stays useragent-sniffing's
+    // site (kind帰着の分離) and platform is neither kind's shape.
+    expect(
+      discoverIdiomSites('f.ts', 'const n = navigator.appName;\nconst v = navigator.appVersion;'),
+    ).toHaveLength(2);
+    const uaHit = discoverIdiomSites('f.ts', 'const ua = navigator.userAgent;');
+    expect(uaHit).toHaveLength(1);
+    expect(uaHit[0].kind).toBe('useragent-sniffing');
+    expect(discoverIdiomSites('f.ts', 'const p = navigator.platform;')).toEqual([]);
+    // (ab4) the React 18 legacy root trio flagged; createRoot not.
+    expect(
+      discoverIdiomSites('f.ts', "const n = findDOMNode(this);\nconst u = unmountComponentAtNode(el);"),
+    ).toHaveLength(2);
+    expect(
+      discoverIdiomSites('f.ts', "import { createRoot } from 'react-dom';\nconst r = createRoot(el);"),
+    ).toEqual([]);
+    // (ab5) the unsafe lifecycles (bare AND UNSAFE_) flagged;
+    // componentWillUnmount — the safe one — not.
+    expect(
+      discoverIdiomSites('f.ts', 'componentWillMount() {}\nUNSAFE_componentWillReceiveProps(p) {}'),
+    ).toHaveLength(2);
+    expect(discoverIdiomSites('f.ts', 'componentWillUnmount() {}')).toEqual([]);
+    // (ab6) dangerouslySetInnerHTML flagged; the sanitizer feeding a text
+    // node not.
+    expect(
+      discoverIdiomSites('f.ts', '<div dangerouslySetInnerHTML={{ __html: html }} />'),
+    ).toHaveLength(1);
+    expect(
+      discoverIdiomSites('f.ts', 'const clean = DOMPurify.sanitize(html);\nreturn <div>{clean}</div>;'),
+    ).toEqual([]);
+    // (ab7) call-form `Array(n)` flagged (bare-array-ctor); the new-form
+    // site stays sparse-array-ctor's, Array.from not a hit.
+    const bareCtor = discoverIdiomSites('f.ts', 'const xs = Array(12);');
+    expect(bareCtor).toHaveLength(1);
+    expect(bareCtor[0].kind).toBe('bare-array-ctor');
+    const newCtor = discoverIdiomSites('f.ts', 'const xs = new Array(12);');
+    expect(newCtor).toHaveLength(1);
+    expect(newCtor[0].kind).toBe('sparse-array-ctor');
+    expect(discoverIdiomSites('f.ts', 'const ys = Array.from({ length: 12 });')).toEqual([]);
+    // (ab8) wildcard-origin postMessage flagged; the single-arg worker
+    // form and a named origin not.
+    expect(discoverIdiomSites('f.ts', "win.postMessage(data, '*');")).toHaveLength(1);
+    expect(
+      discoverIdiomSites('f.ts', "self.postMessage(response);\nwin.postMessage(data, targetOrigin);"),
+    ).toEqual([]);
+    // (ab9) createElement('script') flagged; other element tags not.
+    expect(
+      discoverIdiomSites('f.ts', "const s = document.createElement('script');"),
+    ).toHaveLength(1);
+    expect(
+      discoverIdiomSites('f.ts', "const d = document.createElement('div');\nconst i = document.createElement('iframe');"),
+    ).toEqual([]);
+    // (ab10) instanceof Object flagged; instanceof ObjectType (a real
+    // class) not.
+    expect(discoverIdiomSites('f.ts', 'const a = x instanceof Object;')).toHaveLength(1);
+    expect(
+      discoverIdiomSites('f.ts', 'const a = x instanceof ObjectType; const b = y instanceof Error;'),
+    ).toEqual([]);
+    // (ab11) the void catch shapes flagged; a handler or a logging catch
+    // not.
+    expect(
+      discoverIdiomSites('f.ts', 'p.catch(() => {});\nq.catch(() => null);\nr.catch(undefined);'),
+    ).toHaveLength(3);
+    expect(
+      discoverIdiomSites('f.ts', 'p.catch(handle);\nq.catch((e) => { logger.warn(e); });'),
+    ).toEqual([]);
+    // (ab12) console.info/warn/error/trace flagged (console-nondebug-sink);
+    // console.log stays console-debug-log's site.
+    const infoSink = discoverIdiomSites('f.ts', "console.info('x');");
+    expect(infoSink).toHaveLength(1);
+    expect(infoSink[0].kind).toBe('console-nondebug-sink');
+    const logSink = discoverIdiomSites('f.ts', "console.log('x');");
+    expect(logSink).toHaveLength(1);
+    expect(logSink[0].kind).toBe('console-debug-log');
+    expect(
+      discoverIdiomSites('f.ts', "logger.info('x'); logger.warn('y'); logger.error('z');"),
     ).toEqual([]);
   });
 });
