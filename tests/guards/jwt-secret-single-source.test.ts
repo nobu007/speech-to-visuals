@@ -269,6 +269,49 @@ describe('REST and WS auth resolve the SAME secret (round 26 drift oracle)', () 
     expect(wsSocket.data.user).toEqual(restReq.user);
   });
 
+  it('extra NON-STRING falsy claims are dropped identically — the derived user object stays the exact 3-key shape on both middlewares (claim-operator family closure)', () => {
+    setEnv({ JWT_SECRET: 'round-26-cross-path-secret' });
+    // Closes the claim-operator fork family: sub (required), role, email —
+    // every field the two middlewares derive had its `||`/`??` fork unified,
+    // and a src-wide grep shows no other identity-claim derivation site. Two
+    // contracts in one oracle:
+    //
+    // 1. Claim hygiene: both paths build the user object as an EXPLICIT
+    //    3-key literal. Unknown claims must not leak into it — a future
+    //    "spread the verified payload" refactor would copy arbitrary issuer
+    //    JSON (these very fields) into socket.data.user / req.user.
+    // 2. 4th-field fork tripwire: the extra claims carry NON-STRING falsy
+    //    values on purpose. If a 4th claim field is ever derived, the fork
+    //    that hit sub/role/email (`||` on one path, `??` on the other)
+    //    resurfaces exactly here: the paths disagree on these values, and
+    //    the toEqual against the exact literal goes RED (a single-sided
+    //    addition fails the key set even with matching operators).
+    //
+    // The payload also omits email/role entirely — the ABSENT-claim boundary
+    // every other accept leg leaves unpinned: absent and present-but-falsy
+    // must land on the same defaults on both paths.
+    const stuffed = jwt.sign(
+      { sub: 'user-1', name: 0, display_name: null, tenant_id: false, permissions: 0 },
+      requireJwtSecret(),
+    );
+
+    const restReq = {
+      headers: { authorization: `Bearer ${stuffed}` },
+      user: undefined,
+    } as unknown as AuthenticatedRequest;
+    const restRes = { status: jest.fn().mockReturnThis(), json: jest.fn() };
+    const restNext = jest.fn();
+    authMiddleware(restReq, restRes as never, restNext);
+    expect(restNext).toHaveBeenCalledTimes(1);
+    expect(restReq.user).toEqual({ id: 'user-1', email: '', role: 'authenticated' });
+
+    const wsSocket: TestSocket = { handshake: { auth: { token: stuffed } }, data: {} };
+    const wsNext = jest.fn();
+    createWsAuthMiddleware()(wsSocket as never, wsNext);
+    expect(wsNext).toHaveBeenCalledWith();
+    expect(wsSocket.data.user).toEqual(restReq.user);
+  });
+
   it('a token with an EMPTY-STRING sub claim is rejected by both middlewares (falsy-sub boundary)', () => {
     setEnv({ JWT_SECRET: 'round-26-cross-path-secret' });
     // `!decoded.sub` is a truthiness check and that is deliberate: unlike the
