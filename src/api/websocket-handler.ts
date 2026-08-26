@@ -144,7 +144,10 @@ export function createWsAuthMiddleware() {
 
       socket.data.user = {
         id: decoded.sub,
-        email: decoded.email ?? '',
+        // `||`, not `??` (auth.ts parity): no legitimate falsy email exists —
+        // a non-string falsy claim is type confusion, and defaulting it keeps
+        // socket.data.user identical to req.user (falsy-email parity leg).
+        email: decoded.email || '',
         // Same JWT claim default as the HTTP auth middleware (auth.ts):
         // a verified token carries the 'authenticated' tier even without a
         // role claim (REQ-405 — the two user objects must not disagree).

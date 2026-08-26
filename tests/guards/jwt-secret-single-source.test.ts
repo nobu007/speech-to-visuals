@@ -238,6 +238,37 @@ describe('REST and WS auth resolve the SAME secret (round 26 drift oracle)', () 
     expect(wsSocket.data.user).toEqual(restReq.user);
   });
 
+  it('a token with a NON-STRING falsy email claim yields the IDENTICAL user object on both middlewares (falsy-email parity)', () => {
+    setEnv({ JWT_SECRET: 'round-26-cross-path-secret' });
+    // Sibling of the falsy-role leg, on the LAST forked field: the operators
+    // had forked on email too (`||` in auth.ts, `??` in websocket-handler.ts).
+    // The empty-STRING email is operator-insensitive (both spellings fall
+    // back to ''), so the divergence lives at NON-string falsy claims — a
+    // JWT payload is arbitrary JSON and the `as` cast validates nothing, so
+    // a buggy or hostile issuer can mint `email: 0`. REST defaulted that to
+    // '' while the socket kept the NUMBER 0: a non-string value inside a
+    // field typed `email: string`, and the two user objects disagreed for
+    // the SAME verified token.
+    const numericEmail = jwt.sign({ sub: 'user-1', email: 0 }, requireJwtSecret());
+
+    const restReq = {
+      headers: { authorization: `Bearer ${numericEmail}` },
+      user: undefined,
+    } as unknown as AuthenticatedRequest;
+    const restRes = { status: jest.fn().mockReturnThis(), json: jest.fn() };
+    const restNext = jest.fn();
+    authMiddleware(restReq, restRes as never, restNext);
+    expect(restNext).toHaveBeenCalledTimes(1);
+
+    const wsSocket: TestSocket = { handshake: { auth: { token: numericEmail } }, data: {} };
+    const wsNext = jest.fn();
+    createWsAuthMiddleware()(wsSocket as never, wsNext);
+    expect(wsNext).toHaveBeenCalledWith();
+
+    expect(restReq.user).toEqual({ id: 'user-1', email: '', role: 'authenticated' });
+    expect(wsSocket.data.user).toEqual(restReq.user);
+  });
+
   it('a token with an EMPTY-STRING sub claim is rejected by both middlewares (falsy-sub boundary)', () => {
     setEnv({ JWT_SECRET: 'round-26-cross-path-secret' });
     // `!decoded.sub` is a truthiness check and that is deliberate: unlike the
