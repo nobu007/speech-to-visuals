@@ -30,7 +30,7 @@ milestones:
       - "types/utils/lib/config 20モジュールを @stv/core (github:nobu007/stv-core#v1.0.7) へ移管"
       - "プロダクト src/ から types/config/utils/lib ディレクトリ消滅"
     acceptance:
-      - type: "test"
+      - type: "command"
         target: "npm run verify:all"
     priority: "P0"
     status: "done"
