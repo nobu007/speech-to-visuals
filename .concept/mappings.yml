@@ -1,0 +1,249 @@
+mappings:
+  PipelineOrchestrator:
+    code_symbols:
+      - "src/pipeline/pipeline-orchestrator.ts::class PipelineOrchestrator"
+    db: []
+    api: []
+  MainPipeline:
+    code_symbols:
+      - "src/pipeline/main-pipeline.ts::class MainPipeline"
+    db: []
+    api: []
+  SimplePipeline:
+    code_symbols:
+      - "src/pipeline/simple-pipeline.ts::class SimplePipeline"
+      - "src/pages/SimplePipeline.tsx::SimplePipeline page"
+    db: []
+    api: []
+  TranscriptionPipeline:
+    code_symbols:
+      - "src/transcription/transcriber.ts::class TranscriptionPipeline"
+    db: []
+    api: []
+  ContentAnalyzer:
+    code_symbols:
+      - "src/analysis/content-analyzer.ts::class ContentAnalyzer"
+    db: []
+    api: []
+  DiagramDetector:
+    code_symbols:
+      - "src/analysis/diagram-detector.ts::class DiagramDetector"
+      - "src/analysis/simple-diagram-detector.ts::class SimpleDiagramDetector"
+    db: []
+    api: []
+  SceneSegmenter:
+    code_symbols:
+      - "src/analysis/scene-segmenter.ts::class SceneSegmenter"
+    db: []
+    api: []
+  LayoutEngine:
+    code_symbols:
+      - "src/visualization/layout-engine.ts::class LayoutEngine"
+      - "src/visualization/layout-engine-v2.ts::class LayoutEngineV2"
+      - "src/visualization/advanced-layouts.ts::class AdvancedLayoutEngine"
+      - "src/visualization/enhanced-zero-overlap-layout.ts::class ZeroOverlapLayoutEngine"
+      - "src/visualization/complex-layout-engine.ts::class ComplexLayoutEngine"
+    db: []
+    api: []
+  LayoutStrategy:
+    code_symbols:
+      - "src/visualization/strategies/tree-strategy.ts::class TreeStrategy"
+      - "src/visualization/strategies/flow-strategy.ts::class FlowStrategy"
+      - "src/visualization/strategies/timeline-strategy.ts::class TimelineLayoutStrategy"
+      - "src/visualization/strategies/matrix-strategy.ts::class MatrixStrategy"
+      - "src/visualization/strategies/cycle-strategy.ts::class CycleLayoutStrategy"
+      - "src/visualization/strategies/flowchart-strategy.ts::class FlowchartStrategy"
+      - "src/visualization/strategies/comparison-strategy.ts::class ComparisonStrategy"
+      - "src/visualization/strategies/network-strategy.ts::class NetworkStrategy"
+      - "src/visualization/strategies/conceptmap-strategy.ts::class ConceptMapStrategy"
+      - "src/visualization/strategies/mindmap-strategy.ts::class MindMapStrategy"
+      - "src/visualization/strategies/general-strategy.ts::class GeneralStrategy"
+      - "src/visualization/strategy-selector.ts::class StrategySelector"
+    db: []
+    api: []
+  OverlapResolver:
+    code_symbols:
+      - "src/visualization/overlap-resolver.ts::class OverlapResolver"
+      - "src/visualization/strategies/OverlapResolver.ts::class OverlapResolver"
+    db: []
+    api: []
+  SceneGraph:
+    code_symbols:
+      - "src/pipeline/scene-graph-builder.ts::function buildSceneGraph"
+    db: []
+    api: []
+  VideoGenerator:
+    code_symbols:
+      - "src/pipeline/video-generator.ts::class VideoGenerator"
+      - "src/pipeline/actual-video-renderer.ts::class ActualVideoRenderer"
+    db: []
+    api: []
+  QualityMonitor:
+    code_symbols:
+      - "src/pipeline/quality-monitor.ts::class QualityMonitor"
+    db: []
+    api: []
+  ExportEngine:
+    code_symbols:
+      - "src/export/enhanced-export-engine.ts::class EnhancedExportEngine"
+      - "src/export/multi-format-exporter.ts::class MultiFormatExporter"
+    db: []
+    api: []
+  GeminiAnalyzer:
+    code_symbols:
+      - "src/analysis/gemini-analyzer.ts::class GeminiAnalyzer"
+      - "src/analysis/llm-service.ts::class LLMService"
+      - "src/analysis/llm-utils.ts::parseJsonFromLLMText"
+    db: []
+    api: []
+  RuleBasedAnalyzer:
+    code_symbols:
+      - "src/analysis/rule-based-analyzer.ts::class RuleBasedAnalyzer"
+    db: []
+    api: []
+  FallbackChain:
+    code_symbols:
+      - "src/analysis/fallback-chain.ts::class FallbackChain"
+    db: []
+    api: []
+  WhisperTranscriber:
+    code_symbols:
+      - "src/transcription/whisper-transcriber.ts::class WhisperTranscriber"
+    db: []
+    api: []
+  StreamingTranscriber:
+    code_symbols:
+      - "src/transcription/streaming-transcriber.ts::class StreamingTranscriber"
+    db: []
+    api: []
+  EnhancedErrorRecovery:
+    code_symbols:
+      - "src/quality/enhanced-error-recovery.ts::class EnhancedErrorRecovery"
+      - "src/quality/error-recovery-monitor.ts::class ErrorRecoveryMonitor"
+      - "src/quality/error-recovery-event-bus.ts::class ErrorRecoveryEventBus"
+      - "src/quality/error-recovery-health-tracker.ts::class ErrorRecoveryHealthTracker"
+    db: []
+    api: []
+  ErrorClassifier:
+    code_symbols:
+      - "src/quality/error-classifier.ts::class ErrorClassifier"
+    db: []
+    api: []
+  CircuitBreaker:
+    code_symbols:
+      - "src/quality/error-recovery/circuit-breaker.ts::class CircuitBreaker"
+    db: []
+    api: []
+  AdaptiveQualityPresets:
+    code_symbols:
+      - "src/pipeline/adaptive-quality-presets.ts::class AdaptiveQualityPresetsManager"
+    db: []
+    api: []
+  MemoryCache:
+    code_symbols:
+      - "src/optimization/memory-cache.ts::class MemoryCache<V>"
+      - "src/optimization/computation-cache.ts::class ComputationCache"
+      - "src/analysis/llm-cache.ts::class LLMCache<T>"
+    db: []
+    api: []
+  ApiServer:
+    code_symbols:
+      - "src/api/server.ts::Express server"
+      - "src/api/batch-processing-api.ts::class BatchProcessingAPI"
+    db:
+      - "specs/speech-to-visuals/database-schema.sql"
+    api:
+      - "specs/speech-to-visuals/api-endpoints.md"
+  WebSocketHandler:
+    code_symbols:
+      - "src/api/websocket-handler.ts::Socket.IO handler"
+    db: []
+    api: []
+  ProductionMonitor:
+    code_symbols:
+      - "src/monitoring/production-monitor.ts::class ProductionMonitor"
+      - "src/monitoring/health-check-service.ts::HealthCheckService"
+    db: []
+    api: []
+  AutoImprovementEngine:
+    code_symbols:
+      - "src/framework/auto-improvement-engine.ts::class AutoImprovementEngine"
+    db: []
+    api: []
+  ContinuousLearner:
+    code_symbols:
+      - "src/framework/continuous-learner.ts::class ContinuousLearner"
+    db: []
+    api: []
+  ExportVerifier:
+    code_symbols:
+      - "src/export/export-verifier.ts::class ExportVerifier"
+      - "src/export/export-content-validator.ts::function validateSceneGraphForExport"
+    db: []
+    api: []
+  ExportJobQueue:
+    code_symbols:
+      - "src/export/export-job-queue.ts::class ExportJobQueue"
+    db: []
+    api: []
+  WorkerPool:
+    code_symbols:
+      - "src/workers/worker-pool.ts::class WorkerPool"
+    db: []
+    api: []
+  CodeSizeAudit:
+    code_symbols:
+      - "scripts/code-size-audit.ts::audit script (--ci)"
+    db: []
+    api: []
+  GuardHarness:
+    code_symbols:
+      - "tests/guards/::structural guard suite (107 files)"
+    db: []
+    api: []
+  SpecSpine:
+    code_symbols:
+      - "specs/_doc_spine.yml::spine manifest"
+      - "scripts/validate-spine-manifest.ts::spine validator"
+    db: []
+    api: []
+  MutationWitnessLedger:
+    code_symbols:
+      - "specs/speech-to-visuals/mutation-witness-ledger.md::witness ledger"
+    db: []
+    api: []
+  UIComponents:
+    code_symbols:
+      - "src/components/PipelineProgress.tsx::PipelineProgress"
+      - "src/components/StreamingProcessor.tsx::StreamingProcessor"
+      - "src/components/AudioUploader.tsx::AudioUploader"
+      - "src/components/VideoPreview.tsx::VideoPreview"
+    db: []
+    api: []
+  ReactHooks:
+    code_symbols:
+      - "src/hooks/useFrameworkPipeline.ts::useFrameworkPipeline"
+      - "src/hooks/useAdminAnalytics.ts::useAdminAnalytics"
+      - "src/hooks/useExportGuardMetrics.ts::useExportGuardMetrics"
+    db: []
+    api: []
+  SupabaseIntegration:
+    code_symbols:
+      - "src/integrations/supabase/auth.ts::supabase auth"
+      - "src/integrations/supabase/client.ts::supabase client"
+    db: []
+    api: []
+  IntelligentCache:
+    code_symbols:
+      - "src/performance/intelligent-cache.ts::IntelligentCache"
+    db: []
+    api: []
+  RemotionComposition:
+    code_symbols:
+      - "src/remotion/Root.tsx::RemotionRoot"
+      - "src/remotion/DiagramVideo.tsx::DiagramVideo composition"
+      - "src/remotion/scene-synchronizer.ts::msToFrame/frameToMs"
+      - "src/remotion/KeyphraseOverlay.tsx::KeyphraseOverlay"
+      - "src/remotion/CaptionOverlay.tsx::CaptionOverlay"
+    db: []
+    api: []

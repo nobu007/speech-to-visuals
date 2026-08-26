@@ -1,0 +1,207 @@
+invariants:
+  - id: "INV-ARCH-001"
+    related_terms: ["PipelineOrchestrator"]
+    status: "stable"
+    strength: "hard"
+    statement: "src/ 直下に手動編集系・対話系・ユーザー管理系・SNS系ディレクトリ（editing/effects/filters/interactive/dynamic/users/profiles/social/sharing/comments）を作成してはならない"
+    rationale: "単一目的（音声→図解動画の全自動変換）の堅持。機能肥大化による複雑化を防ぐ。"
+    evidence:
+      - source: "SYSTEM_CONSTITUTION.md#L83-L87"
+        quote: "禁止: editing/, effects/, filters/ ディレクトリ（手動編集系）… users/, profiles/ ディレクトリ（ユーザー管理系）"
+    checks:
+      - type: "manual"
+        target: "ls src/ のディレクトリ構成レビュー"
+  - id: "INV-ARCH-002"
+    related_terms: ["CodeSizeAudit"]
+    status: "stable"
+    strength: "hard"
+    statement: "src/ 実装（テスト除外）は総ファイル数≤320・総行数≤90,000・1ファイル≤2,000行。超過は npm run audit:code-size が exit 1 し CI の code-size-audit ジョブが fail する"
+    rationale: "規模ラチェットによる肥大化の物理的防止（憲法 V2.8 で warning から CI-fatal へ改正）。"
+    evidence:
+      - source: "SYSTEM_CONSTITUTION.md#L91-L99"
+        quote: "総ファイル数: 320ファイル以下… 総コード行数: 90,000行以下… 上限超過は npm run audit:code-size が exit 1 → CI の code-size-audit ジョブが fail"
+      - source: "tests/guards/code-size-audit-v29-drift.test.ts#L50"
+        quote: "describe('code-size-audit script — V2.9 identifier drift guard (REQ-419-005)', () => {"
+    checks:
+      - type: "command"
+        target: "npm run audit:code-size"
+  - id: "INV-ARCH-003"
+    related_terms: ["PipelineOrchestrator"]
+    status: "stable"
+    strength: "hard"
+    statement: "共有コア（types/utils/lib/config）は外部パッケージ @stv/core (github:nobu007/stv-core) に存在し、プロダクトリポジトリの src/ 直下に types/config/utils/lib ディレクトリを再作成してはならない"
+    rationale: "コア分離（V2.8）の境界維持。@stv/core 側は独自ラチェット（6,000行/90ファイル上限・境界検査 CI-fatal）で自己拘束する。"
+    evidence:
+      - source: "AGENTS.md#L50-L53"
+        quote: "コア層は外部パッケージ: types/ utils/ lib/ config/ は @stv-core (github:nobu007/stv-core, git 依存) に分離済み。"
+    checks:
+      - type: "manual"
+        target: "ls src/（types/config/utils/lib 不在確認）"
+  - id: "INV-PIPE-001"
+    related_terms: ["SceneGraph", "SceneSegmenter", "VideoGenerator"]
+    status: "stable"
+    strength: "hard"
+    statement: "SceneGraph の時間単位は二重契約: startTime/endTime=秒、startMs/durationMs=ミリ秒。変換は buildSceneGraph 内の単一箇所のみで行う"
+    rationale: "秒/ミリ秒の ×1000 単位分岐は最多再発バグクラス。単一変換点に閉じることで撲滅する。"
+    evidence:
+      - source: "src/pipeline/scene-graph-builder.ts#L76-L80"
+        quote: "// startMs/endMs are MILLISECONDS (segmenter contract); startTime/endTime are SECONDS (video-generator reads `scene.startTime * 1000`). Mixing the two is the recurring ×1000 unit divergence — keep the one conversion here."
+    checks:
+      - type: "test"
+        target: "tests/pipeline/"
+  - id: "INV-PIPE-002"
+    related_terms: ["SceneGraph"]
+    status: "stable"
+    strength: "hard"
+    statement: "シーン組み立ては単一ソース buildSceneGraph (src/pipeline/scene-graph-builder.ts) を経由しなければならない。並列パイプラインが新規シーン構築サイトを作る場合も同様"
+    rationale: "wrong-field-in-parallel-pipelines バグクラスの封じ込め（複数組み立て実装の分岐が過去の事故源）。"
+    evidence:
+      - source: "src/pipeline/scene-graph-builder.ts#L71-L73"
+        quote: "/** * Single-source SceneGraph assembler. See {@link BuildSceneGraphInput} for the divergence history this replaces. */ export function buildSceneGraph(input: BuildSceneGraphInput): SceneGraph {"
+    checks:
+      - type: "manual"
+        target: "grep -rn 'buildSceneGraph' src/（新規サイトの経由確認）"
+  - id: "INV-VIS-001"
+    related_terms: ["LayoutEngine", "OverlapResolver"]
+    status: "stable"
+    strength: "hard"
+    statement: "レイアウト出力はゼロオーバーラップを保証する（OverlapResolver 性能契約: 200ノード時に4000ms以内）"
+    rationale: "図解の可読性は重なりゼロが前提。憲法ホワイトリスト上の要件。"
+    evidence:
+      - source: "SYSTEM_CONSTITUTION.md#L29"
+        quote: "レイアウトエンジン（ゼロオーバーラップ保証・5+戦略）"
+      - source: "AGENTS.md#L73-L75"
+        quote: "Spec: 「OverlapResolverのパフォーマンスを改善」→「200ノード時に4000ms以内で完了する」"
+    checks:
+      - type: "test"
+        target: "tests/performance/"
+  - id: "INV-VIS-002"
+    related_terms: ["DiagramDetector", "LayoutStrategy"]
+    status: "stable"
+    strength: "hard"
+    statement: "図解タイプの名前空間判定は DIAGRAM_TYPES / isDiagramType レジストリに委譲する（11タイプ。個別文字列比較で判定しない）"
+    rationale: "namespace/id mismatch バグクラスの封じ込め。全 assignment 形状を単一レジストリへ集約する。"
+    evidence:
+      - source: "specs/speech-to-visuals/requirements.md"
+        quote: "図解タイプ自動検出（flow/tree/timeline/matrix/cycle/flowchart/comparison/network/conceptmap/mindmap/general の11種類）"
+      - source: "src/analysis/diagram-detector.ts"
+        quote: "export class DiagramDetector {"
+    checks:
+      - type: "test"
+        target: "tests/guards/"
+  - id: "INV-QUAL-001"
+    related_terms: ["QualityMonitor"]
+    status: "stable"
+    strength: "hard"
+    statement: "QualityMonitor の二重スケール（0-1 と 0-100）の相互配線は guard（REQ-382/TC-366-01 の4-leg契約）が検出する。スケール混同を新規コードに持ち込んではならない"
+    rationale: "Phase 180 で契約化。統合は design-heavy で未実施のため、guard が交叉配線を恒久検出する。"
+    evidence:
+      - source: "tests/guards/quality-monitor-dual-scale.test.ts#L95"
+        quote: "describe('dual QualityMonitor scale contract (REQ-382 / TC-366-01)', () => {"
+    checks:
+      - type: "test"
+        target: "tests/guards/quality-monitor-dual-scale.test.ts"
+  - id: "INV-ERR-001"
+    related_terms: ["ExportVerifier", "ExportEngine"]
+    status: "stable"
+    strength: "hard"
+    statement: "validateSceneGraphForExport は決して throw しない。常に {passed,findings} を返し、非strict は FAIL-OPEN・strict は高severityのみFAILとする"
+    rationale: "バリデーション例外によるエクスポート経路全体のダウンを防ぐ。"
+    evidence:
+      - source: "src/export/export-content-validator.ts#L241-L242"
+        quote: "const hasHighSeverity = findings.some((f) => f.severity === 'high'); const passed = !(strict && hasHighSeverity);"
+      - source: "tests/export/export-verifier.test.ts#L67"
+        quote: "describe('ExportVerifier', () => {"
+    checks:
+      - type: "test"
+        target: "tests/export/export-verifier.test.ts"
+  - id: "INV-ERR-002"
+    related_terms: ["GeminiAnalyzer", "ContentAnalyzer"]
+    status: "stable"
+    strength: "hard"
+    statement: "LLM 出力テキストの JSON.parse はチョークポイント parseJsonFromLLMText (src/analysis/llm-utils.ts) のみを通る。直接 JSON.parse してはならない（内部/キャッシュ用途は例外ではないが別物として扱う）"
+    rationale: "LLM 出力のパース失敗クラスを単一実装でサニタイズする（TC-313 で閉包済み）。"
+    evidence:
+      - source: "src/analysis/llm-utils.ts"
+        quote: "parseJsonFromLLMText（LLM 出力パースチョークポイント）"
+      - source: "tests/guards/llm-sanitizer-guard-mutation-pinning.test.ts#L59"
+        quote: "describe('LLM sanitizer — source anchors pinned (TC-302-01)', () => {"
+    checks:
+      - type: "test"
+        target: "tests/guards/llm-sanitizer-guard-mutation-pinning.test.ts"
+  - id: "INV-SEC-001"
+    related_terms: ["ExportEngine"]
+    status: "stable"
+    strength: "hard"
+    statement: "対話HTML エクスポートの埋め込み JSON は必ず escapeJsonForScript でエスケープする（plain JSON 出力の `</script>` 非エスケープは意図的例外・修正禁止）"
+    rationale: "XSS 対策。2経路の意図的差異を誤って統一（parity-fix）しないための契約。"
+    evidence:
+      - source: "tests/guards/xss-escape-json-for-script-mutation-pinning.test.ts#L65"
+        quote: "describe('escapeJsonForScript XSS guard — source anchors pinned (TC-305-01)', () => {"
+      - source: "tests/export/__tests__/xss-security.test.ts#L396"
+        quote: "describe('XSS Security: escapeJsonForScript helper', () => {"
+    checks:
+      - type: "test"
+        target: "tests/guards/xss-escape-json-for-script-mutation-pinning.test.ts"
+  - id: "INV-TEST-001"
+    related_terms: ["GuardHarness", "WhisperTranscriber"]
+    status: "stable"
+    strength: "hard"
+    statement: "テストがリポジトリ内ソースを直接読む場合、パス解決は import.meta.url 基準とする。process.cwd() 基準・bare relative は禁止（例外は行末 // cwd-anchor-exempt: 宣言のみ）"
+    rationale: "依存パッケージの chdir 副作用と maxWorkers>1 スケジューリングで cwd 相対読みが非決定的に赤化する（16ed9ccf 教訓）。existsSync 前提破壊は it.skip で緑のまま無害化し赤より悪い。"
+    evidence:
+      - source: "tests/guards/source-anchor-cwd-discipline.test.ts#L80"
+        quote: "describe('source-anchor cwd discipline (whisper-node chdir lesson, 16ed9ccf)', () => {"
+      - source: "AGENTS.md#L116-L131"
+        quote: "テストがリポジトリ内のソースを直接読む…場合、パスは必ず import.meta.url から解決すること。"
+    checks:
+      - type: "test"
+        target: "tests/guards/source-anchor-cwd-discipline.test.ts"
+  - id: "INV-TEST-002"
+    related_terms: ["GuardHarness"]
+    status: "stable"
+    strength: "hard"
+    statement: "jest.config.cjs に detectOpenHandles を設定してはならない（設定すると jest は worker を全く spawn せず全スイートが in-band 直列化し maxWorkers が無視される）"
+    rationale: "実測: 全実行 79秒→11.5分。リーク診断はサブセットへ CLI フラグで付与する。"
+    evidence:
+      - source: "jest.config.cjs#L5-L10"
+        quote: "// 2026-08: was `maxWorkers: 2` with `detectOpenHandles: true` — the latter // jest skips worker spawning entirely when detectOpenHandles is set"
+    checks:
+      - type: "manual"
+        target: "grep -n detectOpenHandles jest.config.cjs（ヒット0が正常）"
+  - id: "INV-TEST-003"
+    related_terms: ["GuardHarness"]
+    status: "stable"
+    strength: "hard"
+    statement: "src/ と tests/ の non-null assertion（!）は ratchet exact-0 を維持する（新規追加は census guard が FAIL する）"
+    rationale: "型安全性侵害の撲滅（Phase 141〜154・1096→338→exact-0）。"
+    evidence:
+      - source: "tests/guards/non-null-assertion-census.test.ts#L707"
+        quote: "describe('non-null assertion census ratchet (REQ-328 / REQ-336 / REQ-337)', () => {"
+    checks:
+      - type: "test"
+        target: "tests/guards/non-null-assertion-census.test.ts"
+  - id: "INV-TEST-004"
+    related_terms: ["GuardHarness"]
+    status: "stable"
+    strength: "soft"
+    statement: "リファクタは verbatim 移動が原則（配線のみ書き換え）。コード移動後は readSource している guard のアンカーを新征程へ再指向する。挙動保存の証明は『ガード以外のテストを一つも直さず全部通る』こと"
+    rationale: "guard の fail が移動漏れを自動検出する文化。証明可能なリファクタを担保する。"
+    evidence:
+      - source: "AGENTS.md#L236-L243"
+        quote: "リファクタは verbatim 移動が原則。配線 (DI/callback) のみ書き換える。…「ガード以外のテストを一つも直さずに全部通る」ことが挙動保存の証明。"
+    checks:
+      - type: "test"
+        target: "npm test -- \"guards\""
+  - id: "INV-PROC-001"
+    related_terms: ["CodeSizeAudit", "SpecSpine"]
+    status: "stable"
+    strength: "hard"
+    statement: "push 前に npm run verify:all（CI 同構成の fail-fast フルゲート）を通し、main 反映は PR + all-checks-pass を経由する（gh pr merge --auto --merge --delete-branch）"
+    rationale: "無人ループの持続性: CI 往復の削減と required check 集約（all-checks-pass のみ）。"
+    evidence:
+      - source: "AGENTS.md#L195-L206"
+        quote: "npm run verify:all # CI と同一構成のローカルゲート (push 前に必ず) … branch protection: all-checks-pass のみ required status check に指定済み"
+    checks:
+      - type: "command"
+        target: "npm run verify:all"

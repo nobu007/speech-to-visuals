@@ -1,0 +1,665 @@
+version: "0.3"
+
+canonical_terms:
+  PipelineOrchestrator:
+    id: "TERM-PIPELINE-ORCHESTRATOR"
+    layer: "core"
+    status: "stable"
+    definition: "パイプライン全段階（文字起こし→分析→配置→動画生成）の実行順序・エラー回復・品質監視を統括するオーケストレーター。"
+    synonyms: ["orchestrator"]
+    boundaries:
+      includes: ["ステージ実行制御", "エラー回復統合", "品質監視への実測値供給"]
+      excludes: ["単一ステージの内部実装", "UI 制御"]
+    lifecycle: []
+    related_terms: ["MainPipeline", "QualityMonitor", "EnhancedErrorRecovery"]
+    evidence:
+      - source: "src/pipeline/pipeline-orchestrator.ts"
+        quote: "export class PipelineOrchestrator {"
+      - source: "tests/pipeline/smoke-orchestrator-render-plan.test.ts#L71"
+        quote: "describe('render-plan consistency with buildMultiScenes sequential timing', () => {"
+  MainPipeline:
+    id: "TERM-MAIN-PIPELINE"
+    layer: "core"
+    status: "stable"
+    definition: "音声入力から動画出力までの一本道パイプライン実装。PipelineOrchestrator と協調する主要フロー。"
+    synonyms: []
+    boundaries:
+      includes: ["コア段階の逐次実行"]
+      excludes: ["バッチ処理", "ストリーミング逐次確定"]
+    lifecycle: []
+    related_terms: ["PipelineOrchestrator", "SimplePipeline"]
+    evidence:
+      - source: "src/pipeline/main-pipeline.ts"
+        quote: "export class MainPipeline {"
+      - source: "specs/speech-to-visuals/requirements.md"
+        quote: "音声ファイル（MP3/WAV/OGG/M4A）を入力として…を自動生成するエンドツーエンドパイプラインシステム。"
+  SimplePipeline:
+    id: "TERM-SIMPLE-PIPELINE"
+    layer: "core"
+    status: "stable"
+    definition: "UI 操作向けの簡易パイプライン実行経路（ページ SimplePipeline から利用）。設定の正典参照・音声形式検証を持つ。"
+    synonyms: ["SimplePipeline UI 経路"]
+    boundaries:
+      includes: ["UI からの単発実行", "音声形式の正典参照検証"]
+      excludes: ["バッチ API 処理"]
+    lifecycle: []
+    related_terms: ["MainPipeline", "AdaptiveQualityPresets"]
+    evidence:
+      - source: "src/pipeline/simple-pipeline.ts#L130"
+        quote: "overlapDetectionMode: 'balanced',"
+      - source: "src/pages/SimplePipeline.tsx"
+        quote: "SimplePipeline.tsx（UI ページ・憲法ホワイトリスト『パイプライン操作UI（SimplePipeline・StreamingProcessor）』）"
+  TranscriptionPipeline:
+    id: "TERM-TRANSCRIPTION-PIPELINE"
+    layer: "core"
+    status: "stable"
+    definition: "音声ファイルを文字起こしテキストへ変換する段階の基幹クラス（Whisper / Web Speech API を下位に持つ）。"
+    synonyms: ["transcriber"]
+    boundaries:
+      includes: ["音声→テキスト変換の段越し制御", "ファイルサイズ/形式検証"]
+      excludes: ["内容分析", "言語検出の本体"]
+    lifecycle: []
+    related_terms: ["WhisperTranscriber", "StreamingTranscriber", "BrowserTranscriber"]
+    evidence:
+      - source: "src/transcription/transcriber.ts"
+        quote: "export class TranscriptionPipeline {"
+      - source: "specs/speech-to-visuals/requirements.md"
+        quote: "Whisper による文字起こし"
+  ContentAnalyzer:
+    id: "TERM-CONTENT-ANALYZER"
+    layer: "core"
+    status: "stable"
+    definition: "文字起こしテキストから図解構造（ノード・エッジ・関連）を抽出する分析段階の基幹。3層フォールバック（Gemini→フォールバック→ルールベース）で構成。"
+    synonyms: ["内容分析"]
+    boundaries:
+      includes: ["テキスト→図解データ抽出", "フォールバック制御"]
+      excludes: ["図解タイプ判定そのもの（DiagramDetector）", "シーン分割（SceneSegmenter）"]
+    lifecycle: []
+    related_terms: ["GeminiAnalyzer", "RuleBasedAnalyzer", "FallbackChain", "DiagramDetector"]
+    evidence:
+      - source: "src/analysis/content-analyzer.ts"
+        quote: "export class ContentAnalyzer {"
+      - source: "SYSTEM_CONSTITUTION.md#L27"
+        quote: "AI内容分析（Gemini / フォールバック / ルールベースV1）"
+  DiagramDetector:
+    id: "TERM-DIAGRAM-DETECTOR"
+    layer: "core"
+    status: "stable"
+    definition: "テキストから 11 種類の図解タイプ（flow/tree/timeline/matrix/cycle/flowchart/comparison/network/conceptmap/mindmap/general）を検出する。タイプ判定は DIAGRAM_TYPES / isDiagramType レジストリに委譲する契約。"
+    synonyms: ["図解タイプ検出"]
+    boundaries:
+      includes: ["11タイプの検出", "レジストリ委譲による名前空間統一"]
+      excludes: ["タイプ別レイアウト戦略の実装（LayoutStrategy）"]
+    lifecycle: []
+    related_terms: ["LayoutStrategy", "ContentAnalyzer"]
+    evidence:
+      - source: "src/analysis/diagram-detector.ts"
+        quote: "export class DiagramDetector {"
+      - source: "specs/speech-to-visuals/requirements.md"
+        quote: "図解タイプ自動検出（flow/tree/timeline/matrix/cycle/flowchart/comparison/network/conceptmap/mindmap/general の11種類）"
+  SceneSegmenter:
+    id: "TERM-SCENE-SEGMENTER"
+    layer: "core"
+    status: "stable"
+    definition: "分析結果をシーン単位に分割するセグメンター。出力契約は startMs/endMs（ミリ秒）。サニタイゼーションガードを持つ。"
+    synonyms: ["シーン分割"]
+    boundaries:
+      includes: ["シーン境界決定", "ms 単位の時間契約"]
+      excludes: ["シーンの映像仕様化（SceneRenderSpec）"]
+    lifecycle: []
+    related_terms: ["SceneGraph", "ContentAnalyzer"]
+    evidence:
+      - source: "src/analysis/scene-segmenter.ts"
+        quote: "export class SceneSegmenter {"
+      - source: "tests/guards/scene-segmenter-sanitize-finite-migration-mutation-pinning.test.ts"
+        quote: "scene-segmenter sanitizeFinite migration mutation-pinning guard"
+  LayoutEngine:
+    id: "TERM-LAYOUT-ENGINE"
+    layer: "core"
+    status: "stable"
+    definition: "図解ノードをキャンバス上へ配置するレイアウトエンジン群（LayoutEngine / LayoutEngineV2 / AdvancedLayoutEngine / ZeroOverlapLayoutEngine）。ゼロオーバーラップ保証が憲法上の要件。"
+    synonyms: ["レイアウトエンジン", "zero-overlap layout"]
+    boundaries:
+      includes: ["ノード座標決定", "オーバーラップ解消", "キャンバス寸法計算"]
+      excludes: ["図解タイプ検出", "動画レンダリング"]
+    lifecycle: []
+    related_terms: ["LayoutStrategy", "OverlapResolver", "CanvasCalculator"]
+    evidence:
+      - source: "src/visualization/layout-engine.ts"
+        quote: "export class LayoutEngine extends BaseLayoutEngine {"
+      - source: "src/visualization/enhanced-zero-overlap-layout.ts"
+        quote: "export class ZeroOverlapLayoutEngine {"
+      - source: "tests/visualization/advanced-layouts.test.ts#L37"
+        quote: "describe('AdvancedLayoutEngine (TASK-0062)', () => {"
+  LayoutStrategy:
+    id: "TERM-LAYOUT-STRATEGY"
+    layer: "core"
+    status: "stable"
+    definition: "図解タイプ別の配置戦略ファミリー（11タイプ全てに専用戦略: TreeStrategy / FlowStrategy / TimelineLayoutStrategy 等）と StrategySelector / レジストリからなる選択機構。"
+    synonyms: ["レイアウト戦略", "strategy registry"]
+    boundaries:
+      includes: ["タイプ別配置アルゴリズム", "戦略選択（StrategySelector）", "フォールバック戦略"]
+      excludes: ["オーバーラップ事後解消（OverlapResolver）"]
+    lifecycle: []
+    related_terms: ["LayoutEngine", "DiagramDetector"]
+    evidence:
+      - source: "src/visualization/strategies/tree-strategy.ts"
+        quote: "export class TreeStrategy implements LayoutStrategy {"
+      - source: "src/visualization/strategy-selector.ts"
+        quote: "export class StrategySelector {"
+      - source: "SYSTEM_CONSTITUTION.md#L29"
+        quote: "レイアウトエンジン（ゼロオーバーラップ保証・5+戦略）"
+  OverlapResolver:
+    id: "TERM-OVERLAP-RESOLVER"
+    layer: "core"
+    status: "stable"
+    definition: "配置後のノード重なりを解消するリゾルバー（visualization 直下と strategies/ 下に同名クラス）。性能契約: 200ノード時に4000ms以内。"
+    synonyms: []
+    boundaries:
+      includes: ["事後オーバーラップ解消", "反復の早期終了条件"]
+      excludes: ["初期配置（LayoutStrategy）"]
+    lifecycle: []
+    related_terms: ["LayoutEngine", "LayoutStrategy"]
+    evidence:
+      - source: "src/visualization/overlap-resolver.ts"
+        quote: "export class OverlapResolver {"
+      - source: "AGENTS.md#L73-L75"
+        quote: "Spec: 「OverlapResolverのパフォーマンスを改善」→「200ノード時に4000ms以内で完了する」"
+  SceneGraph:
+    id: "TERM-SCENE-GRAPH"
+    layer: "core"
+    status: "stable"
+    definition: "1シーン分の正規化データ構造。単位契約: startTime/endTime=秒、startMs/durationMs=ミリ秒。組み立ては buildSceneGraph 単一ソースに限定（×1000 単位分岐の再発防止）。"
+    synonyms: ["scene graph"]
+    boundaries:
+      includes: ["シーン時限（秒/ミリ秒二重契約）", "単一変換点 buildSceneGraph"]
+      excludes: ["レンダラ実装", "シーン分割ロジック"]
+    lifecycle: []
+    related_terms: ["SceneSegmenter", "VideoGenerator", "ExportEngine"]
+    evidence:
+      - source: "src/pipeline/scene-graph-builder.ts#L73-L80"
+        quote: "export function buildSceneGraph(input: BuildSceneGraphInput): SceneGraph { ... // startMs/endMs are MILLISECONDS (segmenter contract); startTime/endTime are SECONDS"
+      - source: "tests/pipeline/smoke-orchestrator-render-plan.test.ts#L71"
+        quote: "describe('render-plan consistency with buildMultiScenes sequential timing', () => {"
+  VideoGenerator:
+    id: "TERM-VIDEO-GENERATOR"
+    layer: "core"
+    status: "stable"
+    definition: "SceneGraph 列から Remotion によるアニメーション動画（1080p/30fps MP4）を生成する段階。fps 伝搬・時間原点（Date.now 基準）の契約を持つ。"
+    synonyms: ["動画生成"]
+    boundaries:
+      includes: ["シーン→動画レンダリング", "fps/解像度の伝搬"]
+      excludes: ["手動編集機能（憲法禁止）", "エクスポート形式変換（ExportEngine）"]
+    lifecycle: []
+    related_terms: ["SceneGraph", "ExportEngine", "ActualVideoRenderer"]
+    evidence:
+      - source: "src/pipeline/video-generator.ts"
+        quote: "export class VideoGenerator {"
+      - source: "SYSTEM_CONSTITUTION.md#L30"
+        quote: "アニメーション・動画生成（Remotion・1080p/30fps）"
+  QualityMonitor:
+    id: "TERM-QUALITY-MONITOR"
+    layer: "core"
+    status: "stable"
+    definition: "パイプライン実行中の品質メトリクスを収集・報告するモニター。0-1 と 0-100 の二重スケール契約は guard（REQ-382/TC-366-01）で相互配線違反を検出する。"
+    synonyms: []
+    boundaries:
+      includes: ["品質メトリクス集計", "実測 producer からの値供給"]
+      excludes: ["品質ゲート判定そのもの（AdaptiveQualityPresets）"]
+    lifecycle: []
+    related_terms: ["AdaptiveQualityPresets", "PipelineOrchestrator"]
+    evidence:
+      - source: "src/pipeline/quality-monitor.ts"
+        quote: "export class QualityMonitor {"
+      - source: "tests/guards/quality-monitor-dual-scale.test.ts#L95"
+        quote: "describe('dual QualityMonitor scale contract (REQ-382 / TC-366-01)', () => {"
+  ExportEngine:
+    id: "TERM-EXPORT-ENGINE"
+    layer: "core"
+    status: "stable"
+    definition: "生成結果を SVG/PNG/PDF/JSON（+対話HTML）へ出力するエクスポート基幹。対話HTML は escapeJsonForScript による XSS エスケープが必須。"
+    synonyms: ["エクスポート", "MultiFormatExporter"]
+    boundaries:
+      includes: ["複数形式への変換", "XSS エスケープ（対話HTML）", "出力品質検証"]
+      excludes: ["動画レンダリング（VideoGenerator）"]
+    lifecycle: []
+    related_terms: ["ExportVerifier", "ExportJobQueue", "VideoGenerator"]
+    evidence:
+      - source: "src/export/enhanced-export-engine.ts"
+        quote: "export class EnhancedExportEngine {"
+      - source: "tests/export/__tests__/xss-security.test.ts#L396"
+        quote: "describe('XSS Security: escapeJsonForScript helper', () => {"
+  GeminiAnalyzer:
+    id: "TERM-GEMINI-ANALYZER"
+    layer: "domain"
+    status: "stable"
+    definition: "Gemini 2.5 (flash/pro) LLM による内容分析実装。LLM 出力の JSON パースは parseJsonFromLLMText チョークポイントを通る契約。"
+    synonyms: ["LLM analyzer"]
+    boundaries:
+      includes: ["Gemini API 呼び出し", "プロンプト構築", "LLM 応答パース"]
+      excludes: ["ルールベース分析（RuleBasedAnalyzer）"]
+    lifecycle: []
+    related_terms: ["ContentAnalyzer", "RuleBasedAnalyzer", "FallbackChain"]
+    evidence:
+      - source: "src/analysis/gemini-analyzer.ts"
+        quote: "export class GeminiAnalyzer {"
+      - source: "src/analysis/llm-utils.ts"
+        quote: "parseJsonFromLLMText（LLM 出力 JSON.parse チョークポイント・TC-313）"
+  RuleBasedAnalyzer:
+    id: "TERM-RULE-BASED-ANALYZER"
+    layer: "domain"
+    status: "stable"
+    definition: "LLM 不能時の最終フォールバック層。テキストベースのコンテンツ抽出（ハードコードテンプレート廃止済み）。"
+    synonyms: ["ルールベースV1"]
+    boundaries:
+      includes: ["LLM 外分析", "テキストベース抽出"]
+      excludes: ["Gemini 呼び出し"]
+    lifecycle: []
+    related_terms: ["GeminiAnalyzer", "FallbackChain", "ContentAnalyzer"]
+    evidence:
+      - source: "src/analysis/rule-based-analyzer.ts"
+        quote: "export class RuleBasedAnalyzer {"
+      - source: "SYSTEM_CONSTITUTION.md#L27"
+        quote: "AI内容分析（Gemini / フォールバック / ルールベースV1）"
+  FallbackChain:
+    id: "TERM-FALLBACK-CHAIN"
+    layer: "domain"
+    status: "draft"
+    definition: "分析層のフォールバック連鎖（Gemini→フォールバック→ルールベース）を管理する機構（暫定定義・内部順序は要確認）。"
+    synonyms: ["3層フォールバック"]
+    boundaries:
+      includes: ["分析手段の劣化順序制御"]
+      excludes: ["単一 analyzer の内部リトライ（RetryStrategy）"]
+    lifecycle: []
+    related_terms: ["GeminiAnalyzer", "RuleBasedAnalyzer", "ContentAnalyzer"]
+    evidence:
+      - source: "src/analysis/fallback-chain.ts"
+        quote: "export class FallbackChain {"
+      - source: "SYSTEM_CONSTITUTION.md#L27"
+        quote: "AI内容分析（Gemini / フォールバック / ルールベースV1）"
+  WhisperTranscriber:
+    id: "TERM-WHISPER-TRANSCRIBER"
+    layer: "domain"
+    status: "stable"
+    definition: "Whisper によるローカル音声認識実装。module-load 時の process.chdir 副作用があり source-anchor cwd 規約の由来。"
+    synonyms: []
+    boundaries:
+      includes: ["Whisper モデル実行", "音声ファイル処理"]
+      excludes: ["ブラウザ音声認識（BrowserTranscriber）"]
+    lifecycle: []
+    related_terms: ["TranscriptionPipeline", "StreamingTranscriber"]
+    evidence:
+      - source: "src/transcription/whisper-transcriber.ts"
+        quote: "export class WhisperTranscriber {"
+      - source: "tests/guards/source-anchor-cwd-discipline.test.ts#L80"
+        quote: "describe('source-anchor cwd discipline (whisper-node chdir lesson, 16ed9ccf)', () => {"
+  StreamingTranscriber:
+    id: "TERM-STREAMING-TRANSCRIBER"
+    layer: "domain"
+    status: "stable"
+    definition: "ストリーミング文字起こし（逐次確定）実装。入力堅牢化・品質監視（StreamingQualityMonitor）を伴う。"
+    synonyms: []
+    boundaries:
+      includes: ["逐次確定文字起こし", "ストリーミング進捗"]
+      excludes: ["一括ファイル文字起こし（WhisperTranscriber）"]
+    lifecycle: []
+    related_terms: ["TranscriptionPipeline", "WhisperTranscriber", "WebSocketHandler"]
+    evidence:
+      - source: "src/transcription/streaming-transcriber.ts"
+        quote: "export class StreamingTranscriber {"
+      - source: "specs/speech-to-visuals/requirements.md"
+        quote: "StreamingTranscriber入力堅牢性完了"
+  EnhancedErrorRecovery:
+    id: "TERM-ENHANCED-ERROR-RECOVERY"
+    layer: "domain"
+    status: "stable"
+    definition: "段階別エラー回復の基幹（旧2,829行→V2.9 で error-recovery/ 5モジュール+ファサード1,646行に分割）。イベントバス・健全性追跡と協調。"
+    synonyms: ["error recovery"]
+    boundaries:
+      includes: ["エラー回復戦略", "回復イベント伝搬"]
+      excludes: ["エラー分類（ErrorClassifier）", "サーキットブレーカー"]
+    lifecycle: []
+    related_terms: ["ErrorClassifier", "CircuitBreaker", "PipelineOrchestrator"]
+    evidence:
+      - source: "src/quality/enhanced-error-recovery.ts"
+        quote: "export class EnhancedErrorRecovery {"
+      - source: "tests/quality/enhanced-error-recovery.test.ts#L49"
+        quote: "describe('EnhancedErrorRecovery', () => {"
+  ErrorClassifier:
+    id: "TERM-ERROR-CLASSIFIER"
+    layer: "domain"
+    status: "stable"
+    definition: "パイプラインエラーを分類し、回復経路の判定材料を供給する分類器。orchestrator 統合済み。"
+    synonyms: []
+    boundaries:
+      includes: ["エラータイプ分類"]
+      excludes: ["回復実行（EnhancedErrorRecovery）"]
+    lifecycle: []
+    related_terms: ["EnhancedErrorRecovery", "PipelineOrchestrator"]
+    evidence:
+      - source: "src/quality/error-classifier.ts"
+        quote: "export class ErrorClassifier {"
+      - source: "tests/quality/error-classifier.test.ts#L7"
+        quote: "describe('ErrorClassifier', () => {"
+  CircuitBreaker:
+    id: "TERM-CIRCUIT-BREAKER"
+    layer: "domain"
+    status: "draft"
+    definition: "連続失敗時に処理を遮断するサーキットブレーカー（error-recovery/ 配下・暫定定義）。"
+    synonyms: []
+    boundaries:
+      includes: ["失敗連鎖の遮断"]
+      excludes: ["リトライ戦略"]
+    lifecycle: ["Closed", "Open", "HalfOpen"]
+    related_terms: ["EnhancedErrorRecovery"]
+    evidence:
+      - source: "src/quality/error-recovery/circuit-breaker.ts"
+        quote: "export class CircuitBreaker {"
+      - source: "tests/quality/enhanced-error-recovery.test.ts#L49"
+        quote: "describe('EnhancedErrorRecovery', () => {"
+  AdaptiveQualityPresets:
+    id: "TERM-ADAPTIVE-QUALITY-PRESETS"
+    layer: "domain"
+    status: "draft"
+    definition: "実行コンテキストに応じた品質プリセット選択機構（PresetConfiguration / AdaptiveQualityPresetsManager・暫定定義）。"
+    synonyms: ["quality presets"]
+    boundaries:
+      includes: ["品質プリセット管理"]
+      excludes: ["品質メトリクス収集（QualityMonitor）"]
+    lifecycle: []
+    related_terms: ["QualityMonitor", "SimplePipeline"]
+    evidence:
+      - source: "src/pipeline/adaptive-quality-presets.ts#L216"
+        quote: "export class AdaptiveQualityPresetsManager {"
+      - source: "tests/pipeline/adaptive-quality-presets.test.ts#L11"
+        quote: "describe('QUALITY_PRESETS', () => {"
+  MemoryCache:
+    id: "TERM-MEMORY-CACHE"
+    layer: "domain"
+    status: "stable"
+    definition: "容量制限付きメモリキャッシュ（CappedArray/CappedMap 系の容量契約を持つ）。LLMCache・ComputationCache と並ぶキャッシュ三種。"
+    synonyms: ["cache family"]
+    boundaries:
+      includes: ["容量制限付きキャッシュ", "TTL/退避"]
+      excludes: ["セマンティックキャッシュの高度な判定"]
+    lifecycle: []
+    related_terms: ["QualityMonitor", "GeminiAnalyzer"]
+    evidence:
+      - source: "src/optimization/memory-cache.ts"
+        quote: "export class MemoryCache<V> {"
+      - source: "SYSTEM_CONSTITUTION.md#L35"
+        quote: "セマンティックキャッシュ・メモリキャッシュ・計算キャッシュ"
+  ApiServer:
+    id: "TERM-API-SERVER"
+    layer: "domain"
+    status: "stable"
+    definition: "Express REST API サーバー（バッチ処理含む）。JWT 認証・CORS・タイムアウト管理は Supabase Edge Functions 側と分担。"
+    synonyms: ["REST API"]
+    boundaries:
+      includes: ["REST エンドポイント", "バッチ処理 API", "エラーハンドラミドルウェア"]
+      excludes: ["WebSocket リアルタイム通知（WebSocketHandler）"]
+    lifecycle: []
+    related_terms: ["WebSocketHandler", "BatchProcessingAPI"]
+    evidence:
+      - source: "src/api/server.ts"
+        quote: "Express REST API サーバー実装"
+      - source: "specs/speech-to-visuals/api-endpoints.md"
+        quote: "API エンドポイント定義（正典ドキュメント）"
+      - source: "SYSTEM_CONSTITUTION.md#L40"
+        quote: "Express REST API（バッチ処理含む）"
+  WebSocketHandler:
+    id: "TERM-WEBSOCKET-HANDLER"
+    layer: "domain"
+    status: "draft"
+    definition: "Socket.IO によるリアルタイム進捗通知ハンドラー（暫定定義・イベント種別は要確認）。"
+    synonyms: []
+    boundaries:
+      includes: ["リアルタイム進捗通知"]
+      excludes: ["REST エンドポイント（ApiServer）"]
+    lifecycle: []
+    related_terms: ["ApiServer", "StreamingTranscriber"]
+    evidence:
+      - source: "src/api/websocket-handler.ts"
+        quote: "WebSocket ハンドラー実装"
+      - source: "SYSTEM_CONSTITUTION.md#L41"
+        quote: "WebSocket リアルタイム進捗通知（Socket.IO）"
+  ProductionMonitor:
+    id: "TERM-PRODUCTION-MONITOR"
+    layer: "domain"
+    status: "stable"
+    definition: "プロダクション監視の基幹（メトリクス・ヘルスチェック・アラート）。集計は finite-safe helpers 経由。"
+    synonyms: []
+    boundaries:
+      includes: ["稼働監視", "ヘルスチェック", "アラート評価"]
+      excludes: ["パイプライン内品質判定（QualityMonitor）"]
+    lifecycle: []
+    related_terms: ["QualityMonitor", "PipelineOrchestrator"]
+    evidence:
+      - source: "src/monitoring/production-monitor.ts"
+        quote: "export class ProductionMonitor {"
+      - source: "tests/monitoring/production-monitor-safe-aggregation.test.ts#L55"
+        quote: "describe('finite samples: migrated aggregation === legacy expressions', () => {"
+  AutoImprovementEngine:
+    id: "TERM-AUTO-IMPROVEMENT-ENGINE"
+    layer: "domain"
+    status: "stable"
+    definition: "反復実行の品質を自動改善するフレームワーク基幹。改善判定は実測 leg のみ（捏造 leg は撲滅済み・REQ-384〜386 系列）。"
+    synonyms: []
+    boundaries:
+      includes: ["反復品質評価", "改善提案"]
+      excludes: ["継続学習の重み更新（ContinuousLearner）"]
+    lifecycle: []
+    related_terms: ["ContinuousLearner", "FrameworkIntegratedPipeline"]
+    evidence:
+      - source: "src/framework/auto-improvement-engine.ts"
+        quote: "export class AutoImprovementEngine {"
+      - source: "tests/framework/round20-safe-aggregation.test.ts#L69"
+        quote: "describe('learner rating means: finite ratings are value-identical', () => {"
+  ContinuousLearner:
+    id: "TERM-CONTINUOUS-LEARNER"
+    layer: "domain"
+    status: "draft"
+    definition: "反復結果から学習する継続学習器（destroy()/pearson NaN ガードを持つ・暫定定義）。"
+    synonyms: []
+    boundaries:
+      includes: ["学習・重み更新", "NaN ガード"]
+      excludes: ["改善判定（AutoImprovementEngine）"]
+    lifecycle: []
+    related_terms: ["AutoImprovementEngine"]
+    evidence:
+      - source: "src/framework/continuous-learner.ts"
+        quote: "export class ContinuousLearner {"
+      - source: "specs/speech-to-visuals/requirements.md"
+        quote: "継続的学習安全性完了（…continuous-learner destroy()/pearson NaNガード…）"
+  ExportVerifier:
+    id: "TERM-EXPORT-VERIFIER"
+    layer: "domain"
+    status: "stable"
+    definition: "エクスポート成果物の検証器。validateSceneGraphForExport は throw せず {passed,findings} を返す契約（非strict=FAIL-OPEN、strict=高severityのみFAIL）。"
+    synonyms: []
+    boundaries:
+      includes: ["成果物バリデーション", "magic bytes 検証"]
+      excludes: ["エクスポート生成（ExportEngine）"]
+    lifecycle: []
+    related_terms: ["ExportEngine"]
+    evidence:
+      - source: "src/export/export-content-validator.ts#L198"
+        quote: "export function validateSceneGraphForExport("
+      - source: "tests/export/export-verifier.test.ts#L67"
+        quote: "describe('ExportVerifier', () => {"
+  ExportJobQueue:
+    id: "TERM-EXPORT-JOB-QUEUE"
+    layer: "domain"
+    status: "draft"
+    definition: "エクスポートジョブのキューイング（ETA 計算のオフバイワン修正履歴あり・暫定定義）。"
+    synonyms: []
+    boundaries:
+      includes: ["ジョブ待ち行列", "ETA 計算"]
+      excludes: ["ジョブ実行（ExportEngine）"]
+    lifecycle: ["queued", "running", "completed"]
+    related_terms: ["ExportEngine"]
+    evidence:
+      - source: "src/export/export-job-queue.ts"
+        quote: "export class ExportJobQueue {"
+      - source: "specs/speech-to-visuals/requirements.md"
+        quote: "ExportJobQueue ETA オフバイワン"
+  WorkerPool:
+    id: "TERM-WORKER-POOL"
+    layer: "aux"
+    status: "draft"
+    definition: "Web Workers 並列化基盤のワーカープール（暫定定義）。"
+    synonyms: []
+    boundaries:
+      includes: ["ワーカー生成・管理"]
+      excludes: ["レイアウト並列実行の戦略（ParallelLayoutExecutor）"]
+    lifecycle: []
+    related_terms: ["LayoutEngine"]
+    evidence:
+      - source: "src/workers/worker-pool.ts"
+        quote: "export class WorkerPool {"
+      - source: "specs/speech-to-visuals/requirements.md"
+        quote: "Web Workers 並列化基盤"
+  CodeSizeAudit:
+    id: "TERM-CODE-SIZE-AUDIT"
+    layer: "aux"
+    status: "stable"
+    definition: "実装規模ラチェット監査スクリプト（scripts/code-size-audit.ts・--ci で CI-fatal）。憲法の上限（320ファイル/90,000行/1ファイル2,000行）を強制し、V2.9 drift guard が識別子の乖離を検出する。"
+    synonyms: ["code-size ratchet"]
+    boundaries:
+      includes: ["実装ファイル数・行数の集計", "上限超過時の exit 1"]
+      excludes: ["テストファイルの集計（対象外）"]
+    lifecycle: []
+    related_terms: ["GuardHarness", "SpecSpine"]
+    evidence:
+      - source: "package.json"
+        quote: "\"audit:code-size\": \"tsx scripts/code-size-audit.ts --ci\""
+      - source: "tests/guards/code-size-audit-v29-drift.test.ts#L50"
+        quote: "describe('code-size-audit script — V2.9 identifier drift guard (REQ-419-005)', () => {"
+  GuardHarness:
+    id: "TERM-GUARD-HARNESS"
+    layer: "aux"
+    status: "stable"
+    definition: "tests/guards/ の構造ガード群（107ファイル）。census・mutation-pinning・single-source 系でバグクラス回帰を恒久検出する。リファクタ時は verbatim 移動＋アンカー再指向が契約。"
+    synonyms: ["structural guards", "census guards"]
+    boundaries:
+      includes: ["ソースアンカード検証", "census（全数調査）", "mutation pinning"]
+      excludes: ["機能テスト（tests/<module>）"]
+    lifecycle: []
+    related_terms: ["CodeSizeAudit", "MutationWitnessLedger", "SpecSpine"]
+    evidence:
+      - source: "tests/guards/source-anchor-cwd-discipline.test.ts#L80"
+        quote: "describe('source-anchor cwd discipline (whisper-node chdir lesson, 16ed9ccf)', () => {"
+      - source: "AGENTS.md#L236-L239"
+        quote: "リファクタは verbatim 移動が原則。配線 (DI/callback) のみ書き換える。"
+  SpecSpine:
+    id: "TERM-SPEC-SPINE"
+    layer: "aux"
+    status: "stable"
+    definition: "specs/ の文書階層（親子・役割）を管理する spine マニフェスト機構。spine:validate と specs:mirror:check が CI ゲートで同期を強制する。"
+    synonyms: ["spine manifest"]
+    boundaries:
+      includes: ["文書親子関係の正規化", "要件↔ミラー同期検証"]
+      excludes: ["要件の内容そのもの"]
+    lifecycle: []
+    related_terms: ["GuardHarness"]
+    evidence:
+      - source: "specs/speech-to-visuals/requirements.md#L3-L10"
+        quote: "spine:anchor:begin … parent: speech-to-visuals/architecture.md … role: detailed"
+      - source: "package.json"
+        quote: "\"spine:validate\": \"tsx scripts/validate-spine-manifest.ts\""
+  MutationWitnessLedger:
+    id: "TERM-MUTATION-WITNESS-LEDGER"
+    layer: "aux"
+    status: "draft"
+    definition: "mutation テストの証人台帳（specs/speech-to-visuals/mutation-witness-ledger.md・暫定定義）。mutant とそれを殺す witness の対応を記録する。"
+    synonyms: []
+    boundaries:
+      includes: ["mutant-witness 対応記録"]
+      excludes: ["mutation 実行そのもの（tests/mutation/）"]
+    lifecycle: []
+    related_terms: ["GuardHarness"]
+    evidence:
+      - source: "specs/speech-to-visuals/mutation-witness-ledger.md"
+        quote: "mutation witness ledger（正典ドキュメント）"
+      - source: "specs/speech-to-visuals/requirements.md"
+        quote: "4-row mutant ledger template 付録昇格"
+  UIComponents:
+    id: "TERM-UICOMPONENTS"
+    layer: "domain"
+    status: "stable"
+    definition: "パイプライン操作・進捗表示・エラー表示・ビデオプレビュー等の React UI コンポーネント群（憲法ホワイトリスト内のみ）。"
+    synonyms: ["UI", "frontend components"]
+    boundaries:
+      includes: ["パイプライン操作UI", "進捗表示", "エラー表示", "ビデオプレビュー", "チュートリアル", "ダッシュボード"]
+      excludes: ["手動動画編集UI（憲法禁止）", "ユーザー管理UI（憲法禁止）"]
+    lifecycle: []
+    related_terms: ["SimplePipeline", "ApiServer", "ReactHooks"]
+    evidence:
+      - source: "SYSTEM_CONSTITUTION.md#L45-L46"
+        quote: "パイプライン操作UI（SimplePipeline・StreamingProcessor）/進捗表示・ビデオプレビュー・エラー表示"
+      - source: "src/components/__tests__/AudioUploader.test.tsx#L167"
+        quote: "describe('AudioUploader', () => {"
+  ReactHooks:
+    id: "TERM-REACT-HOOKS"
+    layer: "aux"
+    status: "draft"
+    definition: "React カスタムフック層（useFrameworkPipeline / useAdminAnalytics / useExportGuardMetrics / use-toast・暫定定義）。"
+    synonyms: ["custom hooks"]
+    boundaries:
+      includes: ["UI とパイプライン/フレームワークの接続フック"]
+      excludes: ["UI コンポーネント本体（UIComponents）"]
+    lifecycle: []
+    related_terms: ["UIComponents", "AutoImprovementEngine"]
+    evidence:
+      - source: "src/hooks/useFrameworkPipeline.ts"
+        quote: "useFrameworkPipeline.ts（カスタムフック実装）"
+      - source: "src/hooks/__tests__/useAdminAnalytics.test.ts#L101"
+        quote: "describe('useAdminAnalytics', () => {"
+  SupabaseIntegration:
+    id: "TERM-SUPABASE-INTEGRATION"
+    layer: "domain"
+    status: "stable"
+    definition: "Supabase 統合層（auth / client / types）。Edge Functions 側の JWT 認証・CORS・タイムアウト管理と連携する外部サービス境界。"
+    synonyms: ["supabase"]
+    boundaries:
+      includes: ["Supabase 認証", "クライアント初期化"]
+      excludes: ["外部SNS連携（憲法禁止）", "Supabase Auth 以外の外部サービス認証（憲法禁止）"]
+    lifecycle: []
+    related_terms: ["ApiServer"]
+    evidence:
+      - source: "src/integrations/__tests__/auth.test.ts#L29"
+        quote: "describe('Auth functions', () => {"
+      - source: "SYSTEM_CONSTITUTION.md#L42"
+        quote: "Supabase Edge Functions（JWT認証・CORS・タイムアウト管理）"
+  IntelligentCache:
+    id: "TERM-INTELLIGENT-CACHE"
+    layer: "domain"
+    status: "stable"
+    definition: "パフォーマンス層のインテリジェントキャッシュ。cached-decorator の保全性・ロバスト性テストを持つ。"
+    synonyms: []
+    boundaries:
+      includes: ["関数結果キャッシュ（decorator）", "キャッシュ整合性"]
+      excludes: ["容量制御付きメモリキャッシュ本体（MemoryCache）"]
+    lifecycle: []
+    related_terms: ["MemoryCache"]
+    evidence:
+      - source: "src/performance/intelligent-cache.ts"
+        quote: "intelligent-cache.ts（パフォーマンス層実装）"
+      - source: "src/performance/__tests__/intelligent-cache.test.ts#L112"
+        quote: "describe('IntelligentCache', () => {"
+  RemotionComposition:
+    id: "TERM-REMOTION-COMPOSITION"
+    layer: "domain"
+    status: "stable"
+    definition: "Remotion 動画構成要素群（Root/Video/DiagramVideo コンポジション・NodeAnimation/EdgeAnimation・KeyphraseOverlay/CaptionOverlay・scene-synchronizer）。フレーム変換は msToFrame/frameToMs の単一実装。"
+    synonyms: ["remotion components", "overlays"]
+    boundaries:
+      includes: ["コンポジション定義", "アニメーション要素", "オーバーレイ（キーフレーズ/キャプション）", "ms↔frame 変換"]
+      excludes: ["パイプライン側の生成制御（VideoGenerator）"]
+    lifecycle: []
+    related_terms: ["VideoGenerator", "SceneGraph"]
+    evidence:
+      - source: "src/remotion/scene-synchronizer.ts#L77"
+        quote: "export function msToFrame(ms: number, fps: number = DEFAULT_FPS): number {"
+      - source: "src/remotion/__tests__/CaptionOverlay.test.tsx#L54"
+        quote: "describe('CaptionOverlay', () => {"

@@ -1,0 +1,66 @@
+version: "1.0"
+
+product_goal:
+  north_star: "音声ファイルから図解アニメーション動画（1080p/30fps）を完全自動で生成する単一目的パイプラインを提供する（推定）"
+  success_metrics:
+    - id: "MET-001"
+      name: "テストスイート健全性"
+      target: "全テスト green（V2.9 実績: 23,144 tests / 738 suites・CI 4シャード）"
+    - id: "MET-002"
+      name: "実装規模ラチェット"
+      target: "src/ 実装 ≤320ファイル・≤90,000行・1ファイル≤2,000行（CI-fatal）"
+    - id: "MET-003"
+      name: "依存パッケージ上限"
+      target: "≤110パッケージ"
+    - id: "MET-004"
+      name: "図解タイプ完全対応"
+      target: "11種類（flow/tree/timeline/matrix/cycle/flowchart/comparison/network/conceptmap/mindmap/general）全て専用レイアウト戦略"
+  non_goals:
+    - "動画編集機能（カット編集・エフェクト追加・BGM挿入・手動字幕編集）"
+    - "AI対話システム（チャットボット・質疑応答）"
+    - "コンテンツ管理・配信・共有（動画ライブラリ・SNS連携・コメント）"
+    - "高度なカスタマイズ（テーマエディタ・レイアウト設計ツール）"
+    - "多言語対応（翻訳機能・多言語UI・字幕翻訳）"
+
+milestones:
+  - id: "MS-001"
+    name: "コア分離（@stv-core 移管）"
+    intent: "共有型・ユーティリティ・設定を外部パッケージ化しプロダクト側の規模を抑制する"
+    deliverables:
+      - "types/utils/lib/config 20モジュールを @stv/core (github:nobu007/stv-core#v1.0.7) へ移管"
+      - "プロダクト src/ から types/config/utils/lib ディレクトリ消滅"
+    acceptance:
+      - type: "test"
+        target: "npm run verify:all"
+    priority: "P0"
+    status: "done"
+  - id: "MS-002"
+    name: "構造ガードによる回帰防止の継続"
+    intent: "バグクラスを正典化し guard test で恒久検出する（REQ-4xx シリーズ・107 guards）"
+    deliverables:
+      - "tests/guards/ の census / mutation-pinning / single-source guard 群"
+      - "mutation witness ledger（specs/speech-to-visuals/mutation-witness-ledger.md）"
+    acceptance:
+      - type: "test"
+        target: "npm test -- \"guards\""
+    priority: "P0"
+    status: "active"
+  - id: "MS-003"
+    name: "品質メトリクスの実測 producer 化"
+    intent: "捏造・未populate metric を実測値に置換する（Phase 169〜190 系列・layoutOverlap 系は完結）"
+    deliverables:
+      - "QualityMonitor / RTPM の metric producer 実装"
+      - "残課題: transcriptionAccuracy・avgSceneQuality は正解ラベル scope 外で fail-closed 継続"
+    acceptance:
+      - type: "test"
+        target: "tests/guards/quality-monitor-dual-scale.test.ts"
+    priority: "P1"
+    status: "active"
+
+work_policy:
+  default_mode: "pr"
+  iteration_budget:
+    max_cycles: 5
+    max_files_changed: 25
+  quality_gates:
+    must_pass: ["verify:all"]

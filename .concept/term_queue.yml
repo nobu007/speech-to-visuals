@@ -1,0 +1,59 @@
+queue:
+  - id: "TP-000001"
+    proposed_canonical: "CulturalLayoutAdapter"
+    proposed_layer: "aux"
+    term_raw_examples: ["CulturalLayoutAdapter", "文化的レイアウト適応"]
+    reason: "戦略バリエーションの一種であり LayoutStrategy ファミリーで表現可能"
+    evidence:
+      - source: "src/visualization/strategies/CulturalLayoutAdapter.ts"
+        quote: "export class CulturalLayoutAdapter {"
+    auto_merge_candidates:
+      - term: "LayoutStrategy"
+        similarity: 0.8
+    decision: "merged"
+    expires_after_runs: 10
+    created_run: "2026-08-26T10:49:16Z"
+  - id: "TP-000002"
+    proposed_canonical: "StreamingQualityMonitor"
+    proposed_layer: "aux"
+    term_raw_examples: ["StreamingQualityMonitor", "ストリーミング品質監視"]
+    reason: "StreamingTranscriber の品質監視側面であり独立概念とする根拠が一次資料2件揃わない"
+    evidence:
+      - source: "src/transcription/streaming-quality-monitor.ts"
+        quote: "export class StreamingQualityMonitor {"
+    auto_merge_candidates:
+      - term: "StreamingTranscriber"
+        similarity: 0.78
+    decision: "merged"
+    expires_after_runs: 10
+    created_run: "2026-08-26T10:49:16Z"
+  - id: "TP-000003"
+    proposed_canonical: "VideoRenderer"
+    proposed_layer: "domain"
+    term_raw_examples: ["VideoRenderer", "components/videoRenderer"]
+    reason: "VideoGenerator（pipeline）と ActualVideoRenderer（pipeline）と components/videoRenderer の3クラスが同義で使われており責務境界が未確定"
+    evidence:
+      - source: "src/components/videoRenderer.ts"
+        quote: "export class VideoRenderer {"
+      - source: "src/pipeline/actual-video-renderer.ts#L39"
+        quote: "export class ActualVideoRenderer {"
+    auto_merge_candidates:
+      - term: "VideoGenerator"
+        similarity: 0.65
+    decision: "pending"
+    expires_after_runs: 10
+    created_run: "2026-08-26T10:49:16Z"
+  - id: "TP-000004"
+    proposed_canonical: "SrtParser"
+    proposed_layer: "aux"
+    term_raw_examples: ["SrtParser", "srt-parser"]
+    reason: "remotion/srt-parser.ts は字幕パースの周辺機能。概念化の価値は要件文書での出現頻度次第"
+    evidence:
+      - source: "src/remotion/srt-parser.ts"
+        quote: "export class SrtParseError extends Error {"
+    auto_merge_candidates:
+      - term: "VideoGenerator"
+        similarity: 0.6
+    decision: "pending"
+    expires_after_runs: 10
+    created_run: "2026-08-26T10:49:16Z"
