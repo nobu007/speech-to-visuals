@@ -138,7 +138,7 @@ invariants:
     evidence:
       - source: "tests/guards/xss-escape-json-for-script-mutation-pinning.test.ts#L65"
         quote: "describe('escapeJsonForScript XSS guard — source anchors pinned (TC-305-01)', () => {"
-      - source: "tests/export/__tests__/xss-security.test.ts#L396"
+      - source: "src/export/__tests__/xss-security.test.ts#L396"
         quote: "describe('XSS Security: escapeJsonForScript helper', () => {"
     checks:
       - type: "test"
