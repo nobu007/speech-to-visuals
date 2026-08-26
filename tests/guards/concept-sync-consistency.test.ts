@@ -152,6 +152,22 @@
  * splitPatternArgs' shell-edge scope (no escapes / unbalanced quotes) is
  * now documented at the helper instead of silently unwritten.
  *
+ * Test-stage follow-up #8 (run 20260826-143546 implementation stage): the
+ * mapping and claim SURFACE was still unverified. The evidence leg resolves
+ * `source` paths for terms/invariants/ambiguities/queue, but neither the 82
+ * `path::descriptor` code_symbols in mappings.yml (Q2 pinned them non-empty
+ * only) nor the `source` field of a claims.ndjson line was ever resolved —
+ * a typo'd path or a descriptor gone stale after a refactor passed
+ * silently. Closing it surfaced one real casualty the bootstrap shipped:
+ * mappings.yml cited `timeline-strategy.ts::class TimelineLayoutStrategy`,
+ * mixing the kebab V1 family file (which exports `class TimelineStrategy`)
+ * with the class of the separate PascalCase V2 file — fixed in the same
+ * diff, together with the ontology definition prose that repeated the
+ * stale name. Descriptor teeth are classified (code-shaped /
+ * slash-compound / prose, mirroring the manual-checks weak-branch
+ * precedent) and the classifier is pinned in its own describe
+ * (session-239 lesson).
+ *
  * Scope decisions (conscious, keep future edits honest):
  *   - Evidence QUOTES are pinned modulo whitespace: single-line quotes are
  *     exact substrings, multi-line excerpts may be flattened with single
@@ -178,7 +194,7 @@
  */
 
 import { describe, it, expect } from '@jest/globals';
-import { existsSync, readdirSync, statSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { createRequire } from 'node:module';
 import { REPO_ROOT, resolveSource, readSource } from '@tests/guards/freeze-guard';
@@ -276,6 +292,7 @@ interface Claim {
   term_canonical: string;
   confidence: number;
   priority: string;
+  source: string;
 }
 
 function loadYaml<T>(rel: string): T {
@@ -461,6 +478,75 @@ function evaluateNpmTestPatterns(tail: string): PatternSelection {
   }
   return anyMatch ? { ok: true } : { ok: false, reason: 'selects-nothing' };
 }
+
+// A §5.5 code_symbol is `<path>::<descriptor>`. Follow-up #8: nothing
+// resolved EITHER side, so a typo'd path (the bug class the evidence leg
+// caught at bootstrap) or a descriptor gone stale after a refactor passed
+// silently — the live probe found exactly that (see header). Descriptor
+// teeth are classified like the checks-target branches: strong where a
+// machine truth exists, path-existence-only where it does not.
+//   - slash compounds (`msToFrame/frameToMs`): every member token must
+//     occur in the mapped file — one renamed member REDs;
+//   - code-shaped (keyword-prefixed `class X`/`function X`/… or a bare
+//     identifier): the literal must occur in the mapped file;
+//   - free prose (`Express server`, `spine validator`): nothing to verify
+//     a label against — the documented weak branch.
+// A directory anchor passes `fileText === null`: prose stays legal there,
+// but a compound or code-shaped descriptor on a directory REDs (it claims
+// a verifiable member the anchor cannot ground).
+const CODE_DESCRIPTOR_KEYWORD =
+  /^(?:class|function|interface|type|const|enum|def) /;
+const BARE_IDENTIFIER = /^[A-Za-z_$][A-Za-z0-9_$]*$/;
+
+function codeDescriptorOffenders(
+  descriptor: string,
+  fileText: string | null,
+): string[] {
+  const offenders: string[] = [];
+  if (descriptor.includes('/')) {
+    for (const member of descriptor.split('/')) {
+      const token = member.trim();
+      if (token === '') {
+        offenders.push(`empty member in "${descriptor}"`);
+      } else if (fileText === null || !fileText.includes(token)) {
+        offenders.push(`member "${token}" of "${descriptor}" not found`);
+      }
+    }
+    return offenders;
+  }
+  if (
+    CODE_DESCRIPTOR_KEYWORD.test(descriptor) ||
+    BARE_IDENTIFIER.test(descriptor)
+  ) {
+    if (fileText === null || !fileText.includes(descriptor)) {
+      offenders.push(`"${descriptor}" not found`);
+    }
+  }
+  return offenders;
+}
+
+// A code_symbol path absent from disk is legal ONLY when the repo itself
+// declares it generated — derived from .gitignore's LITERAL lines (no glob
+// metacharacters, no `!` negation; leading/trailing `/` normalized away).
+// specs/_doc_spine.yml (.gitignore:332 "auto-generated spine manifest",
+// see also spine-anchor-contract.ts) is the live case: a clean checkout
+// never contains it, so an existsSync-only contract would RED on every
+// fresh CI clone. Globs are deliberately NOT interpreted — half-parsed
+// gitignore semantics would silently over-allow; a glob-covered absent
+// path REDs and must be handled consciously (derive or re-anchor).
+const GITIGNORE_LITERAL_PATHS: ReadonlySet<string> = new Set(
+  readSource('.gitignore')
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(
+      (line) =>
+        line !== '' &&
+        !line.startsWith('#') &&
+        !line.startsWith('!') &&
+        !/[*?[\]]/.test(line), // gitignore globs are `*`/`?`/`[]` — NOT `.`
+    )
+    .map((line) => line.replace(/^\//, '').replace(/\/+$/, '')),
+);
 
 describe('concept-sync consistency guard (.concept/ bootstrap 5fd0dd60)', () => {
   it('js-yaml interop canary: load() round-trips a known snippet', () => {
@@ -715,6 +801,53 @@ describe('concept-sync consistency guard (.concept/ bootstrap 5fd0dd60)', () => 
     expect(withoutSymbols).toEqual([]);
   });
 
+  it('mappings: every code_symbol path resolves on disk; code-shaped descriptors occur in the mapped file', () => {
+    // Follow-up #8, leg 1 — the mapping-side twin of the evidence-source
+    // leg. Q2 verified code_symbols were NON-EMPTY, never that they point
+    // anywhere real: a typo'd path or a `<file>::<symbol>` pair gone stale
+    // after a refactor drifted silently. The first run of this leg caught
+    // the bootstrap's `timeline-strategy.ts::class TimelineLayoutStrategy`
+    // (the V1 kebab file exports `class TimelineStrategy`; the Layout*
+    // class lives in the separate PascalCase V2 file) — fixed in the same
+    // diff. `resolveSource` routes src/<core-four>/ into @stv/core exactly
+    // like the evidence leg, so historical paths keep resolving.
+    const missing: string[] = [];
+    const stale: string[] = [];
+    for (const [name, entry] of Object.entries(mappings.mappings)) {
+      for (const symbol of entry.code_symbols ?? []) {
+        const sep = symbol.indexOf('::');
+        if (sep < 0) {
+          missing.push(`${name}: not <path>::<descriptor> form: ${symbol}`);
+          continue;
+        }
+        const path = symbol.slice(0, sep).replace(/\/+$/, ''); // dir anchors
+        const resolved = resolveSource(path);
+        if (!existsSync(resolved)) {
+          if (!GITIGNORE_LITERAL_PATHS.has(path)) {
+            // Declared generated-and-absent paths are the one legal miss
+            // (see GITIGNORE_LITERAL_PATHS); everything else is a typo or a
+            // post-refactor orphan the old non-empty-only leg let through.
+            missing.push(`${name}: ${path}`);
+          }
+          continue;
+        }
+        // A directory anchor (GuardHarness → tests/guards/) has no file
+        // text; existence is its whole contract (see the classifier note).
+        const fileText = statSync(resolved).isDirectory()
+          ? null
+          : readFileSync(resolved, 'utf8');
+        for (const offender of codeDescriptorOffenders(
+          symbol.slice(sep + 2),
+          fileText,
+        )) {
+          stale.push(`${name}: ${symbol} [${offender}]`);
+        }
+      }
+    }
+    expect(missing).toEqual([]);
+    expect(stale).toEqual([]);
+  });
+
   it('evidence: every term has ≥1 evidence entry (Q8)', () => {
     const bare = termNames.filter(
       (name) => (ontology.canonical_terms[name].evidence ?? []).length === 0,
@@ -839,6 +972,20 @@ describe('concept-sync consistency guard (.concept/ bootstrap 5fd0dd60)', () => 
     expect(badConfidence).toEqual([]);
     expect(badPriority).toEqual([]);
     expect(unmapped / claimLines.length).toBeLessThanOrEqual(0.2); // Q5
+  });
+
+  it('claims: every claim source path exists on disk (same routing as evidence)', () => {
+    // Follow-up #8, leg 2 — the Q5 leg above parses
+    // term_canonical/confidence/priority but never resolved `source`, so a
+    // typo'd or post-refactor-moved path in claims.ndjson passed silently:
+    // the same blind spot the evidence leg closed for the YAML entities.
+    const missing: string[] = [];
+    for (const line of claimLines) {
+      const claim = JSON.parse(line) as Claim; // shape pinned by the Q5 leg
+      const path = claim.source.split('#')[0];
+      if (!existsSync(resolveSource(path))) missing.push(claim.source);
+    }
+    expect(missing).toEqual([]);
   });
 
   it('budget: terms / layers / draft ratio / queue pending inside ontology_budget limits (Q4, Q6)', () => {
@@ -1201,6 +1348,86 @@ describe('checks-target helpers (local) — contract pin', () => {
     expect(firstResolvablePathToken('review the architecture by intuition')).toBeNull();
     expect(firstResolvablePathToken('types/config/utils/lib は存在しない')).toBeNull();
     expect(firstResolvablePathToken('/')).toBeNull(); // bare slash trims to empty
+  });
+});
+
+// ----------------------------------------------------------------------
+// code-symbol descriptor classifier (local closure — session-239 lesson, #8)
+//
+// codeDescriptorOffenders runs against the live mappings.yml data (82
+// entries), which today is clean — so the classifier's branches are only
+// exercised by shapes the live data does not contain. Pin them HERE so a
+// future edit cannot silently reopen the classification (e.g. dropping the
+// bare-identifier arm, or letting prose into the verified bucket) while
+// the live data stays green.
+describe('code-symbol descriptor classifier (local) — contract pin', () => {
+  const text =
+    'export class TreeStrategy implements LayoutStrategy {\n  run(): void {}\n}\nexport function msToFrame(): number { return 0; }\nexport function frameToMs(): number { return 0; }\n';
+
+  it('code-shaped descriptors (keyword form or bare identifier) are verified literals', () => {
+    expect(codeDescriptorOffenders('class TreeStrategy', text)).toEqual([]);
+    expect(codeDescriptorOffenders('TreeStrategy', text)).toEqual([]);
+    expect(codeDescriptorOffenders('function msToFrame', text)).toEqual([]);
+    // Generic type args ride along with the keyword form (LLMCache<T>).
+    expect(
+      codeDescriptorOffenders(
+        'class LLMCache<T>',
+        'export class LLMCache<T> extends Base {}',
+      ),
+    ).toEqual([]);
+    expect(codeDescriptorOffenders('class TreeStrategyX', text)).toEqual([
+      '"class TreeStrategyX" not found',
+    ]);
+    expect(codeDescriptorOffenders('RenamedAway', text)).toEqual([
+      '"RenamedAway" not found',
+    ]);
+  });
+
+  it('slash compounds verify every member token, empty members included', () => {
+    expect(codeDescriptorOffenders('msToFrame/frameToMs', text)).toEqual([]);
+    expect(codeDescriptorOffenders('TreeStrategy/msToFrame', text)).toEqual(
+      [],
+    );
+    expect(codeDescriptorOffenders('msToFrame/frameToMsX', text)).toEqual([
+      'member "frameToMsX" of "msToFrame/frameToMsX" not found',
+    ]);
+    // Split order is preserved so the failure names every bad member.
+    expect(codeDescriptorOffenders('zz//yy', text)).toEqual([
+      'member "zz" of "zz//yy" not found',
+      'empty member in "zz//yy"',
+      'member "yy" of "zz//yy" not found',
+    ]);
+  });
+
+  it('prose descriptors stay path-existence-only; directory anchors reject verifiable shapes', () => {
+    // Prose has no machine truth to pin against — the documented weak
+    // branch (same precedent as manual checks).
+    expect(codeDescriptorOffenders('Express server', text)).toEqual([]);
+    expect(codeDescriptorOffenders('spine validator', null)).toEqual([]);
+    // A null fileText (directory anchor) cannot ground a compound or a
+    // code-shaped descriptor, and that is an offender, not a free pass.
+    expect(codeDescriptorOffenders('msToFrame/frameToMs', null)).toEqual([
+      'member "msToFrame" of "msToFrame/frameToMs" not found',
+      'member "frameToMs" of "msToFrame/frameToMs" not found',
+    ]);
+    expect(codeDescriptorOffenders('class TreeStrategy', null)).toEqual([
+      '"class TreeStrategy" not found',
+    ]);
+  });
+
+  it('GITIGNORE_LITERAL_PATHS derives from literal .gitignore lines only', () => {
+    // The live dependency: the spine manifest is gitignored, so the mapping
+    // leg's existsSync contract must keep honouring it (removing the
+    // .gitignore line without regenerating the artifact REDs the live leg).
+    expect(GITIGNORE_LITERAL_PATHS.has('specs/_doc_spine.yml')).toBe(true);
+    // Glob lines are NOT interpreted (half-parsed gitignore semantics would
+    // silently over-allow) — the derivation must keep skipping them.
+    expect(GITIGNORE_LITERAL_PATHS.has('*.env')).toBe(false);
+    expect(GITIGNORE_LITERAL_PATHS.has('*.pyc')).toBe(false);
+    // Comments never enter the set.
+    expect([...GITIGNORE_LITERAL_PATHS].some((p) => p.startsWith('#'))).toBe(
+      false,
+    );
   });
 });
 

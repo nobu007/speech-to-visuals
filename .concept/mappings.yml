@@ -49,7 +49,7 @@ mappings:
     code_symbols:
       - "src/visualization/strategies/tree-strategy.ts::class TreeStrategy"
       - "src/visualization/strategies/flow-strategy.ts::class FlowStrategy"
-      - "src/visualization/strategies/timeline-strategy.ts::class TimelineLayoutStrategy"
+      - "src/visualization/strategies/timeline-strategy.ts::class TimelineStrategy"
       - "src/visualization/strategies/matrix-strategy.ts::class MatrixStrategy"
       - "src/visualization/strategies/cycle-strategy.ts::class CycleLayoutStrategy"
       - "src/visualization/strategies/flowchart-strategy.ts::class FlowchartStrategy"
