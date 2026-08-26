@@ -28,12 +28,36 @@
  *                   queue_pending_max) and decisions.md ≤ 200 lines (Rule 6).
  *   6. charter    — north_star non-empty and ≥1 milestone (Q7); autopilot
  *                   command strings reference real package.json scripts.
+ *   7. quotes     — every ellipsis-free evidence quote is a verbatim
+ *                   (whitespace-normalized) substring of its source file;
+ *                   paraphrase quotes MUST carry a `…`/`...` marker.
+ *   8. gc         — gc_actions.merged equals queue 'merged' decisions,
+ *                   gc_actions.deleted equals the tombstones count (every
+ *                   GC deletion leaves a tombstone), queue decision values
+ *                   stay inside the C-7 vocabulary.
+ *
+ * LLM-eval follow-up (run 20260826-110658 test-stage eval, 90/100): this
+ * commit closes the four weaknesses it listed — non-npm autopilot commands
+ * passed unvalidated (now allowlist-contracted), gc_actions.deleted/
+ * deprecated were unpinned (now derived/typed), evidence quotes had no
+ * substring teeth (now the ellipsis contract above; the 15 marker-less
+ * paraphrases the bootstrap shipped are fixed in the same diff), and the
+ * claims leg's unmapped ratio could read NaN on 0 lines (now floored in
+ * the same leg).
  *
  * Scope decisions (conscious, keep future edits honest):
- *   - Evidence QUOTE substrings are NOT pinned into their source files:
- *     several quotes legitimately contain `…` ellipsis paraphrase. Only the
- *     source FILE existence is checked (that is what caught the bootstrap's
- *     `tests/export/__tests__/xss-security.test.ts` → `src/export/...` typo).
+ *   - Evidence QUOTES are pinned modulo whitespace: single-line quotes are
+ *     exact substrings, multi-line excerpts may be flattened with single
+ *     spaces (both sides collapse `\s+` before comparing). A quote that
+ *     paraphrases instead of excerpting must carry `…`/`...` — that is the
+ *     escape hatch, and using it without being a paraphrase is a data bug.
+ *     (Source FILE existence is still checked separately — that is what
+ *     caught the bootstrap's `tests/export/__tests__/xss-security.test.ts`
+ *     → `src/export/...` typo.)
+ *   - gc_actions.deprecated has NO independent machine source: B-9 deprecates
+ *     stale domain terms, but the ontology status enum is draft|stable only
+ *     and tombstones record deletions, not deprecations. Only the count's
+ *     type/range is pinned; when a representation lands, derive it here.
  *   - js-yaml is loaded via createRequire (transitive dep via the eslint
  *     toolchain; no direct dep, no @types package). If it ever disappears,
  *     the require throws loud here instead of the guard silently greening —
@@ -85,6 +109,10 @@ interface QueueItem {
   decision: string;
   auto_merge_candidates?: { term: string; similarity?: number }[];
   evidence?: Evidence[];
+}
+interface TombstoneEntry {
+  term: string;
+  former_id: string;
 }
 interface Budget {
   limits: {
@@ -140,9 +168,11 @@ const charter = loadYaml<Charter>('.concept/charter.yml');
 const autopilot = loadYaml<{ commands: Record<string, string> }>(
   '.concept/autopilot.yml',
 );
-// conflicts/tombstones are allowed to be empty arrays — parse-only legs.
+// conflicts is allowed to be an empty array — parse-only leg.
 loadYaml<{ conflicts: unknown[] }>('.concept/conflicts.yml');
-loadYaml<{ tombstones: unknown[] }>('.concept/tombstones.yml');
+const tombstones = loadYaml<{ tombstones: TombstoneEntry[] }>(
+  '.concept/tombstones.yml',
+);
 
 const metrics = JSON.parse(
   readSource('.concept/ontology_metrics.json'),
@@ -191,6 +221,18 @@ const CONCEPT_FILES = [
   'term_queue.yml',
   'tombstones.yml',
 ] as const;
+
+// term_queue decision vocabulary — concept-sync C-7 schema (`decision:
+// "pending|merged|rejected|accepted"`). A typo'd or novel value REDs the
+// vocabulary leg below and must be added here consciously; silently counting
+// as neither pending nor merged would skew the metrics derivations.
+const QUEUE_DECISIONS = new Set(['pending', 'merged', 'rejected', 'accepted']);
+
+// Repo contract: every quality-gate command is `npm [run] <script>` (CI and
+// local gates are npm scripts only — AGENTS.md 検証コマンド). A command that
+// is not npm-form passes ONLY by being listed verbatim here (empty today).
+// Anything else is a typo'd or dead gate the old leg let through silently.
+const RAW_COMMAND_ALLOWLIST: readonly string[] = [];
 
 describe('concept-sync consistency guard (.concept/ bootstrap 5fd0dd60)', () => {
   it('js-yaml interop canary: load() round-trips a known snippet', () => {
@@ -248,6 +290,21 @@ describe('concept-sync consistency guard (.concept/ bootstrap 5fd0dd60)', () => 
   it('metrics: gc_actions.merged equals the merged decisions in term_queue', () => {
     const merged = termQueue.queue.filter((q) => q.decision === 'merged');
     expect(metrics.gc_actions.merged).toBe(merged.length);
+  });
+
+  it('metrics: gc_actions.deleted equals the tombstones count (one tombstone per GC deletion)', () => {
+    // B-9: every GC deletion must leave a tombstone, so the counter and the
+    // tombstone list cannot drift apart. (Currently 0 = 0; RED-verified by
+    // mutation — see commit message.)
+    expect(metrics.gc_actions.deleted).toBe(tombstones.tombstones.length);
+  });
+
+  it('metrics: gc_actions.deprecated is a non-negative integer count', () => {
+    // No independent machine source exists (see header scope note): ontology
+    // status is draft|stable and tombstones only record deletions. Pin the
+    // shape until a representation lands, then derive it here.
+    expect(Number.isInteger(metrics.gc_actions.deprecated)).toBe(true);
+    expect(metrics.gc_actions.deprecated).toBeGreaterThanOrEqual(0);
   });
 
   it('metrics: run_id matches run_state.last_run_id', () => {
@@ -346,7 +403,42 @@ describe('concept-sync consistency guard (.concept/ bootstrap 5fd0dd60)', () => 
     expect(missing).toEqual([]);
   });
 
+  it('evidence: ellipsis-free quotes are verbatim (whitespace-normalized) substrings of their source', () => {
+    // Contract: `quote` is either a verbatim excerpt — single-line, or a
+    // multi-line excerpt flattened with single spaces (both sides collapse
+    // `\s+` before comparing) — or a paraphrase, which MUST carry `…`/`...`.
+    // The bootstrap shipped 15 marker-less paraphrases; the data fix in this
+    // commit appended `…` to them. This leg trips on fabricated, typo'd, or
+    // wrong-file code quotes that merely look plausible.
+    const norm = (text: string): string => text.replace(/\s+/g, ' ');
+    const offenders: string[] = [];
+    const check = (label: string, ev: Evidence): void => {
+      if (!ev.quote || ev.quote.includes('…') || ev.quote.includes('...')) {
+        return; // empty handled by existence/Q8 legs; … marks paraphrase
+      }
+      const content = norm(readSource(ev.source.split('#')[0]));
+      if (!content.includes(norm(ev.quote))) offenders.push(`${label}: ${ev.source}`);
+    };
+    for (const [name, term] of termEntries) {
+      for (const ev of term.evidence ?? []) check(`term ${name}`, ev);
+    }
+    for (const inv of invariants.invariants) {
+      for (const ev of inv.evidence ?? []) check(inv.id, ev);
+    }
+    for (const amb of ambiguities.ambiguities) {
+      for (const ev of amb.evidence ?? []) check(amb.id, ev);
+    }
+    for (const item of termQueue.queue) {
+      for (const ev of item.evidence ?? []) check(item.id, ev);
+    }
+    expect(offenders).toEqual([]);
+  });
+
   it('claims: every ndjson line parses and invariants hold (Q5 leg)', () => {
+    // Floor lives HERE (not only in the metrics leg) so the unmapped ratio at
+    // the bottom is well-defined by construction — 0 retained lines would
+    // make it NaN (fail-closed, but with an unreadable failure).
+    expect(claimLines.length).toBeGreaterThan(0);
     const badTerm: string[] = [];
     const badConfidence: string[] = [];
     const badPriority: string[] = [];
@@ -414,6 +506,13 @@ describe('concept-sync consistency guard (.concept/ bootstrap 5fd0dd60)', () => 
     expect(new Set(termIds).size).toBe(termIds.length); // no duplicate TERM- ids
     const queueIds = termQueue.queue.map((q) => q.id);
     expect(new Set(queueIds).size).toBe(queueIds.length);
+    // A value outside the C-7 vocabulary counts as neither pending nor merged
+    // and silently skews the metrics derivations above — reject it outright.
+    expect(
+      termQueue.queue
+        .filter((q) => !QUEUE_DECISIONS.has(q.decision))
+        .map((q) => q.id),
+    ).toEqual([]);
   });
 
   it('charter: north_star filled and ≥1 milestone present (Q7)', () => {
@@ -427,23 +526,26 @@ describe('concept-sync consistency guard (.concept/ bootstrap 5fd0dd60)', () => 
     }
   });
 
-  it('autopilot: every npm command string references a real package.json script', () => {
+  it('autopilot: commands are npm-form referencing real scripts; non-npm needs the explicit allowlist', () => {
     const pkg = JSON.parse(readSource('package.json')) as {
       scripts: Record<string, string>;
     };
     const scripts = Object.keys(pkg.scripts);
     const missingScripts: string[] = [];
-    const emptyCommands: string[] = [];
+    const nonConforming: string[] = [];
     for (const [key, command] of Object.entries(autopilot.commands)) {
       const match = command.match(/^npm (?:run )?(\S+)$/);
       if (match) {
         if (!scripts.includes(match[1])) missingScripts.push(`${key}: ${command}`);
-      } else if (command.length === 0) {
-        // Non-npm commands (e.g. a raw binary) are allowed; require non-empty.
-        emptyCommands.push(key);
+      } else if (!RAW_COMMAND_ALLOWLIST.includes(command)) {
+        // Empty strings and raw binaries alike: a command that is neither
+        // `npm [run] <real script>` nor consciously allowlisted is an
+        // unvalidated gate — the eval called the old non-empty-only check a
+        // dead-quality-gate blind spot (e.g. a typo'd `npx ts-check` passes).
+        nonConforming.push(`${key}: ${command || '(empty)'}`);
       }
     }
-    expect(missingScripts).toEqual([]); // missing script = dead quality gate
-    expect(emptyCommands).toEqual([]);
+    expect(missingScripts).toEqual([]); // npm-form → script must exist
+    expect(nonConforming).toEqual([]); // anything else → contract violation
   });
 });

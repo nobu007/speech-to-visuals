@@ -48,7 +48,7 @@ canonical_terms:
       - source: "src/pipeline/simple-pipeline.ts#L130"
         quote: "overlapDetectionMode: 'balanced',"
       - source: "src/pages/SimplePipeline.tsx"
-        quote: "SimplePipeline.tsx（UI ページ・憲法ホワイトリスト『パイプライン操作UI（SimplePipeline・StreamingProcessor）』）"
+        quote: "SimplePipeline.tsx（UI ページ・憲法ホワイトリスト『パイプライン操作UI（SimplePipeline・StreamingProcessor）』）…"
   TranscriptionPipeline:
     id: "TERM-TRANSCRIPTION-PIPELINE"
     layer: "core"
@@ -112,7 +112,7 @@ canonical_terms:
       - source: "src/analysis/scene-segmenter.ts"
         quote: "export class SceneSegmenter {"
       - source: "tests/guards/scene-segmenter-sanitize-finite-migration-mutation-pinning.test.ts"
-        quote: "scene-segmenter sanitizeFinite migration mutation-pinning guard"
+        quote: "scene-segmenter sanitizeFinite migration mutation-pinning guard…"
   LayoutEngine:
     id: "TERM-LAYOUT-ENGINE"
     layer: "core"
@@ -244,7 +244,7 @@ canonical_terms:
       - source: "src/analysis/gemini-analyzer.ts"
         quote: "export class GeminiAnalyzer {"
       - source: "src/analysis/llm-utils.ts"
-        quote: "parseJsonFromLLMText（LLM 出力 JSON.parse チョークポイント・TC-313）"
+        quote: "parseJsonFromLLMText（LLM 出力 JSON.parse チョークポイント・TC-313）…"
   RuleBasedAnalyzer:
     id: "TERM-RULE-BASED-ANALYZER"
     layer: "domain"
@@ -402,9 +402,9 @@ canonical_terms:
     related_terms: ["WebSocketHandler"]
     evidence:
       - source: "src/api/server.ts"
-        quote: "Express REST API サーバー実装"
+        quote: "Express REST API サーバー実装…"
       - source: "specs/speech-to-visuals/api-endpoints.md"
-        quote: "API エンドポイント定義（正典ドキュメント）"
+        quote: "API エンドポイント定義（正典ドキュメント）…"
       - source: "SYSTEM_CONSTITUTION.md#L40"
         quote: "Express REST API（バッチ処理含む）"
   WebSocketHandler:
@@ -420,7 +420,7 @@ canonical_terms:
     related_terms: ["ApiServer", "StreamingTranscriber"]
     evidence:
       - source: "src/api/websocket-handler.ts"
-        quote: "WebSocket ハンドラー実装"
+        quote: "WebSocket ハンドラー実装…"
       - source: "SYSTEM_CONSTITUTION.md#L41"
         quote: "WebSocket リアルタイム進捗通知（Socket.IO）"
   ProductionMonitor:
@@ -580,7 +580,7 @@ canonical_terms:
     related_terms: ["GuardHarness"]
     evidence:
       - source: "specs/speech-to-visuals/mutation-witness-ledger.md"
-        quote: "mutation witness ledger（正典ドキュメント）"
+        quote: "mutation witness ledger（正典ドキュメント）…"
       - source: "specs/speech-to-visuals/requirements.md"
         quote: "4-row mutant ledger template 付録昇格"
   UIComponents:
@@ -596,7 +596,7 @@ canonical_terms:
     related_terms: ["SimplePipeline", "ApiServer", "ReactHooks"]
     evidence:
       - source: "SYSTEM_CONSTITUTION.md#L45-L46"
-        quote: "パイプライン操作UI（SimplePipeline・StreamingProcessor）/進捗表示・ビデオプレビュー・エラー表示"
+        quote: "パイプライン操作UI（SimplePipeline・StreamingProcessor）/進捗表示・ビデオプレビュー・エラー表示…"
       - source: "src/components/__tests__/AudioUploader.test.tsx#L167"
         quote: "describe('AudioUploader', () => {"
   ReactHooks:
@@ -612,7 +612,7 @@ canonical_terms:
     related_terms: ["UIComponents", "AutoImprovementEngine"]
     evidence:
       - source: "src/hooks/useFrameworkPipeline.ts"
-        quote: "useFrameworkPipeline.ts（カスタムフック実装）"
+        quote: "useFrameworkPipeline.ts（カスタムフック実装）…"
       - source: "src/hooks/__tests__/useAdminAnalytics.test.ts#L101"
         quote: "describe('useAdminAnalytics', () => {"
   SupabaseIntegration:
@@ -644,7 +644,7 @@ canonical_terms:
     related_terms: ["MemoryCache"]
     evidence:
       - source: "src/performance/intelligent-cache.ts"
-        quote: "intelligent-cache.ts（パフォーマンス層実装）"
+        quote: "intelligent-cache.ts（パフォーマンス層実装）…"
       - source: "src/performance/__tests__/intelligent-cache.test.ts#L112"
         quote: "describe('IntelligentCache', () => {"
   RemotionComposition:
