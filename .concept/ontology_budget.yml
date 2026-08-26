@@ -1,3 +1,6 @@
+# Values are the 10_concept_sync_system §C-8 example verbatim (terms 80 also
+# in §B-10's table). Guard: concept-sync-consistency "B-10/§C-8 budget values
+# pinned" leg — raising a limit is a deliberate change to BOTH sides.
 limits:
   total_terms_max: 80
   core_max: 20
