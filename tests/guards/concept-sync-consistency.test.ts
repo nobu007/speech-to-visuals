@@ -137,6 +137,21 @@
  * evaluateNpmTestPatterns / firstResolvablePathToken each get a contract
  * table at the bottom of this file.
  *
+ * Test-stage follow-up #7 (run 20260826-134614 test-stage eval, 94/100): the
+ * #6 mirror cited jest 30 semantics with no tie to the installed package —
+ * a jest upgrade could change @jest/pattern's behavior while every mirror
+ * leg stayed green against semantics that no longer exist. The real module
+ * is now loaded via createRequire (js-yaml precedent; transitive dep via
+ * the jest toolchain, no direct dep, no @types) and tied to the mirror two
+ * ways: the installed version is pinned exactly (upgrade → RED → re-verify
+ * the mirror legs, then move the pin consciously), and a conformance
+ * battery cross-checks the mirror's selection verdicts and invalid-regex
+ * classification against the real TestPathPatternsExecutor / isValid().
+ * Also fixes the #6 citation drift it surfaced: the jest RUNNER is 30.4.2
+ * but the @jest/pattern PACKAGE the mirror mirrors is 30.4.0. And
+ * splitPatternArgs' shell-edge scope (no escapes / unbalanced quotes) is
+ * now documented at the helper instead of silently unwritten.
+ *
  * Scope decisions (conscious, keep future edits honest):
  *   - Evidence QUOTES are pinned modulo whitespace: single-line quotes are
  *     exact substrings, multi-line excerpts may be flattened with single
@@ -178,6 +193,23 @@ import {
 const nodeRequire = createRequire(import.meta.url);
 const yamlLoad = (nodeRequire('js-yaml') as { load: (input: string) => unknown })
   .load;
+
+// The REAL pattern engine the #6 mirror imitates (@jest/pattern ships with
+// the jest toolchain as a transitive dep — same load strategy as js-yaml
+// above; if it ever disappears, this require throws loud here instead of
+// the conformance legs below silently greening). Structural type only: the
+// conformance describe uses isValid() and toExecutor().isMatch(), nothing
+// else, so an API reshape fails as a leg rather than a TypeError elsewhere.
+const jestPattern = nodeRequire('@jest/pattern') as {
+  TestPathPatterns: new (
+    patterns: string[],
+  ) => {
+    isValid(): boolean;
+    toExecutor(options: {
+      rootDir: string;
+    }): { isMatch(absPath: string): boolean };
+  };
+};
 
 // ---------------------------------------------------------------------------
 // Local shapes for the machine-generated .concept YAML/JSON subset. Parsed
@@ -378,7 +410,15 @@ function collectTestFilePaths(dirRel = 'tests'): string[] {
 }
 const testFilePaths = collectTestFilePaths();
 
-/** Split a `--` tail shell-style: quoted spans group, bare runs split on space. */
+/**
+ * Split a `--` tail shell-style: quoted spans group, bare runs split on space.
+ * Shell escapes (`\ `, `\"`), unbalanced, and mixed quotes are NOT handled —
+ * inputs are single-line YAML-authored tails from invariants.yml, not
+ * arbitrary shell. Residual divergence is fail-loud or narrows the run (a
+ * mis-split fragment whose reconstruction matches nothing makes jest exit 1
+ * "No tests found"), never the silent full-suite widening that the
+ * invalid-regex offender class exists to catch.
+ */
 function splitPatternArgs(tail: string): string[] {
   const args: string[] = [];
   for (const m of tail.matchAll(/"([^"]*)"|'([^']*)'|(\S+)/g)) {
@@ -394,7 +434,9 @@ type PatternSelection =
 
 /**
  * jest 30 `--testPathPatterns` semantics, mirrored from the installed
- * @jest/pattern TestPathPatternsExecutor (30.4.2, this repo):
+ * @jest/pattern TestPathPatternsExecutor (30.4.0, this repo — the jest
+ * RUNNER is 30.4.2; the pinned conformance describe below holds the
+ * mirror to this exact package version):
  *   - each argv token is its own pattern and patterns are OR'd;
  *   - every pattern compiles case-INSENSITIVELY against the repo-relative
  *     path, with a leading `./` anchoring at the root (`./foo` ≙ `^foo`);
@@ -1159,5 +1201,90 @@ describe('checks-target helpers (local) — contract pin', () => {
     expect(firstResolvablePathToken('review the architecture by intuition')).toBeNull();
     expect(firstResolvablePathToken('types/config/utils/lib は存在しない')).toBeNull();
     expect(firstResolvablePathToken('/')).toBeNull(); // bare slash trims to empty
+  });
+});
+
+// ----------------------------------------------------------------------
+// jest-pattern conformance (real module) — eval follow-up #7
+//
+// The mirror above hardcodes jest 30 selection semantics with no tie to the
+// installed package, so a jest upgrade could change @jest/pattern's
+// behavior while every mirror leg stayed green against semantics that no
+// longer exist. Two closures (eval suggestions 1+2, js-yaml createRequire
+// precedent for the load):
+//   - version pin: the installed @jest/pattern must be the exact version
+//     the mirror was verified against — an upgrade REDs here until the
+//     mirror legs are re-verified and the pin moved consciously;
+//   - delegation cross-check: for a battery of tails, the mirror's verdict
+//     must equal the REAL TestPathPatternsExecutor fed the same split
+//     tokens over the live test-file universe, and the mirror's
+//     invalid-regex classification must equal the real isValid() — mirror
+//     drift now REDs at the very upgrade that changes semantics, not
+//     whenever someone happens to re-audit the prose.
+describe('jest-pattern conformance (real @jest/pattern module) — eval follow-up #7', () => {
+  it('prerequisite: installed @jest/pattern is exactly the version the mirror was verified against', () => {
+    const pkg = JSON.parse(
+      readSource('node_modules/@jest/pattern/package.json'),
+    ) as { name: string; version: string };
+    // RED here means jest was upgraded: re-verify the mirror legs in the
+    // checks-target describe (per-token union, 'i' flag, `./`→`^` anchor,
+    // invalid handling) against the NEW behavior, then move this pin as a
+    // conscious act. A silent pass-through is exactly the drift this leg
+    // exists to make impossible.
+    expect(`${pkg.name}@${pkg.version}`).toBe('@jest/pattern@30.4.0');
+  });
+
+  it('mirror selection verdicts equal the real executor over the live test-file universe', () => {
+    // Each case asserts BOTH engines produce the documented verdict, so the
+    // leg REDs on a mirror edit AND on a real-module behavior change — the
+    // two can no longer drift apart silently.
+    const cases: { tail: string; expectMatch: boolean; why: string }[] = [
+      { tail: '"guards"', expectMatch: true, why: 'plain quoted substring' },
+      { tail: 'EXPORT', expectMatch: true, why: "'i' flag on both sides" },
+      { tail: 'zzz-absent guards', expectMatch: true, why: 'per-token OR union' },
+      { tail: './tests/guards', expectMatch: true, why: '`./` ≙ `^` root anchor' },
+      { tail: './no-such-prefix', expectMatch: false, why: 'anchored prefix selects nothing' },
+      { tail: 'zzz-absent-entirely', expectMatch: false, why: 'no token matches' },
+    ];
+    for (const { tail, expectMatch } of cases) {
+      // Embed the tail so a failure names the offending case instead of
+      // diffing two bare booleans.
+      expect([tail, evaluateNpmTestPatterns(tail).ok]).toEqual([
+        tail,
+        expectMatch,
+      ]); // mirror
+      const executor = new jestPattern.TestPathPatterns(
+        splitPatternArgs(tail),
+      ).toExecutor({ rootDir: REPO_ROOT });
+      const realMatch = testFilePaths.some((p) =>
+        executor.isMatch(join(REPO_ROOT, p)),
+      );
+      expect([tail, realMatch]).toEqual([tail, expectMatch]); // real module
+    }
+  });
+
+  it('mirror invalid-regex classification equals the real isValid()', () => {
+    // The real engine classifies validity via isValid() (toRegex throws →
+    // false); jest-config's full-suite downgrade of an invalid pattern is
+    // the RUNNER's behavior (verified empirically in #6), so it stays a
+    // documented mirror rationale rather than a delegable fact.
+    for (const pattern of ['([unclosed', '+unclosed', '*star']) {
+      expect(evaluateNpmTestPatterns(pattern)).toEqual({
+        ok: false,
+        reason: 'invalid-regex',
+        pattern,
+      });
+      expect(new jestPattern.TestPathPatterns([pattern]).isValid()).toBe(false);
+    }
+    // Valid-but-unmatched or metacharacter-carrying patterns are selection
+    // questions, not validity questions — the classifier must not trip.
+    // (The quoted tail matters: unquoted, the space inside `[- ]` splits the
+    // token shell-style and `concept[-` alone is genuinely invalid — the
+    // first run of this leg RED'd on exactly that, the mirror behaving
+    // correctly and the case prose being wrong.)
+    for (const pattern of ['zzz-absent', 'a|b', 'concept[- ]sync']) {
+      expect(new jestPattern.TestPathPatterns([pattern]).isValid()).toBe(true);
+    }
+    expect(evaluateNpmTestPatterns('"concept[- ]sync"').ok).toBe(true);
   });
 });
