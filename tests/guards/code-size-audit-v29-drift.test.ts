@@ -180,3 +180,49 @@ describe('code-size-audit script — V2.9 identifier drift guard (REQ-419-005)',
     );
   });
 });
+
+// ----------------------------------------------------------------------
+// isCommentLine helper contract (freeze-guard.ts:67-70)
+//
+// Tests 8 and 9 above depend on isCommentLine skipping comment lines
+// before counting V2_8 / V2_9 references. If isCommentLine drifted (e.g.
+// started returning true for code lines that contain `//` mid-line, or
+// stopped recognizing ` *` JSDoc continuation), the count anchor in
+// test 9 would silently count code references as comments and the
+// partial-revert sweep in test 8 would falsely flag legit code lines.
+//
+// This is the receipt for that dependency: pin the helper's own contract
+// so a regression in freeze-guard fails HERE (the import path) rather
+// than only as an indirect, confusing miss in tests 8/9.
+//
+// Contract (from freeze-guard.ts JSDoc):
+//   True for comment-only lines (`// x`, ` * x`, `/* x`).
+// ----------------------------------------------------------------------
+describe('isCommentLine helper (freeze-guard import path) — contract pin', () => {
+  it('returns true for `// x` line comments', () => {
+    expect(isCommentLine('// a comment')).toBe(true);
+    expect(isCommentLine('//only-slashes')).toBe(true);
+  });
+
+  it('returns true for ` * x` JSDoc continuation lines', () => {
+    expect(isCommentLine(' * a JSDoc continuation')).toBe(true);
+    expect(isCommentLine('   * indented JSDoc')).toBe(true);
+  });
+
+  it('returns true for `/* x` block-comment opener lines', () => {
+    expect(isCommentLine('/* block opener')).toBe(true);
+  });
+
+  it('returns false for code lines that contain comment markers mid-line', () => {
+    // Anchored to start of line — `console.log("// ...")` is NOT a
+    // comment-only line, even though it contains `//`.
+    expect(isCommentLine('console.log("// not a comment");')).toBe(false);
+    expect(isCommentLine('const URL = "/* also not a comment */";')).toBe(false);
+  });
+
+  it('returns false for plain code lines and empty/whitespace-only lines', () => {
+    expect(isCommentLine('const x = 5;')).toBe(false);
+    expect(isCommentLine('')).toBe(false);
+    expect(isCommentLine('   ')).toBe(false);
+  });
+});
