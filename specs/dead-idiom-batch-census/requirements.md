@@ -9,7 +9,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-08-25
-**要件ID**: REQ-410（Phase 217 / TASK-0301・audit-pass-first census series family 19・**batch 形式**）→ **REQ-411 で sweep #2 拡張**（Phase 218 / TASK-0302）→ **REQ-412 で sweep #3 拡張**（Phase 219 / TASK-0303）→ **REQ-413 で sweep #4 拡張**（Phase 220 / TASK-0304）→ **REQ-414 で sweep #5 拡張**（Phase 221 / TASK-0305）→ **REQ-415 で sweep #6 拡張**（Phase 222 / TASK-0306）→ **REQ-416 で sweep #7 拡張**（Phase 224 / TASK-0307）→ **REQ-417 で sweep #8 拡張**（Phase 225 / TASK-0308）→ **REQ-418 で sweep #9 拡張**（Phase 226 / TASK-0309）
+**要件ID**: REQ-410（Phase 217 / TASK-0301・audit-pass-first census series family 19・**batch 形式**）→ **REQ-411 で sweep #2 拡張**（Phase 218 / TASK-0302）→ **REQ-412 で sweep #3 拡張**（Phase 219 / TASK-0303）→ **REQ-413 で sweep #4 拡張**（Phase 220 / TASK-0304）→ **REQ-414 で sweep #5 拡張**（Phase 221 / TASK-0305）→ **REQ-415 で sweep #6 拡張**（Phase 222 / TASK-0306）→ **REQ-416 で sweep #7 拡張**（Phase 224 / TASK-0307）→ **REQ-417 で sweep #8 拡張**（Phase 225 / TASK-0308）→ **REQ-418 で sweep #9 拡張**（Phase 226 / TASK-0309）→ **REQ-419 で sweep #10 拡張**（Phase 227 / TASK-0310）
 
 ## 概要
 
@@ -769,7 +769,112 @@ REQ-417 と同じ契約: 既存 kind の detect は不変のまま、新 kind �
 **When**: 4 独立 mutation（language-detector:537 `[...text]` → `text.split('')` revert / `src/analysis/untrusted-json-core.ts` 末尾への `.outerHTML =` 注入 / 同位置への `document?.createEvent('HTMLEvents')` 注入 / 同位置への `addEventListener('onclick', …)` 注入）を適用する
 **Then**: (a) は completeness + eradicated-reappear + negative anchor の **3 独立面** で RED（`:537 [string-char-split]` 帰着）・(b)(d) は各 1 failed completeness RED（`[outer-html-assignment]` / `[on-prefixed-event-name]` 帰着）・(c) は初稿 regex が optional-chain 形を見落として **GREEN のまま** → 検出域を `document\??\.createEvent` に修正して RED 化（mutation 検証が detector bug を発見した初例）・revert で 8/8 GREEN 復元・`git status --short src/` は unify 対象 1 file のみ
 
+## REQ-419: 第十回 discovery sweep（同一 batch guard への kind 追加）
+
+steering 契約の 10 回目の適用。2026-08-26 の **第十回 discovery sweep** は
+同一 production surface（331 file・repo src/ .ts+.tsx と @stv/core core-four・
+走査は canonical `walkProductionSurface` 直接使用）で **36 candidate class**
+を計測。このうち 2 class は **pin 前に棄却**（下記 REQ-419-003）。
+**計測・fixture 工程が detector 初稿の検出域 bug を 3 件発見**（下記 REQ-419-002 —
+MW-082 の「mutation が detector gap を発見」の計測版）し、修正のうえ残る
+**34 kind を registry に追加**（33 kind exact-0・1 kind は ALLOWED 4 site
+同梱・**src 変更ゼロ**）:
+
+| kind | 実測 | 判定 |
+|------|------|------|
+| doc-execcommand（`document.execCommand(`） | 0 | exact-0 pin — deprecated commands API（clipboard 'copy' 舞踏込み）・`navigator.clipboard` が正形 |
+| window-clipboard-data（`window.clipboardData`） | 0 | exact-0 pin — IE の clipboard object（現行 engine 全て undefined・DataTransfer は event 側） |
+| legacy-buffer-ctor（`Buffer(` / `new Buffer(`） | 0 | exact-0 pin — Node deprecated ctor（zero-fill hazard）・`Buffer.alloc/from` が正形（`ArrayBuffer` は lookbehind で検出域外） |
+| node-url-parse（`url.parse(`） | 0 | exact-0 pin — legacy Node url API・WHATWG `URL` ctor が正形 |
+| node-querystring（`querystring.`） | 0 | exact-0 pin — legacy percent-encoding API・`URLSearchParams` が正形 |
+| nonstandard-setimmediate（`setImmediate(`） | 0 | exact-0 pin — 非標準 scheduler（Node/IE のみ）・browser bundle で ReferenceError・`queueMicrotask` が正形 |
+| node-process-nexttick（`process.nextTick`） | 0 | exact-0 pin — isomorphic src では Node のみ（node-global-identifier と同一 realm hazard） |
+| promise-deferred（`Promise.defer()` / `.defer()`） | 0 | exact-0 pin — 削除済み非標準 deferred API・`Promise.withResolvers` が正形 |
+| object-observe（`Object/Array.observe(`） | 0 | exact-0 pin — 削除済み observation proposal・Proxy / MutationObserver が正形 |
+| system-import（`System.import(`） | 0 | exact-0 pin — 削除済み module-loader 綴り・dynamic `import()` が正形 |
+| x-domain-request（`XDomainRequest`） | 0 | exact-0 pin — IE9 専用 CORS transport |
+| activex-object（`ActiveXObject`） | 0 | exact-0 pin — IE の plugin/COM bridge |
+| console-devtools-sink（`console.table/dir/group/count/time/profile` 系） | 0 | exact-0 pin — logger の level gate を迂回する devtools 専用 sink（console family の第 3 twin） |
+| getcomputedstyle-null-arg（`getComputedStyle(el, null)`） | 0 | exact-0 pin — 旧必須だった pseudoElt 第 2 引数の legacy 綴り |
+| prefixed-matches-selector（`webkit/moz/ms/oMatchesSelector`） | 0 | exact-0 pin — prefix 付き matches・`element.matches` が正形 |
+| scroll-into-view-if-needed（`.scrollIntoViewIfNeeded()`） | 0 | exact-0 pin — Safari 専用非標準 scroll・`scrollIntoView` が正形 |
+| react-force-update（`.forceUpdate(`） | 0 | exact-0 pin — state/props 依存の見落としを隠す escape hatch |
+| react-prop-types（`.propTypes =` / `PropTypes.`） | 0 | exact-0 pin — 実行時 prop 検証は in-repo tsc と重複（死重） |
+| importscripts-global（`importScripts(`） | 0 | exact-0 pin — worker 専用 global・main thread で ReferenceError |
+| error-capture-stack-trace（`Error.captureStackTrace(`） | 0 | exact-0 pin — V8 専用拡張（Firefox/Safari で ReferenceError） |
+| self-ternary-default（`x ? x : y`） | 0 | exact-0 pin — `x \|\| y` の longhand（falsy-vs-nullish hazard・`??` が正形）・**初稿は `cond ? null : y` の keyword consequent を誤検出 → reserved-word 排除リスト追加**（REQ-419-002） |
+| navigator-ms-prefixed（`navigator.msXxx`） | 0 | exact-0 pin — IE prefix navigator 拡張（msSaveBlob 等） |
+| process-binding（`process.binding(`） | 0 | exact-0 pin — deprecated Node 内部 bridge |
+| window-external（`window.external`） | 0 | exact-0 pin — IE addon API（他で undefined） |
+| getbox-object-for（`getBoxObjectFor`） | 0 | exact-0 pin — Netscape/Firefox 廃止 geometry API（document.layers sibling） |
+| mutation-event-name（`DOMNodeInserted` 系） | 0 | exact-0 pin — deprecated mutation EVENTS・MutationObserver が正形 |
+| window-status-assign（`window.status =`） | 0 | exact-0 pin — status bar write（現行全 engine で no-op） |
+| element-fire-event（`.fireEvent(`） | 0 | exact-0 pin — IE の dispatch 綴り・`dispatchEvent` が正形 |
+| children-map-direct（`children.map(`） | 0 | exact-0 pin — React children は単一 element の場合 array でない→TypeError・`React.Children.map/toArray` が正形 |
+| event-path-access（`event/evt/e.path`） | 0 | exact-0 pin — 非標準 Event.path（Firefox で undefined）・`composedPath()` が正形・**初稿は `largestFile.path` の識別子末尾 `e` を誤検出 → lookbehind 追加**（REQ-419-002） |
+| node-createcipher（`create(?:Decipher\|Cipher)\(`） | 0 | exact-0 pin — deprecated 暗黙 IV crypto ctor（`createCipheriv` が正形 — `iv` 接尾で検出域外）・**初稿 `create(?:De)?Cipher(` は `createDecipher`（De + 小文字 cipher）を検出漏れ → liveness fixture が RED で発見**（REQ-419-002） |
+| localedatestring-bare（`.toLocale(Date\|Time)String()`） | **4 site（src）** | ALLOWED 4 key — AdminAnalyticsDashboard:56/:606・FrameworkDashboard:494・Iteration43Interface:106・全て人間向け壁時計**表示**（dashboard 表 cell・詳細行・app 内 log 接頭）。drift class は決定論的成果物（CSV/PDF export）で実害化する（tolocalestring-bare row と同一 rationale）・表示は runtime locale が適正 formatter |
+| splice-indexof-remove（`xs.splice(xs.indexOf(x), …)`） | 0 | exact-0 pin — not-found 時 `splice(-1, 1)` が**最後尾要素を静かに削除**する remove-by-value idiom・`filter` / findIndex+guard が正形 |
+| unstable-react-api（`unstable_batchedUpdates` 等） | 0 | exact-0 pin — React の exported-then-doomed unstable API 群 |
+
+ALLOWED **27 key** / ERADICATED **13 key**（不変）・kind registry
+**152 entry**（118 → 152）。
+
+### REQ-419-001〜003: sweep #10 kind の検出と固定
+
+**Given（前提条件）**: production surface 331 file に 36 candidate class を追加計測（34 class kind 化・2 class pin 前棄却・detector 初稿修正 3 件 — 計測発見 2 件 + liveness fixture 発見 1 件）
+**When（実行条件）**: `NODE_OPTIONS='--experimental-vm-modules --max-old-space-size=4096' npx jest --config jest.config.cjs --testPathPatterns dead-idiom-batch-census` を実行する
+**Then（期待結果）**: 8 test GREEN（同一 guard 内で kind 152 entry ratchet・fixture (ad1)〜(ad34) 拡張・ALLOWED 27 key / ERADICATED 13 key の three-way 句一致）
+
+**テストケース**:
+
+- [x] **TC-419-01**: authority の kind ratchet 152 entry（34 kind 追加の順序固定）+ localedatestring-bare floor ≥ 4 🔵
+- [x] **TC-419-02**: liveness fixture (ad1)〜(ad34)（34 kind の検出・非検出境界 — `new Buffer(` と call 形は同一 regex で両検出・`console.time` は log/info 系 kind と不交差・`a.b ? a.b : c` の property-path 形も検出）🔵
+- [x] **TC-419-03**: ALLOWED 27 key / ERADICATED 13 key の three-way 句一致（REQ-395 census-artifact guard 経由）🔵
+
+### REQ-419-002: 計測工程による detector 初稿検出域 bug の発見（MW-082 教訓の計測版）
+
+MW-082 は mutation 検証が optional-chain 抜けを発見した初例だった。本
+sweep は**計測（clean tree への候補適用）2 件・liveness fixture 1 件の
+計 3 件**が同じ gap を発見した — clean な母集団で hit が出る／正面例を
+拾わない detect 初稿は検出域 bug:
+
+- **self-ternary-default 初稿** `([A-Za-z_$][\w$.]*)\s*\?\s*\1\s*:` は
+  `percent === null ? null : roundTo(…)`（memory-backend.ts:94）の
+  **keyword consequent**（`null ? null :`）を誤検出 → 予約語
+  （null/undefined/true/false/this）を match 開始位置から排除し 0 hit 化。
+  境界は fixture (ad21) の負例側で固定。
+- **event-path-access 初稿** `(?:event|evt|e)\.path\b` は
+  `metrics.largestFile.path`（code-size-audit.ts:95）の**識別子末尾 `e`**
+  を誤検出 → lookbehind `(?<![\w$])` 追加で 0 hit 化。境界は fixture
+  (ad30) の負例側で固定。
+- **node-createcipher 初稿** `create(?:De)?Cipher\(` は
+  `createDecipher`（= create + **De + 小文字 cipher**）を検出漏れ
+  （`De` + 大文字 `Cipher` とは綴りが一致しない）→
+  `create(?:Decipher|Cipher)\(` へ修正。**計測は 0 hit で二重検出不能
+  （clean surface に陽性がないため）だったが liveness fixture の正面例
+  （`createDecipher(…)` 検出期待）が RED で発見** — 正例境界の不在は
+  fixture しか掴めない。境界は fixture (ad31) の両側で固定。
+
+### REQ-419-003: pin 前棄却 class の記録（挙動一致型 3 例目・機能本質型 1 例目）
+
+- **inner-text-assign（`.innerText =`・0 src site）**: 書き込み経路の
+  `.innerText =` は `.textContent =` と**挙動ほぼ一致**（読み取りの
+  reflow・hidden 要素差は読み側の性質で、書き込み単独では incident 形を
+  持たない）。`a ** b`↔Math.pow・`.charAt()` に続く挙動一致型棄却の
+  3 例目。
+- **array-literal-concat（`[].concat(`・0 src site）**: `[].concat(x)` の
+  「x が array なら spread される」挙動は**ensure-array idiom の本質機能**
+  であり死んだ綴りではない（spread による代替は可読性の好みで、incident
+  形なし）。site 母集団 ≠ incident 母集団（機能本質型の初例）。
+
+### REQ-419-004: MW-083 mutation 検証
+
+**Given**: guard が GREEN の tree
+**When**: 4 独立 mutation（`src/analysis/untrusted-json-core.ts` 末尾への `document.execCommand('copy')` 注入 / `url.parse(rawUrl)` 注入 / `console.time('sweep')` 注入 / `children.map((c) => c)` 注入）を適用する
+**Then**: 各 mutation で completeness が RED（各 1 failed・offender list で `[doc-execcommand]` / `[node-url-parse]` / `[console-devtools-sink]` / `[children-map-direct]` 帰着を確認）・revert で 8/8 GREEN 復元・`git status --short src/` 空
+
 ## 最小限の非機能要件
 
 - **性能**: 追加検証は既存 walk の行 scan のみ（file 再読みなし・guard 実行 < 1s）
-- **保守性**: kind registry は純 data + 純関数 detector で export し合成 fixture で境界検証。src 変更は REQ-410 unify 2 site + REQ-412 unify 5 site + REQ-415 unify 5 site + REQ-418 unify 1 site（同一 feature check の綴り統一）のみ（それ以外 read-only census）。REQ-411 sweep #2・REQ-413 sweep #4・REQ-414 sweep #5・REQ-416 sweep #7・REQ-417 sweep #8 は **src 変更ゼロ**（実測 site は ALLOWED 判断・spec/guard のみ）
+- **保守性**: kind registry は純 data + 純関数 detector で export し合成 fixture で境界検証。src 変更は REQ-410 unify 2 site + REQ-412 unify 5 site + REQ-415 unify 5 site + REQ-418 unify 1 site（同一 feature check の綴り統一）のみ（それ以外 read-only census）。REQ-411 sweep #2・REQ-413 sweep #4・REQ-414 sweep #5・REQ-416 sweep #7・REQ-417 sweep #8・**REQ-419 sweep #10 は src 変更ゼロ**（実測 site は ALLOWED 判断・spec/guard のみ）

@@ -271,3 +271,30 @@ spec 同梱更新 + MW-082（mutation 検証が detector optional-chain 抜け�
   language-detector test 68/68 GREEN
 - 棄却 1 class は site 実コード読み — incident 出現時点の再計測条件を
   requirements に明記
+
+## Phase 227: REQ-419 第十回 discovery sweep（34 kind 追加 + ALLOWED 4 site + 2 class 棄却 + detector 初稿 bug 3 件修正）
+
+**目標**: batch 契約（kind 追加 = 1 entry）の 10 回目の適用。36 candidate
+を計測し、33 class を exact-0 pin、1 class（localedatestring-bare）を
+ALLOWED 4 site 同梱（dashboard 表示専用壁時計・DISPLAY-ONLY）、2 class
+（inner-text-assign・array-literal-concat）を pin 前棄却（挙動一致型
+3 例目・機能本質型の初例）。**src 変更ゼロ**。
+**成果物**: guard 34 kind 追加 + fixture (ad1)〜(ad34) + ALLOWED 27 key /
+ERADICATED 13 key + spec 同梱更新 + MW-083。計測・liveness fixture 工程
+が detector 初稿の検出域 bug 3 件（偽陽性 2 件 + `createDecipher`
+検出漏れ 1 件）を発見・修正 — REQ-419-002 に成文化。
+
+### タスク一覧
+
+- [x] [TASK-0310: 第十回 discovery sweep — 同一 batch guard へ 34 kind 追加 + ALLOWED 4 key + 2 class pin 前棄却（挙動一致型 3 例目・機能本質型 1 例目） + 計測・fixture 発見の detector 初稿 bug 3 件修正 + MW-083 mutation 検証](TASK-0310.md) - 2h (TDD) 🔵 ✅完了
+
+### 依存関係
+
+- Phase 217〜226 の `IDIOM_KINDS` registry と discovery primitive に直接追記
+  （新規 guard file なし — batch 契約の趣旨）
+- 計測は canonical `walkProductionSurface` 直接使用（331 file・
+  A-416-1 手順の維持）
+- detector 初稿 bug 3 件とも計測偽陽性（clean surface hit）または
+  fixture 正面例の RED で再現確認し、境界を fixture 両側で固定
+- 棄却 2 class とも綴り域全体の挙動読み — incident 出現時点の再計測条件を
+  requirements に明記
