@@ -380,7 +380,6 @@ describe('MW-091 contract leg mutation matrix (detection witness)', () => {
     //
     //   - mutation 1: PINNED_MIN_ENTRIES が parent guard から drop
     //     → parseFloor returns NaN, floorOk returns false (silent-pass trap を封鎖)
-<<<<<<< Updated upstream
     //   - mutation 2: floor constant を realCount 由来の値へ bump
     //     → entryCount < bumpFloor になり floorOk returns false
     //
@@ -388,14 +387,6 @@ describe('MW-091 contract leg mutation matrix (detection witness)', () => {
     // small (e.g. 86) なら entryCount の増加で偶然 pass する可能性がある。
     // bump 値は arbitrary literal ではなく realCount から導出し、
     // 「entryCount を上回る」事を assert して silent-pass 保証を検証する。
-=======
-    //   - mutation 2: floor constant を 9999 等に bump
-    //     → entryCount < 9999 になり floorOk returns false
-    //
-    // silent-pass trap: 元の floor test は `85 >= 85` を許容する為、bump が
-    // small (e.g. 86) なら entryCount の増加で偶然 pass する可能性が
-    // ある。9999 は any realistic entry count を上回る為確実に RED する。
->>>>>>> Stashed changes
 
     // detection predicate — extracted from floor test (line 254-257)
     const parseFloor = (src: string): number => {
@@ -425,7 +416,6 @@ describe('MW-091 contract leg mutation matrix (detection witness)', () => {
     expect(parseFloor(droppedGuard)).toBeNaN();
     expect(floorOk(entryCount, parseFloor(droppedGuard))).toBe(false);
 
-<<<<<<< Updated upstream
     // mutation 2: floor constant を entryCount から導出した値へ bump → floorOk returns false。
     // 旧実装は arbitrary な 9999 を使っていたが「9999 は現実的な entry 数を超える」という
     // silent-pass 保証が暗黙前提のままだった (ledger が 9999 entry に育てば witness が死ぬ)。
@@ -487,13 +477,4 @@ describe('MW-091 contract leg mutation matrix (detection witness)', () => {
     expect(readFileSync(GUARD_TEST, 'utf-8')).toMatch(/\/\^## \(MW-\\d\+\) \//);
     expect(readFileSync(SELF_TEST, 'utf-8')).toMatch(/\/\^## \(MW-\\d\{3\}\) \/gm/);
   });
-=======
-    // mutation 2: floor constant bumped to 9999 → floorOk returns false
-    const bumpedGuard = realGuardSrc.replace(
-      /PINNED_MIN_ENTRIES = \d+/,
-      'PINNED_MIN_ENTRIES = 9999',
-    );
-    expect(floorOk(entryCount, parseFloor(bumpedGuard))).toBe(false);
-  });
->>>>>>> Stashed changes
 });
