@@ -316,7 +316,7 @@ REQ-419-004 requirements 節 + MW-084 ledger エントリ + overview Phase 228
   REQ-419-004 で「allowed 振る舞い」と明文化
 
 
-## Phase 229: REQ-419-005 sweep #10 回収（PR #23 の 31 kind union・src 変更ゼロ）
+## Phase 229: REQ-419-006 sweep #10 回収（PR #23 の 31 kind union・src 変更ゼロ）
 
 **目標**: strand した PR #23（34-kind 版 sweep #10・base 陳腐化で
 CONFLICTING）を回収。main は 7-kind 版（Phase 227）+ detector 精緻化
@@ -327,9 +327,9 @@ process-nexttick が管轄）、残る **31 kind を union**（125 → 155 entry
 fixture は (ad8)〜(ad38) へ re 採番。ALLOWED は PR 由来 4 key 追加で
 24 → 28（FrameworkDashboard は PR #9 の行 shift で :494 → :533 に
 re-point）。PR 側計測が発見した detector 初稿 bug 3 件も同梱回収
-（REQ-419-005 節に記載）。
+（REQ-419-006 節に記載）。
 **成果物**: guard 31 kind union + fixture re 採番 + ALLOWED 4 key +
-REQ-419-005/006 spec 節 + MW-092（src 変更ゼロ recovery）
+REQ-419-006/007 spec 節 + MW-092（src 変更ゼロ recovery）
 
 ### タスク一覧
 

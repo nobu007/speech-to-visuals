@@ -841,7 +841,7 @@ ALLOWED 24 key / ERADICATED 13 key・kind registry は 125 entry（不変）。
 
 **走査影響**: kind registry は同数（filter-index-zero entry 1 件の detector 文字列のみ更新・sibling kind 増減なし）。PINNED_MIN_ENTRIES は MW-084 追加で 77→78。`tests/guards/mutation-witness-ledger.test.ts` の `entries.length` 期待は自動伸長するため手動更新不要。
 
-### REQ-419-005: sweep #10 回収 — strand した PR #23 の 31 kind union（2026-08-28）
+### REQ-419-006: sweep #10 回収 — strand した PR #23 の 31 kind union（2026-08-28）
 
 **背景**: 第十回 sweep は二 stream で並走した。main 側は 7-kind 版（REQ-419-001〜004・
 MW-083/MW-084）を先行採択、34-kind 版（PR #23・483950dd）は base 陳腐化で
@@ -913,7 +913,7 @@ REQ-419-002 相当）。
 - [x] **TC-419-05**: liveness fixture (ad8)〜(ad38)（回収 31 kind の検出・非検出境界 — re 採番済み・(ad5)/(ad6)/(ad7) は dedupe 先 kind の境界として存置）🔵
 - [x] **TC-419-06**: ALLOWED 28 key / ERADICATED 13 key の three-way 句一致（FrameworkDashboard :533 re-point を含む・stale key 0）🔵
 
-### REQ-419-006: MW-092 recovery mutation 検証
+### REQ-419-007: MW-092 recovery mutation 検証
 
 **Given**: guard が GREEN の tree（union 直後の現行 main）
 **When**: 3 独立 mutation（`src/analysis/untrusted-json-core.ts` 末尾への `url.parse(rawUrl)` 注入 / 同位置への `console.time('sweep10r')` 注入 / 同位置への `children.map((c) => c)` 注入）を適用する
