@@ -795,6 +795,12 @@ string-char-split / then-two-arg-rejection）が同一 shape を既に管轄し�
 ALLOWED **23 key** / ERADICATED **13 key**（不変）・kind registry **125 entry**
 （118 → 125）。
 
+**2026-08-28 maintenance（sweep 外 roster 変更 — C2 recovery）**: INV-CACHE-002
+系 parked C2（RLE escape collision）解消の `RLE_ESCAPE_BYTE = 0x01` 化に伴い
+intelligent-cache の [from-char-code] site が 2 → 3（marker 定数導入行が追加）
+となり ALLOWED roster は 23 → 24。現在の three-way 句は
+ALLOWED 24 key / ERADICATED 13 key・kind registry は 125 entry（不変）。
+
 ### REQ-419-001: sweep #10 kind の検出と固定
 
 **Given（前提条件）**: production surface 331 file に 8 candidate class を追加計測（7 class kind 化・1 class pin 前棄却・5 class は REQ-418 重複で候補除外）

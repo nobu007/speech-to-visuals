@@ -932,24 +932,27 @@ const ALLOWED: Record<string, string> = {
   // (Date/Map/Set/undefined) joins the interface.
   'src/optimization/adaptive-content-processor.ts:186':
     'JSON-SAFE — ProcessingStrategy is string/number/enum-literal only (lossless round-trip) and structuredClone is unavailable in the jest vm context; re-judge if a non-JSON field joins the interface.',
-  // [from-char-code] all five sites operate on BYTES (0..255), where
+  // [from-char-code] all six sites operate on BYTES (0..255), where
   // fromCharCode is exact: apng-encoder/export-verifier build PNG/APNG/GIF
   // chunk-type and version strings from Uint8Array element reads;
-  // intelligent-cache's RLE emits the fixed 255 marker and a `count` that
-  // the `count < 255` loop guard caps in range. fromCodePoint is the
-  // equivalent spelling here — swapping is fine but must shed the roster
-  // row in the same commit (stale-row test). A NEW site passing a code
-  // point > 0xFFFF is an unrostered RED (ToUint16 wraps silently).
+  // intelligent-cache's RLE emits the fixed 0x01 marker (C2: control byte,
+  // JSON.stringify always escapes it, collision-free by construction) and a
+  // `count` that the `count < 255` loop guard caps in range. fromCodePoint
+  // is the equivalent spelling here — swapping is fine but must shed the
+  // roster row in the same commit (stale-row test). A NEW site passing a
+  // code point > 0xFFFF is an unrostered RED (ToUint16 wraps silently).
   'src/export/apng-encoder.ts:275':
     'BYTE-DOMAIN — chunk type from Uint8Array element reads (apng[pos+4..7]), 0..255 where fromCharCode is exact.',
   'src/export/export-verifier.ts:198':
     'BYTE-DOMAIN — GIF version bytes view[3..5], 0..255 where fromCharCode is exact.',
   'src/export/export-verifier.ts:363':
     'BYTE-DOMAIN — PNG chunk-type bytes view[offset+4..7], 0..255 where fromCharCode is exact.',
-  'src/performance/intelligent-cache.ts:153':
-    'BYTE-DOMAIN — fixed 255 marker and `count` capped at 255 by the `count < 255` loop guard; 0..255 where fromCharCode is exact.',
-  'src/performance/intelligent-cache.ts:163':
-    'BYTE-DOMAIN — trailing-run flush of the same 255-capped RLE marker/count pair; 0..255 where fromCharCode is exact.',
+  'src/performance/intelligent-cache.ts:136':
+    'BYTE-DOMAIN — RLE marker char from the pinned RLE_ESCAPE_BYTE constant (0x01); 0..255 where fromCharCode is exact.',
+  'src/performance/intelligent-cache.ts:174':
+    'BYTE-DOMAIN — fixed 0x01 marker and `count` capped at 255 by the `count < 255` loop guard; 0..255 where fromCharCode is exact.',
+  'src/performance/intelligent-cache.ts:184':
+    'BYTE-DOMAIN — trailing-run flush of the same 0x01-marker/255-capped RLE pair; 0..255 where fromCharCode is exact.',
   // [proto-key-literal] the hit is the sanitizer's OWN blocklist — string
   // data the defense compares keys against, not an object-literal key.
   // Every other `__proto__` occurrence on the surface is a comment line
