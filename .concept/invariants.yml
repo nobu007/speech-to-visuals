@@ -495,3 +495,21 @@ invariants:
     checks:
       - type: "test"
         target: "tests/guards/jest-worktree-isolation.test.ts"
+  - id: "INV-TEST-008"
+    related_terms: ["GuardHarness"]
+    status: "stable"
+    strength: "hard"
+    statement: "src/ tests/ specs/ docs/ の全走査対象ファイルは git merge conflict marker (column 0 の `<<<<<<<`/`>>>>>>>`/`|||||||` 7 文字 + space、および code file のみ `^=======$`) を 1 つも含まない事。未解決 conflict を含む commit が landing される事を guard suite が push 前に機械検出する"
+    rationale: "chore(make-run) 掃込み commit クラスの再発防止。cd2427ce は mw-091 guard test に未解決 conflict marker 6 個を含んだまま main へ landing し (TS1185 で CI RED・session-286 修復)、tsc が読まない .md/.yml や template literal/comment 内の marker は構文検査を通過する silent carrier になる為、専用の全走査検出器が必要"
+    evidence:
+      - source: "tests/guards/conflict-marker-sweep.test.ts#L8"
+        quote: " * (make-run) commit (cd2427ce) swept in a mw-091 guard test file whose"
+      - source: "tests/guards/conflict-marker-sweep.test.ts#L54"
+        quote: "const CONFLICT_START = /^<{7}(?: |$)/;"
+      - source: "tests/guards/conflict-marker-sweep.test.ts#L103"
+        quote: "    expect(conflictOffenders()).toEqual([]);"
+      - source: "tests/guards/conflict-marker-sweep.test.ts#L154"
+        quote: "    expect(sweptFiles).toContain('tests/guards/mw-091-ledger-integrity.test.ts');"
+    checks:
+      - type: "test"
+        target: "tests/guards/conflict-marker-sweep.test.ts"
