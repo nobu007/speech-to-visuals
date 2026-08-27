@@ -12,10 +12,10 @@
  * reported to the orchestrator and CI as a successful exit. This test pins
  * the parity that the abnormal paths must surface a non-zero code.
  *
- * We exercise `exitCodeForSignal` directly because `gracefulShutdown` carries
- * an idempotent `isShuttingDown` flag that swallows all but the first
- * invocation within a single module instance. The integration is covered by
- * the existing `graceful-shutdown.test.ts` (SIGTERM → exit(0) still asserted).
+ * We exercise `exitCodeForSignal` directly for the four signal categories,
+ * then one integration leg drives gracefulShutdown('uncaughtException') on
+ * the shared module instance through to a spied process.exit (the clean
+ * SIGTERM → exit(0) half stays pinned in graceful-shutdown.test.ts).
  */
 
 import { jest } from '@jest/globals';
@@ -93,7 +93,7 @@ jest.unstable_mockModule('@stv/core/utils/logger', () => ({
   logger: { info: jest.fn(), error: jest.fn(), warn: jest.fn() },
 }));
 
-import { exitCodeForSignal } from '../index';
+import { exitCodeForSignal, gracefulShutdown } from '../index';
 
 describe('graceful shutdown exit code parity', () => {
   it('SIGTERM resolves to exit code 0 (orchestrator-requested clean drain)', () => {
@@ -129,5 +129,27 @@ describe('graceful shutdown exit code parity', () => {
     expect(codes.uncaughtException).toBe(1);
     expect(codes.unhandledRejection).toBe(1);
     expect(new Set(Object.values(codes)).size).toBe(2);
+  });
+});
+
+describe('gracefulShutdown integration — the exit code reaches process.exit', () => {
+  it('uncaughtException path calls process.exit with code 1', async () => {
+    // Integration leg (eval follow-up on run 20260827-191221): the legs above
+    // pin the pure signal→code map; this leg pins the wiring — the signal
+    // must flow gracefulShutdown → exitCodeForSignal → process.exit. The
+    // module instance imported above has never had gracefulShutdown invoked
+    // (the pure legs do not touch isShuttingDown), so the idempotent guard
+    // does not swallow this call. The pre-fix shape (process.exit(0) on
+    // every path) REDs here exactly like the pure uncaught/unhandled legs.
+    const originalExit = process.exit;
+    const exitSpy = jest.fn((_code?: number) => undefined as never);
+    process.exit = exitSpy as typeof process.exit;
+    try {
+      await gracefulShutdown('uncaughtException');
+    } finally {
+      process.exit = originalExit;
+    }
+    expect(exitSpy).toHaveBeenCalledTimes(1);
+    expect(exitSpy).toHaveBeenCalledWith(1);
   });
 });
