@@ -395,3 +395,19 @@ invariants:
         target: "src/export/__tests__/enhanced-export-engine.test.ts"
       - type: "test"
         target: "tests/guards/export-artifact-truncation-guard.test.ts"
+  - id: "INV-CACHE-001"
+    related_terms: ["LLMCache"]
+    status: "stable"
+    strength: "hard"
+    statement: "LLMCache.set/get の prefix 引数は storage key 生成に参加し、prefix 異なる呼び出しは disjoint keyspace として扱われる — prefix 省略と prefix 指定は決して exact-match しない"
+    rationale: "session-259 parked C1 の primitive 側契約。cache-warmup.ts:228/:236 の prefix 省略呼び出しが llm-service.ts:264 の 'unified-llm-service' prefix 読み出しと交差しない事を、cache primitive 単体で pin する。semantic fallback は prefix gate (src/analysis/llm-cache.ts:168 `prefix && !cachedKey.startsWith(prefix + ':')`) で同 entry を rescue しない — enableSemantic:true でも disjoint は維持される"
+    evidence:
+      - source: "src/analysis/llm-cache.ts#L79-L83"
+        quote: "return prefix ? `${prefix}:${hash}` : hash"
+      - source: "src/analysis/llm-cache.ts#L161-L168"
+        quote: "Skip if wrong prefix or expired\\n if (prefix && !cachedKey.startsWith(`${prefix}:`)) continue"
+      - source: "tests/guards/llm-cache-namespace-contract.test.ts#L43-L74"
+        quote: "This is the C1 bug shape: cache-warmup.ts:236 calls this.cache.set(pattern.text, result) with no prefix argument, but the LLM service later calls this.cache.get(cacheKey, 'unified-llm-service') with one"
+    checks:
+      - type: "test"
+        target: "tests/guards/llm-cache-namespace-contract.test.ts"

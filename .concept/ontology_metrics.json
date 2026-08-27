@@ -1,5 +1,5 @@
 {
-  "run_id": "2026-08-27T08:45:00Z",
+  "run_id": "2026-08-27T09:15:00Z",
   "total_terms": 41,
   "by_layer": {
     "core": 14,
@@ -7,9 +7,9 @@
     "aux": 6
   },
   "draft_ratio": 0.22,
-  "invariants_total": 29,
+  "invariants_total": 30,
   "queue_pending": 2,
-  "claims_retained_lines": 95,
+  "claims_retained_lines": 96,
   "decisions_md_lines": 66,
   "gc_actions": {
     "merged": 2,
