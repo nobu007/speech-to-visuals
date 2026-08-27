@@ -16,11 +16,13 @@
 
 import { jest } from '@jest/globals';
 
+const PIPELINE_OK_RESULT = { success: true, transcript: 'test', scenes: [] };
+
 // Mock only the pipeline execution — the presets module must stay REAL so the
 // witness observes actual process-global state, not a mock's.
 jest.unstable_mockModule('@/pipeline/simple-pipeline', () => ({
   simplePipeline: {
-    process: jest.fn<any>().mockResolvedValue({ success: true, transcript: 'test', scenes: [] }),
+    process: jest.fn<any>().mockResolvedValue(PIPELINE_OK_RESULT),
   },
 }));
 
@@ -28,6 +30,7 @@ const { BatchProcessingAPI } = await import('@/api/batch-processing-api');
 const { adaptiveQualityPresets, QUALITY_PRESETS } = await import('@/pipeline/adaptive-quality-presets');
 const { PipelineConfigError } = await import('@/pipeline/pipeline-errors');
 const { simplePipeline } = await import('@/pipeline/simple-pipeline');
+const { BATCH_LIMITS } = await import('@stv/core/config/limits');
 
 // Helper: create a stub File-like object. Provides `arrayBuffer()` so the dedup
 // key derives from CONTENT bytes (via computeFileHash), never from name+size
@@ -136,6 +139,79 @@ describe('INV-BATCH-001: batch preset must not leak into process-global state', 
     }
 
     expect(adaptiveQualityPresets.getCurrentPreset().name).toBe('balanced');
+  });
+
+  it('forces the mid-flight submit window — a file picked up later keeps its own job preset', async () => {
+    // Deterministic companion to the concurrent leg above. Immediately-
+    // resolving mocks let both submits settle before any options are built,
+    // so what that leg observes of the pre-fix contamination is submit
+    // ORDER, not an actual in-flight window. Here the pipeline is suspended
+    // on manual deferreds: job A carries one file MORE than the worker pool
+    // size, so that file's options are built only after job B has submitted
+    // — exactly the interleaving the pre-fix global mutation corrupted. The
+    // window is proven in-test: the pool is asserted saturated BEFORE job B
+    // submits.
+    const poolSize = BATCH_LIMITS.MAX_CONCURRENT_JOBS;
+    const jobAFiles = Array.from({ length: poolSize + 1 }, (_, i) => stubFile(`held-${i}.wav`));
+    const deferreds = new Map<string, (value: unknown) => void>();
+    const processMock = simplePipeline.process as jest.Mock<any>;
+    processMock.mockImplementation((input: { audioFile: { name: string } }) =>
+      input.audioFile.name.startsWith('held-')
+        ? new Promise((resolve) => deferreds.set(input.audioFile.name, resolve))
+        : Promise.resolve(PIPELINE_OK_RESULT),
+    );
+    const waitForState = async (predicate: () => boolean, what: string): Promise<void> => {
+      for (let i = 0; i < 500 && !predicate(); i++) {
+        await new Promise((r) => setTimeout(r, 10));
+      }
+      if (!predicate()) throw new Error(`timed out waiting for ${what}`);
+    };
+
+    try {
+      const jobA = await api.submitJob({ files: jobAFiles, preset: 'fast' });
+
+      // Every worker suspended INSIDE simplePipeline.process; the
+      // (poolSize+1)-th file has not built its options yet.
+      await waitForState(() => deferreds.size === poolSize, 'the worker pool to saturate');
+      expect(deferreds.size).toBe(poolSize);
+
+      // Job B submits strictly inside job A's processing window. Pre-fix,
+      // this is the moment the process-global preset flipped under job A.
+      const jobB = await api.submitJob({
+        files: [stubFile('midflight-b.wav')],
+        preset: 'quality',
+      });
+      expect((await api.waitForJob(jobB.jobId, { timeoutMs: 5000 })).status).toBe('completed');
+
+      // Release the in-flight files; a worker picks up the queued one and
+      // builds its options NOW — after job B's submit.
+      for (const resolve of deferreds.values()) resolve(PIPELINE_OK_RESULT);
+      await waitForState(() => deferreds.size === jobAFiles.length, 'the queued file to be picked up');
+      for (const resolve of deferreds.values()) resolve(PIPELINE_OK_RESULT);
+
+      const status = await api.waitForJob(jobA.jobId, { timeoutMs: 5000 });
+      expect(status.status).toBe('completed');
+
+      // Pre-fix, exactly the late-picked file ('held-<poolSize>') came out
+      // with job B's preset: the in-flight ones had built their options
+      // before job B existed, the queued one after the global flip.
+      const calls = processMock.mock.calls;
+      expect(calls.length).toBe(jobAFiles.length + 1);
+      for (const call of calls) {
+        const input = call[0] as { audioFile: { name: string }; options: { maxConcurrency: number } };
+        const expected = input.audioFile.name.startsWith('held-')
+          ? QUALITY_PRESETS.fast
+          : QUALITY_PRESETS.quality;
+        expect(input.options.maxConcurrency).toBe(expected.parameters.maxConcurrency);
+      }
+
+      expect(adaptiveQualityPresets.getCurrentPreset().name).toBe('balanced');
+    } finally {
+      // beforeEach uses mockClear(), which KEEPS implementations — this leg
+      // must put the file-wide default back for the legs that follow.
+      processMock.mockReset();
+      processMock.mockResolvedValue(PIPELINE_OK_RESULT);
+    }
   });
 
   it('merges request.options on the preset path without mutating the QUALITY_PRESETS definitions', async () => {
