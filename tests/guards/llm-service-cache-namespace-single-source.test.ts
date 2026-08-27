@@ -99,9 +99,10 @@ describe('LLM cache namespace single source (INV-CACHE-001 drift guard)', () => 
     const callRe = /this\.cache\.(get|set)\(/g;
     let calls = 0;
     for (const m of src.matchAll(callRe)) {
-      if (isCommentLine(src.slice(lineStart(src, m.index!), m.index!))) continue;
+      const at = m.index ?? 0; // matchAll always sets index; ?? keeps the tests-tree `!` ratchet at 0
+      if (isCommentLine(src.slice(lineStart(src, at), at))) continue;
       calls++;
-      const args = callArgs(src, m.index! + m[0].length - 1);
+      const args = callArgs(src, at + m[0].length - 1);
       expect(args).toContain('LLM_SERVICE_CACHE_NAMESPACE');
     }
     expect(calls).toBeGreaterThanOrEqual(3); // reader + 2 writers exist
@@ -112,9 +113,10 @@ describe('LLM cache namespace single source (INV-CACHE-001 drift guard)', () => 
     const ctorRe = /new CacheWarmupManager</g;
     let ctors = 0;
     for (const m of src.matchAll(ctorRe)) {
-      if (isCommentLine(src.slice(lineStart(src, m.index!), m.index!))) continue;
+      const at = m.index ?? 0;
+      if (isCommentLine(src.slice(lineStart(src, at), at))) continue;
       ctors++;
-      const args = callArgs(src, src.indexOf('(', m.index!));
+      const args = callArgs(src, src.indexOf('(', at));
       expect(args).toContain('namespace: LLM_SERVICE_CACHE_NAMESPACE');
     }
     expect(ctors).toBeGreaterThanOrEqual(2); // constructor + clearCache

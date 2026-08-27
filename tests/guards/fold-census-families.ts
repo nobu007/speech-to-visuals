@@ -96,7 +96,7 @@ export const CENSUS_FAMILIES: readonly CensusFamily[] = [
     excludeLinePatterns: {
       clamp01: 'clamp01 内部の正典実装行',
     },
-    pin: { sites: 30, files: 17 },
+    pin: { sites: 29, files: 16 },
     note: 'bare inline 形は NaN を透過し、clampFinite は NaN→min に sanitize する契約差（guards.ts doc comment 明記）。移行は実挙動変更 = value-neutral ではない（per-site 判断が必要）。',
   },
   {

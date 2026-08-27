@@ -200,7 +200,7 @@ resolution preset 行除外）で 8→16/4→8、C5 は engine 全走査が A2 �
 | 区分 | family / 項目 | 正典 | 残存 inline site（engine 実測） | 分類 |
 |---|---|---|---|---|
 | 既fold（執行済） | registry 42 family / 47 rule | layout-utils / node-dimensions / strategy-* へ委譲 | **違反 0**（sweep 49 test GREEN） | 収束済み |
-| C1 | 汎用 clamp `max(min,max(v))` 系 | `src/utils/guards.ts` clampFinite/clamp01 | 30 site / 17 file <!-- census-pin:C1:sites=30:files=17 --> | **実挙動変更必要**（bare 形は NaN 透過、clampFinite は NaN→min へ sanitize = 契約差） |
+| C1 | 汎用 clamp `max(min,max(v))` 系 | `src/utils/guards.ts` clampFinite/clamp01 | 29 site / 16 file <!-- census-pin:C1:sites=29:files=16 --> | **実挙動変更必要**（bare 形は NaN 透過、clampFinite は NaN→min へ sanitize = 契約差） |
 | C2 | layout 既定 1920/1080 直書き | DEFAULT_CANVAS_WIDTH/HEIGHT | 16 site / 8 file <!-- census-pin:C2:sites=16:files=8 --> | **設計判断必要**（同一値の別 config・RED 不能） |
 | C3 | 半径方向 push `cos/sin(angle)·sep` | pointOnCircle は絶対位置で別概念 | 4 site / 1 file（strategies/OverlapResolver.ts:257-260）<!-- census-pin:C3:sites=4:files=1 --> | 異概念 / 閾値未満（1 file） |
 | C4 | 文字幅見積 `text.length * 8 + 40` | DEFAULT_CHAR_WIDTH=8（layout-utils） | 1 site / 1 file（advanced-layouts.ts:537）<!-- census-pin:C4:sites=1:files=1 --> | 閾値未満（1 file） |

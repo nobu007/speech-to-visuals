@@ -922,7 +922,7 @@ const ALLOWED: Record<string, string> = {
   'src/utils/audio-duration.ts:47':
     'CORE-TYPED — @stv/core formatDuration(seconds: number); typed param makes the coercing verdict unreachable from typed callers, package-owned file.',
   // [unguarded-for-in] the body opens with the own-key filter.
-  'src/optimization/smart-parameter-tuner.ts:332':
+  'src/optimization/smart-parameter-tuner.ts:351':
     'GUARDED — body opens with `if (key in result)`, so prototype-chain keys never reach the blend.',
   // [json-clone-idiom] ProcessingStrategy (adaptive-content-processor.ts:12)
   // is string/number/enum-literal fields only, so the round-trip is
@@ -930,7 +930,7 @@ const ALLOWED: Record<string, string> = {
   // 2026-08-25: Node 24 has it, the jest vm sandbox does not), so unifying
   // would break the test bed. Re-judge the moment a non-JSON field
   // (Date/Map/Set/undefined) joins the interface.
-  'src/optimization/adaptive-content-processor.ts:185':
+  'src/optimization/adaptive-content-processor.ts:186':
     'JSON-SAFE — ProcessingStrategy is string/number/enum-literal only (lossless round-trip) and structuredClone is unavailable in the jest vm context; re-judge if a non-JSON field joins the interface.',
   // [from-char-code] all five sites operate on BYTES (0..255), where
   // fromCharCode is exact: apng-encoder/export-verifier build PNG/APNG/GIF
