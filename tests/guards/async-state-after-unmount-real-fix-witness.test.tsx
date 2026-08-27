@@ -172,10 +172,15 @@ describe('async-state-after-unmount guard — structural sweep (TC-316-02)', () 
   //     gates post-await work on `mountedRef`; removed from the whitelist
   //     below and pinned by `audio-uploader-unmount-real-fix-witness.test.tsx`
   //     (TC-317). The sweep catches a regression here directly.
-  //   - `FrameworkDashboard.tsx`: fetchIterationData, handleExecute — both
-  //     call setX after awaits. Component lives inside a dashboard tab that
-  //     rarely unmounts mid-fetch, so the practical hazard is low. FIX
-  //     DEFERRED.
+  //   - `FrameworkDashboard.tsx`: FIXED (TASK-0220 sibling). fetchIterationData
+  //     (post-`await fetch` + post-`await response.text()` setX group, plus the
+  //     catch-path fallback) and handleExecute (catch-path isRunning reset) now
+  //     gate every post-await side effect on `mountedRef`, flipped in a
+  //     dedicated empty-deps unmount-cleanup effect. The interval-driven
+  //     auto-refresh made an in-flight request at unmount the COMMON case, not
+  //     a corner case. Removed from the whitelist below and pinned by
+  //     `framework-dashboard-unmount-real-fix-witness.test.tsx` (TC-322). The
+  //     sweep catches a regression here directly.
   //   - `Iteration43Interface.tsx`: FIXED (TASK-0220 sibling). `startProcessing`
   //     now declares `mountedRef` + an empty-deps unmount-cleanup useEffect and
   //     bails with `if (!mountedRef.current) return;` right after the in-loop
@@ -221,8 +226,8 @@ describe('async-state-after-unmount guard — structural sweep (TC-316-02)', () 
     // FIXED and removed — see TC-317. useFrameworkPipeline was here; FIXED and
     // removed — see TC-318. Iteration43Interface was here; FIXED and removed —
     // see TC-320. StreamingProcessor was here; FIXED and removed — see TC-319.
-    // pipeline-interface was here; FIXED and removed — see TC-321.)
-    'src/components/FrameworkDashboard.tsx',
+    // pipeline-interface was here; FIXED and removed — see TC-321.
+    // FrameworkDashboard was here; FIXED and removed — see TC-322.)
   ] as const;
 
   function findTsxFiles(dir: string): string[] {
