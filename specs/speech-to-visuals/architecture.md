@@ -570,6 +570,46 @@ REPO-391（measurement-fixture / 5b598ba4・MW-055）、REQ-392（optional metri
 
 **信頼性**: 🔵 *5 commit chain の構造同一性（commit message・差分構造の 1:1 対応）*
 
+## audit-pass-first census 拡張（Phase 200-208 / family 11-14） 🔵
+
+**信頼性**: 🔵 *MW-065〜069 台帳記録・REQ-401/402/403/404/405 census commit chain・specs 同梱履歴より*
+
+Phase 189-193 の 5 REQ（measurement-fixture / optional-metric-producer / score-ladder / 文-level 凍結 literal / census-artifact 三方一致）で確立された audit-pass-first パターンを、**異なる bug class 軸** へ 5 連鎖で拡張適用した family 群。REQ-395 で固定した「ratchet 解体手順」と「三方一致 acceptance 条件」が、Phase 200 以降の全 census guard でも構造的に引き継がれている。
+
+### 拡張軸（REQ-395 の 4 test 三方一致 + 各 family 固有の pin 形状）
+
+| family | REQ | commit | MW | Phase | 拡張軸 | pin 形状 |
+| --- | --- | --- | --- | --- | --- | --- |
+| 11 | REQ-401 numeric-coercion census | fb5890c5 | MW-065 | 200 | **radix-less `parseInt`** / **NaN-blind nullish fallback** — number coercion 系の dual-axis discovery（38 site・7 category CLOSED-SET） | ALLOWED 62 key・2 軸 discovery・anchor A/B |
+| 12 | REQ-402 spine edge 双方向 census | ea867880 | MW-066 | 201/202 | **SPEC_LANDING_ATOMICITY** 構造化 — spec landing への parent 側登録同梱を exact-0 guard で強制・sweep commit 根絶 | negative anchor・tasks/overview.md 実 drift 修復 2 件 |
+| 12 | REQ-403 boundary strictness census | 09f65005 | MW-067 | 203/204 | `<` / `<=` 等の strict/inclusive 境界演算子混在 — 3 cluster 撲滅 | boundary operator 一致 pin |
+| 13 | REQ-404 rounding-mode census | 90c924db | MW-068 | 205/206 | `Math.round` / `floor` / `ceil` の同一空白正規化式への混在 — off-by-one-frame class | 唯一 mixed cluster の ALLOWED 分類（renderer round vs engine/worker ceil） |
+| 14 | REQ-405 fallback-default census | 514fe653 | MW-069 | 207/208 | 同一 chain 内の **literal fallback 混在**（327 site / cluster 200 / mixed cluster 10 件 32 site・3 site unify） | ALLOWED 32 key / ERADICATED 3 key・chain-adjacency + standalone-RHS lookahead・liveness fixture・negative anchor + 旧 spelling ban |
+
+### パターンの継承と新規要素
+
+- **継承（Phase 189-193 共通）**: `walkProductionSurface` による repo src/ + @stv-core core-four 全数走査・ALLOWED / ERADICATED / DELETED_FILES / ROSTER ledger・3 mutation（teeth / completeness / stale-row）の独立 RED 実測・[EVIDENCE] 形式実測記録。
+- **新規要素（Phase 200-208 で追加）**:
+  1. **dual-axis discovery**（REQ-401 family 11）: 単一 regex では「radix-less `parseInt`」と「NaN-blind nullish fallback」を独立発見できないため、anchor A/B の 2 軸 scanner を併用 — `//` 接頭辞 anchor 漏れ site も拾う。
+  2. **SPEC_LANDING_ATOMICITY**（REQ-402 family 12）: parent spec（`architecture.md`）の children ブロック自動整合性 + spec landing 同梱を 1 commit に強制。sweep commit（複数 spec に分割 commit する「steering commit-splitting 指摘への回答」）を構造的に根絶。
+  3. **chain-adjacency + standalone-RHS lookahead**（REQ-405 family 14）: `??`/`||`/三項の **RHS が literal かつ LHS が chain** な site を「同一 chain の literal fallback 混在」と分類（mixed cluster 検出の基盤）。
+  4. **旧 spelling ban**（REQ-405）: 同名意味だが旧 typo 表記の literal（例: `unknown` vs `''` の typo 漏れ）も negative anchor で ban — spelling ban の初導入。
+
+### 適用範囲と終端条件
+
+- **適用済 facets（Phase 200-208 完了分）**: numeric-coercion（family 11・MW-065・REQ-401）、spine-edge 双方向（family 12・MW-066・REQ-402）、boundary strictness（family 12・MW-067・REQ-403）、rounding-mode（family 13・MW-068・REQ-404）、fallback-default（family 14・MW-069・REQ-405）。
+- **計画中 facets（Phase 209+）**: spine registry title-sync（REQ-406・MW-070）、sort-receiver-mutation（REQ-407・MW-071）、dead-idiom batch（REQ-410〜412・MW-074〜076） — 構造ガード → family 番号昇格の連鎖継続中。
+- **終端条件**: Phase 189-193 で固定した 4 step 終了条件（guard 先行 → run 計測 → n=0 confirmed-zero / n>0 audit-driven 撲滅同梱 → ledger appendix 昇順管理）を引き継ぎ。**ratchet 解体手順**（REQ-395）も family retirement 経路として温存 — Phase 200-208 では全 family が現役運用のため解体事例なし。
+
+### 関連文書
+
+- **MW ledger**: [mutation-witness-ledger.md](./mutation-witness-ledger.md)（MW-065〜069・family 11-14 pin 昇格記録・3 mutation 独立 RED 実測・teeth / completeness / stale-row の RED ログ）
+- **REQ-402 spine edge 双方向 census spec**: [`../spine-edge-bidirectional-census/`](../spine-edge-bidirectional-census/)（ea867880 で新設）
+- **REQ-405 fallback-default census spec**: [`../fallback-default-census/`](../fallback-default-census/)（514fe653 で新設）
+- **REQ 番号帯の分裂**: requirements.md REQ-401〜405 は制約要件（Node.js 18+ / 音声 50MB / メモリ 512MB / API key 環境変数 / Supabase RLS・lines 595-599）を占拠 — MW ledger / architecture.md 側の audit-pass-first census family REQ-401〜405 とは別番号。A137 残課題として記録（`specs/speech-to-visuals/interview-record.md` A137 参照）。**spec 参照時は出典 branch を必ず照合すること**。
+
+**信頼性**: 🔵 *MW ledger 5 エントリの構造同一性（target / mutation / command / observed / [EVIDENCE] 5 行 format）*
+
 ## ディレクトリ構造 🔵
 
 **信頼性**: 🔵 *note.md・既存プロジェクト構造より*
