@@ -218,12 +218,21 @@ export class AdaptiveQualityPresetsManager {
   private customOverrides: Partial<PresetConfiguration['parameters']> = {};
 
   /**
-   * Set quality preset
+   * Validate a preset name without mutating manager state. Callers that carry
+   * a per-request preset (e.g. batch jobs) use this to reject invalid values
+   * at submission time while leaving the process-global configuration alone.
    */
-  setPreset(preset: QualityPreset): void {
+  validatePreset(preset: QualityPreset): void {
     if (!QUALITY_PRESETS[preset]) {
       throw new PipelineConfigError('preset', `Invalid preset: ${preset}`);
     }
+  }
+
+  /**
+   * Set quality preset
+   */
+  setPreset(preset: QualityPreset): void {
+    this.validatePreset(preset);
     this.currentPreset = preset;
   }
 
@@ -253,11 +262,21 @@ export class AdaptiveQualityPresetsManager {
   }
 
   /**
-   * Convert preset to SimplePipelineInput options
+   * Convert preset to SimplePipelineInput options.
+   *
+   * `preset` (optional) resolves the input against THAT preset instead of the
+   * manager's current one — for per-request callers (batch jobs) so their
+   * choice never has to mutate process-global state to take effect. An
+   * explicit preset also bypasses the manager's custom overrides: those belong
+   * to the global configuration the caller is deliberately sidestepping.
    */
-  toPipelineOptions(audioFile: File): SimplePipelineInput {
-    const preset = QUALITY_PRESETS[this.currentPreset];
-    const params = { ...preset.parameters, ...this.customOverrides };
+  toPipelineOptions(audioFile: File, preset?: QualityPreset): SimplePipelineInput {
+    const selected = preset ?? this.currentPreset;
+    this.validatePreset(selected);
+    const config = QUALITY_PRESETS[selected];
+    const params = preset !== undefined
+      ? config.parameters
+      : { ...config.parameters, ...this.customOverrides };
 
     return {
       audioFile,

@@ -423,3 +423,23 @@ invariants:
         target: "tests/unit/optimization/cache-warmup-namespace-parity.test.ts"
       - type: "test"
         target: "src/analysis/__tests__/llm-service-warmup-namespace-wiring.test.ts"
+  - id: "INV-BATCH-001"
+    related_terms: ["AdaptiveQualityPresets", "ApiServer"]
+    status: "stable"
+    strength: "hard"
+    statement: "バッチジョブの preset はリクエストスコープの設定であり、submitJob が AdaptiveQualityPresetsManager のプロセスグローバル状態 (setPreset) を mutating してはならない。per-job preset は toPipelineOptions(file, preset) の明示引数で解決され、preset 省略ジョブは常に manager の現行値 (default 'balanced') を使う"
+    rationale: "session-259 parked A1 の契約。修正前は preset 指定ジョブが submitJob 内の setPreset (旧 batch-processing-api.ts:258) でプロセスグローバルの currentPreset を書き換え、以後の全 preset 省略ジョブと並行ジョブがその preset で再構成されていた（HTTP service は多数の無関係ジョブを同一 process で扱う）。明示 preset は manager の customOverrides も適用しない — global state を回避する呼び出しがそれに layer しない"
+    evidence:
+      - source: "src/pipeline/adaptive-quality-presets.ts#L221-L233"
+        quote: "Validate a preset name without mutating manager state."
+      - source: "src/pipeline/adaptive-quality-presets.ts#L272-L279"
+        quote: "const selected = preset ?? this.currentPreset;"
+      - source: "src/api/batch-processing-api.ts#L256-L263"
+        quote: "Validate the per-job preset WITHOUT installing it on the process-global"
+      - source: "tests/unit/api/batch-preset-isolation.test.ts#L73"
+        quote: "applies the job's preset to its own files without mutating the global manager"
+    checks:
+      - type: "test"
+        target: "tests/unit/api/batch-preset-isolation.test.ts"
+      - type: "test"
+        target: "src/pipeline/__tests__/adaptive-quality-presets.test.ts"

@@ -64,3 +64,13 @@
 - Expires After Runs: 20
 - Linked: （なし・運用決定）
 - Revert Triggers: run_id を実 UTC 生成 (source clock 修正) に切り替える場合
+
+## AUTO:AdaptiveQualityPresets.toPipelineOptions.explicit-preset-overrides:bypass
+- Status: ACTIVE
+- Chosen: 明示 per-job preset は manager の global customOverrides を bypass する (layer しない)。
+  request-scope 設定が process-global 状態を継承すると INV-BATCH-001 が解消した汚染が
+  別経路で復活するため。
+- Policy: blast_radius_min + request-scope 分離 (INV-BATCH-001 と同一方向)
+- Expires After Runs: 20
+- Linked: AMB-BATCH-001
+- Revert Triggers: primary_evidence_contradiction, 仕様が layer を要求する文書の出現
