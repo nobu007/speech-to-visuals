@@ -47,6 +47,39 @@ import { readSource, isCommentLine } from '@tests/guards/freeze-guard';
 
 const SCRIPT = 'scripts/code-size-audit.ts';
 
+/**
+ * Shared detectors — single-sourced so the parent legs and the
+ * mutation-pinning legs run the EXACT same regex. Before this, the
+ * mutation legs re-declared the sweep inline: a future edit weakening
+ * the parent copy would leave the leg's strong copy green (witness of a
+ * copy, not of the guard — the session-277 self-consistent-attribution
+ * trap). With one source, weakening the regex breaks BOTH the parent
+ * leg and the leg that proves the sweep fires.
+ */
+const scanV28Identifiers = (src: string): string[] => {
+  const offendingLines: string[] = [];
+  src.split('\n').forEach((line, i) => {
+    if (isCommentLine(line)) return;
+    // snake_case V2_8 identifier: must be preceded/followed by an
+    // identifier boundary (\b). Catches V2_8_LIMITS, V2_8_TEETH,
+    // LEGACY_V2_8, etc. Does NOT catch "V2.8" prose.
+    if (/\b[A-Z0-9_]*V2_8[A-Z0-9_]*\b/.test(line)) {
+      offendingLines.push(`L${i + 1}: ${line.trim()}`);
+    }
+  });
+  return offendingLines;
+};
+
+const countV29CodeRefs = (src: string): number => {
+  let codeRefCount = 0;
+  src.split('\n').forEach((line) => {
+    if (isCommentLine(line)) return;
+    const m = line.match(/\bCONSTITUTION_V2_9_LIMITS\b/g);
+    if (m) codeRefCount += m.length;
+  });
+  return codeRefCount;
+};
+
 describe('code-size-audit script — V2.9 identifier drift guard (REQ-419-005)', () => {
   it('found the script (guard is not vacuously green)', () => {
     // If the script is moved or renamed, the guard must break loudly rather
@@ -142,18 +175,8 @@ describe('code-size-audit script — V2.9 identifier drift guard (REQ-419-005)',
     //     pinned by tests 5/6 already as positive V2.9 markers).
     //   - the "V2.8" / "V2.8 → V2.9" prose mentions in the JSDoc, which
     //     use a DOT separator (not underscore) and so don't match the
-    //     snake_case regex below.
-    const offendingLines: string[] = [];
-    src.split('\n').forEach((line, i) => {
-      if (isCommentLine(line)) return;
-      // snake_case V2_8 identifier: must be preceded/followed by an
-      // identifier boundary (\b). Catches V2_8_LIMITS, V2_8_TEETH,
-      // LEGACY_V2_8, etc. Does NOT catch "V2.8" prose.
-      if (/\b[A-Z0-9_]*V2_8[A-Z0-9_]*\b/.test(line)) {
-        offendingLines.push(`L${i + 1}: ${line.trim()}`);
-      }
-    });
-    expect(offendingLines).toEqual([]);
+    //     snake_case regex in the shared detector.
+    expect(scanV28Identifiers(src)).toEqual([]);
   });
 
   it('CONSTITUTION_V2_9_LIMITS appears exactly twice in code (declaration + runAudit call) — no orphan call sites', () => {
@@ -165,14 +188,7 @@ describe('code-size-audit script — V2.9 identifier drift guard (REQ-419-005)',
     // identifier, the code count grows and this guard fires. The
     // negative checks above already catch V2_8 drift; this one catches
     // silent duplicate wiring.
-    const lines = src.split('\n');
-    let codeRefCount = 0;
-    for (const line of lines) {
-      if (isCommentLine(line)) continue;
-      const m = line.match(/\bCONSTITUTION_V2_9_LIMITS\b/g);
-      if (m) codeRefCount += m.length;
-    }
-    expect(codeRefCount).toBe(2);
+    expect(countV29CodeRefs(src)).toBe(2);
   });
 
   it('process.exit still enforces "teeth" (fail-loud on breach)', () => {
@@ -200,24 +216,22 @@ describe('code-size-audit script — V2.9 identifier drift guard (REQ-419-005)',
   describe('mutation-pinning (RED-verify the guards actually catch regressions)', () => {
     it('partial V2_9 → V2_8 rename IS caught by the negative sweep (regression class: the bug that motivated this guard)', () => {
       const real = readSource(SCRIPT);
-      // Apply the exact regression class: rename the declaration AND the
-      // runAudit call site back to V2_8 — but introduce a NEW snake_case
-      // shape (V2_8_BACKUP) that the original CONSTITUTION_V2_8_LIMITS
-      // substring check would miss but the new source-wide sweep catches.
-      const mutated = real
-        .replace(/const\s+CONSTITUTION_V2_9_LIMITS\b/, 'const CONSTITUTION_V2_8_LIMITS')
-        .replace(/runAudit\(ROOT_DIR,\s*PACKAGE_JSON,\s*CONSTITUTION_V2_9_LIMITS/, 'runAudit(ROOT_DIR, PACKAGE_JSON, CONSTITUTION_V2_8_LIMITS')
-        .replace(/CONSTITUTION_V2_9_LIMITS/g, 'CONSTITUTION_V2_8_LIMITS_BACKUP');
+      // Apply the exact regression class: a partial revert renaming every
+      // code reference to a V2_8 shape WITHOUT the `CONSTITUTION_` prefix
+      // (`V2_8_LIMITS`). Discrimination note: an earlier draft of this leg
+      // mutated to `CONSTITUTION_V2_8_LIMITS_BACKUP` — but that string
+      // CONTAINS the pre-sweep substring `CONSTITUTION_V2_8_LIMITS`, so
+      // even the weaker old check caught it (leg had no isolated-RED
+      // power). The unprefixed shape is what only the identifier-shaped
+      // sweep detects: declaration + call site = 2 code hits.
+      const mutated = real.replace(/CONSTITUTION_V2_9_LIMITS/g, 'V2_8_LIMITS');
       expect(mutated).not.toBe(real);
-      // Negative sweep from the test above MUST fire on this mutation.
-      const offenders: string[] = [];
-      mutated.split('\n').forEach((line, i) => {
-        if (isCommentLine(line)) return;
-        if (/\b[A-Z0-9_]*V2_8[A-Z0-9_]*\b/.test(line)) {
-          offenders.push(`L${i + 1}: ${line.trim()}`);
-        }
-      });
-      expect(offenders.length).toBeGreaterThanOrEqual(2);
+      // Negative sweep from the test above MUST fire on this mutation —
+      // via the SHARED detector, so this leg witnesses the parent's own
+      // regex strength (weakening the sweep to the old substring check
+      // drops these hits to 0 and the >= 2 expectation goes RED —
+      // verified by hand-weakening the shared regex: 1 suite RED).
+      expect(scanV28Identifiers(mutated).length).toBeGreaterThanOrEqual(2);
     });
 
     it('duplicate runAudit wiring IS caught by the positive count anchor (3 refs vs expected 2)', () => {
@@ -228,13 +242,9 @@ describe('code-size-audit script — V2.9 identifier drift guard (REQ-419-005)',
         /runAudit\(ROOT_DIR,\s*PACKAGE_JSON,\s*CONSTITUTION_V2_9_LIMITS,\s*\{/,
         (match) => `${match}\n  debug: runAudit(ROOT_DIR, PACKAGE_JSON, CONSTITUTION_V2_9_LIMITS, {}),\n  const _dbg =`,
       );
-      let codeRefCount = 0;
-      mutated.split('\n').forEach((line) => {
-        if (isCommentLine(line)) return;
-        const m = line.match(/\bCONSTITUTION_V2_9_LIMITS\b/g);
-        if (m) codeRefCount += m.length;
-      });
-      expect(codeRefCount).toBeGreaterThan(2);
+      // Same shared counter as the parent count anchor — the leg fires
+      // iff the parent's own counting logic would fire.
+      expect(countV29CodeRefs(mutated)).toBeGreaterThan(2);
     });
 
     it('dot-separated V2.8 prose in JSDoc is NOT flagged (regex boundary: \\b only matches snake_case)', () => {
@@ -244,16 +254,10 @@ describe('code-size-audit script — V2.9 identifier drift guard (REQ-419-005)',
       // ("V2.8 → V2.9", "Baseline at V2.8"); a regression in the regex
       // would explode the offender count from 0 to ~3.
       const real = readSource(SCRIPT);
-      const offenders: string[] = [];
-      real.split('\n').forEach((line, i) => {
-        if (isCommentLine(line)) return;
-        if (/\b[A-Z0-9_]*V2_8[A-Z0-9_]*\b/.test(line)) {
-          offenders.push(`L${i + 1}: ${line.trim()}`);
-        }
-      });
       // Pre-rename amendment-history JSDoc lines use a DOT separator and
-      // must NOT appear here — confirms the regex boundary is correct.
-      expect(offenders).toEqual([]);
+      // must NOT appear in the SHARED detector's output — confirms the
+      // regex boundary the parent sweep relies on is correct.
+      expect(scanV28Identifiers(real)).toEqual([]);
     });
   });
 });
