@@ -55,7 +55,7 @@ function getAllProductionSourceFiles(dir: string): string[] {
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
     const fullPath = path.join(dir, entry.name);
     if (entry.isDirectory()) {
-      if (['node_modules', 'dist', 'coverage', '__tests__'].includes(entry.name)) continue;
+      if (['node_modules', 'dist', 'coverage', '__tests__', 'worktrees'].includes(entry.name)) continue;
       results.push(...getAllProductionSourceFiles(fullPath));
     } else if (entry.name.match(/\.(ts|tsx)$/)) {
       if (entry.name.includes('.test.') || entry.name.includes('.spec.')) continue;
