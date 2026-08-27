@@ -4,7 +4,7 @@
 > **Spine anchor**: [speech-to-visuals アーキテクチャ設計](../speech-to-visuals/architecture.md)
 >
 > - parent: `speech-to-visuals/architecture.md`
-> - role: `detailed`
+> - role: `system`
 > - status: `canonical_child`
 <!-- spine:anchor:end -->
 
@@ -131,7 +131,11 @@ export interface SpineEdgeCensusReport {
 ```typescript
 // registry marker（hub 側 doc-spine engine が manifest から機械生成する形式）
 export const SPINE_REGISTRY_BEGIN: Record<SpineRegistryKind, string> = {
-  children: '',
+  children: '<!-- spine:children:begin -->',
+  references: '<!-- spine:references:begin -->',
+};
+export const SPINE_REGISTRY_END: Record<SpineRegistryKind, string> = {
+  children: '<!-- spine:children:end -->',
   references: '<!-- spine:references:end -->',
 };
 ```
