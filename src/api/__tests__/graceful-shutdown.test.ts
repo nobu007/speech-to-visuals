@@ -7,105 +7,22 @@
  */
 
 import { jest } from '@jest/globals';
+import { registerApiIndexMocks } from './api-index-mocks';
 
 // ---------------------------------------------------------------------------
-// Mocks — must be before any import that touches the real modules
+// Mocks — must be before any import that touches the real modules.
+// The ../index mock graph is shared with the other graceful-shutdown suites
+// (see ./api-index-mocks.ts); the returned handles are the collaborators
+// this suite asserts on.
 // ---------------------------------------------------------------------------
 
-const mockServerClose = jest.fn((cb?: () => void) => {
-  cb?.();
-});
-const mockServerLike = { close: mockServerClose, once: jest.fn(), on: jest.fn() };
-const mockServerListen = jest.fn((_port: number, cb?: () => void) => {
-  cb?.();
-  return mockServerLike;
-});
-
-jest.unstable_mockModule('http', () => {
-  // In ESM, jest.requireActual may not work. Provide a minimal mock.
-  return {
-    createServer: jest.fn(() => mockServerLike),
-    Server: jest.fn().mockImplementation(() => mockServerLike),
-  };
-});
-
-// Mock express to avoid importing the real module which needs http internals
-jest.unstable_mockModule('express', () => {
-  const factory = jest.fn(() => ({
-    listen: mockServerListen,
-    use: jest.fn(),
-    get: jest.fn(),
-    post: jest.fn(),
-    set: jest.fn(),
-    on: jest.fn(),
-    once: jest.fn(),
-    close: mockServerClose,
-  }));
-  // Provide named exports that ESM imports expect
-  (factory as any).Router = jest.fn(() => ({
-    get: jest.fn(),
-    post: jest.fn(),
-    use: jest.fn(),
-    put: jest.fn(),
-    delete: jest.fn(),
-  }));
-  (factory as any).json = jest.fn();
-  (factory as any).urlencoded = jest.fn();
-  (factory as any).static = jest.fn();
-  return factory;
-});
-
-const mockShutdown = jest.fn().mockResolvedValue(undefined);
-const mockStopLearning = jest.fn();
-const mockRealTimeMonitorStop = jest.fn();
-const mockGlobalDashboardDestroy = jest.fn();
-const mockHealthCheckServiceDestroy = jest.fn();
-
-jest.unstable_mockModule('@/quality/enhanced-error-recovery', () => ({
-  globalErrorRecovery: { shutdown: mockShutdown },
-}));
-
-jest.unstable_mockModule('@/framework/continuous-learner', () => ({
-  continuousLearner: { stopLearning: mockStopLearning },
-}));
-
-jest.unstable_mockModule('@/analysis/llm-service', () => ({
-  llmService: {},
-}));
-
-jest.unstable_mockModule('@/api/startup-warmup', () => ({
-  triggerStartupWarmup: jest.fn(),
-}));
-
-jest.unstable_mockModule('@/monitoring/real-time-performance-monitor', () => ({
-  realTimeMonitor: { stop: mockRealTimeMonitorStop },
-}));
-
-jest.unstable_mockModule('@/monitoring/performance-dashboard', () => ({
-  globalDashboard: { destroy: mockGlobalDashboardDestroy },
-}));
-
-jest.unstable_mockModule('@/monitoring/health-check-service', () => ({
-  healthCheckService: { destroy: mockHealthCheckServiceDestroy },
-}));
-
-jest.unstable_mockModule('@/api/server', () => ({
-  app: {
-    listen: mockServerListen,
-    use: jest.fn(),
-    get: jest.fn(),
-  },
-  artifactStore: { stop: jest.fn().mockResolvedValue(undefined) },
-  jobQueue: { stop: jest.fn().mockResolvedValue(undefined) },
-}));
-
-jest.unstable_mockModule('@stv/core/utils/logger', () => ({
-  logger: {
-    info: jest.fn(),
-    error: jest.fn(),
-    warn: jest.fn(),
-  },
-}));
+const {
+  errorRecoveryShutdown: mockShutdown,
+  stopLearning: mockStopLearning,
+  monitorStop: mockRealTimeMonitorStop,
+  dashboardDestroy: mockGlobalDashboardDestroy,
+  healthDestroy: mockHealthCheckServiceDestroy,
+} = registerApiIndexMocks();
 
 const mockExit = jest.fn((_code?: number) => undefined as never);
 const originalExit = process.exit;

@@ -6,103 +6,45 @@
  * this suite pins the wiring: a signal driven through gracefulShutdown must
  * reach process.exit with the parity code, exactly once. The clean drain
  * half (SIGTERM → exit(0)) is already pinned at the wiring level in
- * graceful-shutdown.test.ts, so this file drives the abnormal half and
- * completes both signal categories at the wiring level (INV-API-001).
+ * graceful-shutdown.test.ts, so this file drives BOTH abnormal halves
+ * (uncaughtException → 1, unhandledRejection → 1) and completes every
+ * signal category at the wiring level (INV-API-001) — no abnormal category
+ * is left depending on the pure-function legs alone.
  *
- * Why a dedicated file instead of a describe block next to the pure legs:
- * `isShuttingDown` is module-PRIVATE, so the only jest-level way to reset
- * the idempotent guard is a fresh module registry — and jest hands every
- * test file its own registry. Hosting this leg in its own file makes the
- * freshness structural: no earlier leg (in this file or any other) can have
- * consumed the guard, and legs added later cannot break it.
+ * Freshness of the module-private `isShuttingDown` guard (each leg consumes
+ * it once) is structural at two levels:
  *
- * Why not jest.isolateModulesAsync (the in-file fresh-import API): with
- * native-VM ESM, an isolated import of a MOCK-WIRED module graph (this file
- * unstable_mockModule's every dependency of ../index) is evaluated in a
- * separate VM context whose `process` is not the test realm's — a
+ * - FILE level: jest hands every test file its own module registry, so no
+ *   leg in another file can have consumed the guard before this file runs.
+ * - LEG level: each leg calls jest.resetModules() before its dynamic
+ *   import, clearing THIS file's registry so ../index re-evaluates fresh —
+ *   the guard starts false regardless of leg order within this file.
+ *
+ * Why resetModules and not jest.isolateModulesAsync (the other in-file
+ * fresh-import API): resetModules clears the registry but keeps the
+ * unstable_mockModule FACTORY registrations and re-evaluates the module in
+ * the SAME VM context, so the mock-wired ../index still observes the test
+ * realm's process.exit. isolateModulesAsync evaluates a mock-wired ../index
+ * in a separate VM context whose process is not the test realm's — a
  * process.exit spy installed from the test is never reached (verified
  * empirically on jest 30.4.2: a plain module imported in the same isolated
- * registry DOES hit the spy; the mock-wired ../index does not). File-level
- * isolation sidesteps the whole class.
+ * registry DOES hit the spy; the mock-wired ../index does not).
+ *
+ * The ../index mock graph lives in ./api-index-mocks.ts (shared with the
+ * other graceful-shutdown suites).
  */
 
 import { jest } from '@jest/globals';
+import { registerApiIndexMocks } from './api-index-mocks';
 
-// Mocks required to load src/api/index.ts (mirrors the suite in
-// graceful-shutdown.test.ts so the module imports resolve).
-
-const mockServerClose = jest.fn((cb?: () => void) => {
-  cb?.();
-});
-const mockServerLike = { close: mockServerClose, once: jest.fn(), on: jest.fn() };
-const mockServerListen = jest.fn((_port: number, cb?: () => void) => {
-  cb?.();
-  return mockServerLike;
-});
-
-jest.unstable_mockModule('http', () => ({
-  createServer: jest.fn(() => mockServerLike),
-  Server: jest.fn().mockImplementation(() => mockServerLike),
-}));
-
-jest.unstable_mockModule('express', () => {
-  const factory = jest.fn(() => ({
-    listen: mockServerListen,
-    use: jest.fn(),
-    get: jest.fn(),
-    post: jest.fn(),
-    set: jest.fn(),
-    on: jest.fn(),
-    once: jest.fn(),
-    close: mockServerClose,
-  }));
-  (factory as any).Router = jest.fn(() => ({
-    get: jest.fn(),
-    post: jest.fn(),
-    use: jest.fn(),
-    put: jest.fn(),
-    delete: jest.fn(),
-  }));
-  (factory as any).json = jest.fn();
-  (factory as any).urlencoded = jest.fn();
-  (factory as any).static = jest.fn();
-  return factory;
-});
-
-jest.unstable_mockModule('@/quality/enhanced-error-recovery', () => ({
-  globalErrorRecovery: { shutdown: jest.fn().mockResolvedValue(undefined) },
-}));
-jest.unstable_mockModule('@/framework/continuous-learner', () => ({
-  continuousLearner: { stopLearning: jest.fn() },
-}));
-jest.unstable_mockModule('@/analysis/llm-service', () => ({ llmService: {} }));
-jest.unstable_mockModule('@/api/startup-warmup', () => ({
-  triggerStartupWarmup: jest.fn(),
-}));
-jest.unstable_mockModule('@/monitoring/real-time-performance-monitor', () => ({
-  realTimeMonitor: { stop: jest.fn() },
-}));
-jest.unstable_mockModule('@/monitoring/performance-dashboard', () => ({
-  globalDashboard: { destroy: jest.fn() },
-}));
-jest.unstable_mockModule('@/monitoring/health-check-service', () => ({
-  healthCheckService: { destroy: jest.fn() },
-}));
-jest.unstable_mockModule('@/api/server', () => ({
-  app: {
-    listen: mockServerListen,
-    use: jest.fn(),
-    get: jest.fn(),
-  },
-  artifactStore: { stop: jest.fn().mockResolvedValue(undefined) },
-  jobQueue: { stop: jest.fn().mockResolvedValue(undefined) },
-}));
-jest.unstable_mockModule('@stv/core/utils/logger', () => ({
-  logger: { info: jest.fn(), error: jest.fn(), warn: jest.fn() },
-}));
+// Must run before the legs' dynamic imports (unstable_mockModule applies by
+// execution order — see the helper's usage contract).
+registerApiIndexMocks();
 
 describe('gracefulShutdown wiring — the exit code reaches process.exit', () => {
-  it('uncaughtException path calls process.exit with code 1', async () => {
+  const driveAbnormalSignal = async (
+    signal: 'uncaughtException' | 'unhandledRejection',
+  ): Promise<number | undefined> => {
     // The pre-fix shape (process.exit(0) on every path) REDs here exactly
     // like the pure uncaught/unhandled legs: the spy records the code the
     // orchestrator would actually see.
@@ -120,15 +62,27 @@ describe('gracefulShutdown wiring — the exit code reaches process.exit', () =>
     const originalExit = process.exit;
     process.exit = exitSpy as typeof process.exit;
     try {
-      // Fresh module registry (this file's own): isShuttingDown starts
-      // false by construction, and the mocks above apply because the
-      // import is dynamic.
+      // Fresh module registry for THIS leg: isShuttingDown starts false by
+      // construction (see the header's leg-level freshness note), and the
+      // mocks above still apply because resetModules keeps the mock
+      // factories and only clears the registry.
+      jest.resetModules();
       const { gracefulShutdown } = await import('../index');
-      await gracefulShutdown('uncaughtException');
+      await gracefulShutdown(signal);
     } finally {
       process.exit = originalExit;
     }
     expect(exitSpy).toHaveBeenCalledTimes(1);
-    expect(exitSpy).toHaveBeenCalledWith(1);
+    return exitSpy.mock.calls[0]?.[0];
+  };
+
+  it('uncaughtException path calls process.exit with code 1', async () => {
+    const code = await driveAbnormalSignal('uncaughtException');
+    expect(code).toBe(1);
+  });
+
+  it('unhandledRejection path calls process.exit with code 1', async () => {
+    const code = await driveAbnormalSignal('unhandledRejection');
+    expect(code).toBe(1);
   });
 });

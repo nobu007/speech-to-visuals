@@ -540,12 +540,14 @@ invariants:
     statement: "gracefulShutdown の終了コードは signal カテゴリと parity を保つ: SIGTERM/SIGINT（orchestrator 要求の clean drain）は exit(0)、uncaughtException/unhandledRejection（abnormal termination）は exit(1)。全経路が単一の硬直 exit コードに潰れる事を禁止する"
     rationale: "process-lifecycle bug class（session-259 parked A2）。修正前は全経路が process.exit(0) の為、uncaughtException という crash が orchestrator・CI に成功として報告され crash が silent 化していた。single-source 判定は exitCodeForSignal に集約し、parity test がどちらかの方向への drift も検出する"
     evidence:
-      - source: "src/api/__tests__/graceful-shutdown-exit-code.test.ts#L125"
+      - source: "src/api/__tests__/graceful-shutdown-exit-code.test.ts#L60"
         quote: "it('uncaughtException resolves to exit code 1 (abnormal termination)', () => {"
       - source: "src/api/index.ts#L31"
         quote: "export function exitCodeForSignal(signal: string): 0 | 1 {"
-      - source: "src/api/__tests__/graceful-shutdown-exit-wiring.test.ts#L105"
+      - source: "src/api/__tests__/graceful-shutdown-exit-wiring.test.ts#L79"
         quote: "it('uncaughtException path calls process.exit with code 1', async () => {"
+      - source: "src/api/__tests__/graceful-shutdown-exit-wiring.test.ts#L84"
+        quote: "it('unhandledRejection path calls process.exit with code 1', async () => {"
     checks:
       - type: "test"
         target: "src/api/__tests__/graceful-shutdown-exit-code.test.ts"
