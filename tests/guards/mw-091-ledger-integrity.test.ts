@@ -24,6 +24,19 @@ import { fileURLToPath } from 'node:url';
 import { join } from 'node:path';
 
 const REPO_ROOT = fileURLToPath(new URL('../../', import.meta.url));
+
+/**
+ * TypeScript assertion function — narrows `T | null | undefined` to `T` for
+ * subsequent statements. Used in place of the `!` non-null assertion to keep
+ * Phase 168 (REQ-362) tests-tree exact-0 ratchet green while still letting
+ * the guard consume the `string | null` return of `readMWBody`.
+ */
+function assertNotNull<T>(
+  v: T | null | undefined,
+  msg = 'expected non-null',
+): asserts v is T {
+  if (v === null || v === undefined) throw new Error(msg);
+}
 const LEDGER = join(REPO_ROOT, 'specs/speech-to-visuals/mutation-witness-ledger.md');
 const TARGET_FILE = join(REPO_ROOT, 'src/performance/intelligent-cache.ts');
 const GUARD_TEST = join(REPO_ROOT, 'tests/guards/mutation-witness-ledger.test.ts');
@@ -57,17 +70,19 @@ describe('MW-091 ledger integrity (PR #75 follow-up)', () => {
 
   it('MW-091 carries the canonical 5-section body (claim/target/mutation/command/observed)', () => {
     expect(body).not.toBeNull();
-    expect(body!).toMatch(/- \*\*claim\*\*:/);
-    expect(body!).toMatch(/- \*\*target\*\*: `[^`]+`/);
-    expect(body!).toMatch(/- \*\*mutation\*\*:/);
-    expect(body!).toMatch(/- \*\*command\*\*:/);
-    expect(body!).toMatch(/- \*\*observed\*\*/);
+    assertNotNull(body);
+    expect(body).toMatch(/- \*\*claim\*\*:/);
+    expect(body).toMatch(/- \*\*target\*\*: `[^`]+`/);
+    expect(body).toMatch(/- \*\*mutation\*\*:/);
+    expect(body).toMatch(/- \*\*command\*\*:/);
+    expect(body).toMatch(/- \*\*observed\*\*/);
   });
 
   it('MW-091 target points at intelligent-cache.ts and the file contains the wasDecompressed gate (line-resolved)', () => {
     // Eval weakness 対応: 810 行 硬 pin 排除 → 任意行 OK + 動的 grep で gate 存在担保
     expect(body).not.toBeNull();
-    expect(body!).toMatch(/- \*\*target\*\*: `src\/performance\/intelligent-cache\.ts:\d+`/);
+    assertNotNull(body);
+    expect(body).toMatch(/- \*\*target\*\*: `src\/performance\/intelligent-cache\.ts:\d+`/);
     expect(existsSync(TARGET_FILE)).toBe(true);
     const srcText = readFileSync(TARGET_FILE, 'utf-8');
     expect(srcText).toMatch(/^\s*if \(wasDecompressed\) \{\s*$/m);
@@ -123,9 +138,10 @@ describe('MW-091 ledger integrity (PR #75 follow-up)', () => {
     // MW-091 の `command` field が「PR #74 follow-up で eval 検出力を受けた eval 形式」
     // と一致している事 (eval weakness 評価で command 単独 witness が引かれる為)。
     expect(body).not.toBeNull();
-    expect(body!).toMatch(/NODE_OPTIONS=.*--experimental-vm-modules/);
-    expect(body!).toMatch(/npx jest --config jest\.config\.cjs/);
-    expect(body!).toMatch(/testPathPatterns\s+intelligent-cache-robustness/);
+    assertNotNull(body);
+    expect(body).toMatch(/NODE_OPTIONS=.*--experimental-vm-modules/);
+    expect(body).toMatch(/npx jest --config jest\.config\.cjs/);
+    expect(body).toMatch(/testPathPatterns\s+intelligent-cache-robustness/);
   });
 
   it('gate body in src has the 3-line shape expected by the ledger mutation (gate / return / closing brace)', () => {
@@ -133,8 +149,9 @@ describe('MW-091 ledger integrity (PR #75 follow-up)', () => {
     // → 3 行 (gate / return / closing brace) が line-resolved で連続している事。
     // sed 置換範囲 (GATE_LINE..GATE_LINE+2) が gate を壊した時 1 leg のみ RED する根拠。
     expect(body).not.toBeNull();
+    assertNotNull(body);
     const srcText = readFileSync(TARGET_FILE, 'utf-8');
-    const gateLine = Number((body!.match(/target\*\*: `src\/performance\/intelligent-cache\.ts:(\d+)`/) || [])[1]);
+    const gateLine = Number((body.match(/target\*\*: `src\/performance\/intelligent-cache\.ts:(\d+)`/) || [])[1]);
     expect(Number.isFinite(gateLine)).toBe(true);
     const lines = srcText.split('\n');
     expect(lines[gateLine - 1]).toMatch(/^\s*if \(wasDecompressed\) \{\s*$/);
@@ -148,7 +165,8 @@ describe('MW-091 ledger integrity (PR #75 follow-up)', () => {
     const appendixRows = ledger.split('\n').filter((l) => /^\| MW-\d{3} \|/.test(l));
     const mw091Row = appendixRows.find((r) => r.startsWith('| MW-091 |'));
     expect(mw091Row).toBeDefined();
-    expect(mw091Row!).toMatch(/\.bak|revert|復元|GREEN|git status/);
+    assertNotNull(mw091Row);
+    expect(mw091Row).toMatch(/\.bak|revert|復元|GREEN|git status/);
   });
 });
 
@@ -165,10 +183,11 @@ describe('readMWBody helper (unit)', () => {
   it('returns the MW-091 body slice between heading and the next MW heading', () => {
     const body = readMWBody(ledger, 'MW-091');
     expect(body).not.toBeNull();
+    assertNotNull(body);
     // boundary 条件: body は次の `## MW-` heading を含まない
-    expect(body!).not.toMatch(/^## MW-/m);
+    expect(body).not.toMatch(/^## MW-/m);
     // body は最初の bullet list を含む
-    expect(body!).toMatch(/^- \*\*claim\*\*:/m);
+    expect(body).toMatch(/^- \*\*claim\*\*:/m);
   });
 });
 
@@ -179,7 +198,11 @@ describe('MW ledger structural contract (generic, derived from helper)', () => {
   // ガード文化: 既存 11 leg は verbatim 維持、新規 contract のみを追加。
 
   const ledger = readFileSync(LEDGER, 'utf-8');
-  const mwIds = (ledger.match(/^## (MW-\d{3}) /gm) || []).map((m) => m.match(/(MW-\d{3})/)![1]);
+  const mwIds = (ledger.match(/^## (MW-\d{3}) /gm) || []).map((m) => {
+    const idMatch = m.match(/(MW-\d{3})/);
+    assertNotNull(idMatch, 'mwIds id parse failed');
+    return idMatch[1];
+  });
   const uniqueIds = Array.from(new Set(mwIds));
 
   it('every MW heading is unique across the ledger (no duplicate entries)', () => {
@@ -194,7 +217,8 @@ describe('MW ledger structural contract (generic, derived from helper)', () => {
     for (const id of uniqueIds) {
       const body = readMWBody(ledger, id);
       expect(body).not.toBeNull();
-      expect(body!.length).toBeGreaterThan(0);
+      assertNotNull(body);
+      expect(body.length).toBeGreaterThan(0);
     }
   });
 
@@ -203,7 +227,8 @@ describe('MW ledger structural contract (generic, derived from helper)', () => {
     for (const id of uniqueIds) {
       const body = readMWBody(ledger, id);
       expect(body).not.toBeNull();
-      expect(body!).not.toMatch(/^## MW-/m);
+      assertNotNull(body);
+      expect(body).not.toMatch(/^## MW-/m);
     }
   });
 
@@ -299,7 +324,8 @@ describe('MW-091 contract leg mutation matrix (detection witness)', () => {
     const body = readMWBody(GOOD_LEDGER, 'MW-091');
     expect(commandOk(body)).toBe(true);
     // mutation: NODE_OPTIONS= を除去 → command regex 1 点目が false、本体 leg が RED する。
-    const mutatedBody = body!.replace(/NODE_OPTIONS=[^\s]+\s*/, '');
+    assertNotNull(body, 'GOOD_LEDGER MW-091 body is null');
+    const mutatedBody = body.replace(/NODE_OPTIONS=[^\s]+\s*/, '');
     expect(commandOk(mutatedBody)).toBe(false);
   });
 
