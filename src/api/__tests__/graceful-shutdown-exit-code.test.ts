@@ -21,89 +21,24 @@
  * The wiring-level counterpart (gracefulShutdown → exitCodeForSignal →
  * process.exit, driven on a FRESH module instance) lives in
  * graceful-shutdown-exit-wiring.test.ts: jest gives each test FILE its own
- * module registry, so hosting the wiring leg in a dedicated file resets the
- * module-private `isShuttingDown` guard by construction — no leg-ordering
- * dependency on this file's shared instance. (`jest.isolateModulesAsync`
- * is NOT usable for that leg: an isolated import of a mock-wired
- * `../index` is evaluated in a separate VM context whose `process.exit`
- * is unobservable from the test realm — verified empirically on jest
- * 30.4.2; see the wiring file's header.)
+ * module registry, so hosting the wiring legs in a dedicated file resets
+ * the module-private `isShuttingDown` guard by construction — no leg-ordering
+ * dependency on this file's shared instance (each wiring leg additionally
+ * calls jest.resetModules(); `jest.isolateModulesAsync` is NOT usable there:
+ * an isolated import of a mock-wired `../index` is evaluated in a separate
+ * VM context whose `process.exit` is unobservable from the test realm —
+ * verified empirically on jest 30.4.2; see the wiring file's header).
+ *
+ * The ../index mock graph lives in ./api-index-mocks.ts (shared with the
+ * other graceful-shutdown suites).
  */
 
 import { jest, beforeAll } from '@jest/globals';
+import { registerApiIndexMocks } from './api-index-mocks';
 
-// Mocks required to load src/api/index.ts (mirrors the suite in
-// graceful-shutdown.test.ts so the module imports resolve).
-
-const mockServerClose = jest.fn((cb?: () => void) => {
-  cb?.();
-});
-const mockServerLike = { close: mockServerClose, once: jest.fn(), on: jest.fn() };
-const mockServerListen = jest.fn((_port: number, cb?: () => void) => {
-  cb?.();
-  return mockServerLike;
-});
-
-jest.unstable_mockModule('http', () => ({
-  createServer: jest.fn(() => mockServerLike),
-  Server: jest.fn().mockImplementation(() => mockServerLike),
-}));
-
-jest.unstable_mockModule('express', () => {
-  const factory = jest.fn(() => ({
-    listen: mockServerListen,
-    use: jest.fn(),
-    get: jest.fn(),
-    post: jest.fn(),
-    set: jest.fn(),
-    on: jest.fn(),
-    once: jest.fn(),
-    close: mockServerClose,
-  }));
-  (factory as any).Router = jest.fn(() => ({
-    get: jest.fn(),
-    post: jest.fn(),
-    use: jest.fn(),
-    put: jest.fn(),
-    delete: jest.fn(),
-  }));
-  (factory as any).json = jest.fn();
-  (factory as any).urlencoded = jest.fn();
-  (factory as any).static = jest.fn();
-  return factory;
-});
-
-jest.unstable_mockModule('@/quality/enhanced-error-recovery', () => ({
-  globalErrorRecovery: { shutdown: jest.fn().mockResolvedValue(undefined) },
-}));
-jest.unstable_mockModule('@/framework/continuous-learner', () => ({
-  continuousLearner: { stopLearning: jest.fn() },
-}));
-jest.unstable_mockModule('@/analysis/llm-service', () => ({ llmService: {} }));
-jest.unstable_mockModule('@/api/startup-warmup', () => ({
-  triggerStartupWarmup: jest.fn(),
-}));
-jest.unstable_mockModule('@/monitoring/real-time-performance-monitor', () => ({
-  realTimeMonitor: { stop: jest.fn() },
-}));
-jest.unstable_mockModule('@/monitoring/performance-dashboard', () => ({
-  globalDashboard: { destroy: jest.fn() },
-}));
-jest.unstable_mockModule('@/monitoring/health-check-service', () => ({
-  healthCheckService: { destroy: jest.fn() },
-}));
-jest.unstable_mockModule('@/api/server', () => ({
-  app: {
-    listen: mockServerListen,
-    use: jest.fn(),
-    get: jest.fn(),
-  },
-  artifactStore: { stop: jest.fn().mockResolvedValue(undefined) },
-  jobQueue: { stop: jest.fn().mockResolvedValue(undefined) },
-}));
-jest.unstable_mockModule('@stv/core/utils/logger', () => ({
-  logger: { info: jest.fn(), error: jest.fn(), warn: jest.fn() },
-}));
+// Mock registrations must precede the dynamic import below (see the header
+// and the helper's usage contract).
+registerApiIndexMocks();
 
 // Loaded after the mock registrations above (the dynamic import is what
 // makes unstable_mockModule apply — see the header's import discipline note).
