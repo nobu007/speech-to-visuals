@@ -977,9 +977,10 @@ const ALLOWED: Record<string, string> = {
     'LOGGER-IMPL — the logger itself: the debug method level gate (currentLogLevel <= LogLevel.DEBUG) is the adjacent line and console.debug is the transport; every other console.log/debug on the surface is a stray debug trace.',
   // [process-exit] the API server entrypoint's deliberate terminal act —
   // gracefulShutdown has already stopped/logged every background service by
-  // the time this line runs (SIGTERM/SIGINT handlers route here).
-  'src/api/index.ts:64':
-    'SERVER-EXIT — gracefulShutdown epilogue after every background service is stopped and logged (SIGTERM/SIGINT route here); a process.exit in library/pipeline/component code is an unrostered RED.',
+  // the time this line runs (all four signal routes terminate here; the
+  // argument is the INV-API-001 parity call: clean drain 0 / abnormal 1).
+  'src/api/index.ts:73':
+    'SERVER-EXIT — gracefulShutdown epilogue after every background service is stopped and logged (all signals route here; the exit code is the exitCodeForSignal parity value, INV-API-001); a process.exit in library/pipeline/component code is an unrostered RED.',
   // [tolocalestring-bare] safeToLocaleString's own finite-number return
   // path delegates to the native formatter — the null/NaN gate IS the
   // helper's purpose. A bare locale-default call elsewhere (especially in
@@ -1335,11 +1336,12 @@ describe('dead-idiom batch census (REQ-410)', () => {
         /currentLogLevel <= LogLevel\.DEBUG\) \{\s*\n\s*console\.debug\(/,
       ],
       // The rostered process-exit stays the graceful-shutdown epilogue: the
-      // services-stopped log precedes it. Moving it ahead of the shutdown
-      // work (or into library code) fails this anchor.
+      // services-stopped log precedes it, and the exit code is the INV-API-001
+      // parity call (collapsing it back to a literal 0 fails this anchor).
+      // Moving it ahead of the shutdown work (or into library code) fails too.
       [
         'src/api/index.ts',
-        /logger\.info\('All background services shut down'\);[\s\S]*\n\s*process\.exit\(0\);/,
+        /logger\.info\('All background services shut down'\);[\s\S]*\n\s*process\.exit\(exitCodeForSignal\(signal\)\);/,
       ],
       // The rostered toLocaleString site stays the finite-number branch of
       // safeToLocaleString (the null/NaN gate is the helper's whole point).
