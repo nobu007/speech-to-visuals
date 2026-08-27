@@ -15,6 +15,7 @@
  */
 
 import { jest } from '@jest/globals';
+import { waitForState } from '@tests/helpers/wait-for-state';
 
 const PIPELINE_OK_RESULT = { success: true, transcript: 'test', scenes: [] };
 
@@ -160,12 +161,6 @@ describe('INV-BATCH-001: batch preset must not leak into process-global state', 
         ? new Promise((resolve) => deferreds.set(input.audioFile.name, resolve))
         : Promise.resolve(PIPELINE_OK_RESULT),
     );
-    const waitForState = async (predicate: () => boolean, what: string): Promise<void> => {
-      for (let i = 0; i < 500 && !predicate(); i++) {
-        await new Promise((r) => setTimeout(r, 10));
-      }
-      if (!predicate()) throw new Error(`timed out waiting for ${what}`);
-    };
 
     try {
       const jobA = await api.submitJob({ files: jobAFiles, preset: 'fast' });
@@ -261,5 +256,87 @@ describe('INV-BATCH-001: batch preset must not leak into process-global state', 
       adaptiveQualityPresets.clearCustomOverrides();
     }
     expect(adaptiveQualityPresets.getCurrentPreset().name).toBe('balanced');
+  });
+
+  it('a mid-flight global override install does not reach an explicit-preset job', async () => {
+    // The other half of the isolation: not only must a job's preset not leak
+    // OUT to the process-global manager, but process-global reconfiguration
+    // happening while the job is in flight must not leak IN. An operator (or
+    // any other component in this process) installing custom overrides
+    // mid-job reconfigures preset-less work — a job that NAMED a preset
+    // sidestepped that state at submit time and must keep doing so for every
+    // file it has yet to pick up. Same manual-deferred window as the mid-
+    // flight submit leg: the pool saturates before the global flips.
+    const poolSize = BATCH_LIMITS.MAX_CONCURRENT_JOBS;
+    const jobAFiles = Array.from({ length: poolSize + 1 }, (_, i) => stubFile(`held-${i}.wav`));
+    const deferreds = new Map<string, (value: unknown) => void>();
+    const processMock = simplePipeline.process as jest.Mock<any>;
+    processMock.mockImplementation((input: { audioFile: { name: string } }) =>
+      input.audioFile.name.startsWith('held-')
+        ? new Promise((resolve) => deferreds.set(input.audioFile.name, resolve))
+        : Promise.resolve(PIPELINE_OK_RESULT),
+    );
+
+    try {
+      const jobA = await api.submitJob({ files: jobAFiles, preset: 'fast' });
+      await waitForState(() => deferreds.size === poolSize, 'the worker pool to saturate');
+
+      // The global configuration changes strictly inside job A's processing
+      // window — pinned live before any queued file is released.
+      adaptiveQualityPresets.setCustomOverrides({ maxConcurrency: 16 });
+      expect(adaptiveQualityPresets.getCurrentPreset().name).toBe('custom');
+
+      for (const resolve of deferreds.values()) resolve(PIPELINE_OK_RESULT);
+      await waitForState(() => deferreds.size === jobAFiles.length, 'the queued file to be picked up');
+      for (const resolve of deferreds.values()) resolve(PIPELINE_OK_RESULT);
+
+      const status = await api.waitForJob(jobA.jobId, { timeoutMs: 5000 });
+      expect(status.status).toBe('completed');
+
+      // Pre-fix, the queued file resolved after the global flip and came out
+      // on the overrides (16) while the in-flight ones had already built
+      // their options. Every file of a preset-bearing job stays on its own
+      // preset — the flip is observable only on the manager, never here.
+      const calls = processMock.mock.calls;
+      expect(calls.length).toBe(jobAFiles.length);
+      for (const call of calls) {
+        const input = call[0] as { options: { maxConcurrency: number } };
+        expect(input.options.maxConcurrency).toBe(QUALITY_PRESETS.fast.parameters.maxConcurrency);
+      }
+    } finally {
+      adaptiveQualityPresets.clearCustomOverrides();
+      processMock.mockReset();
+      processMock.mockResolvedValue(PIPELINE_OK_RESULT);
+    }
+  });
+
+  it('processes every file of a job under its own audioFile with a fresh options object', async () => {
+    // The attribution legs above derive each call's expected preset FROM
+    // input.audioFile.name — self-consistent, so they cannot see a collapse
+    // where the options build is hoisted out of the per-file loop and every
+    // file is processed under files[0] (a plausible "options are per-job,
+    // why rebuild per file?" refactor). Each submitted file must reach the
+    // pipeline exactly once under its own audioFile, and each call must get
+    // its own options object — a shared one would alias the request-scoped
+    // includeVideoGeneration write across the job's files.
+    const names = ['own-a.wav', 'own-b.wav', 'own-c.wav'];
+    const { jobId } = await api.submitJob({
+      files: names.map((name) => stubFile(name)),
+      preset: 'quality',
+    });
+    const status = await api.waitForJob(jobId, { timeoutMs: 5000 });
+    expect(status.status).toBe('completed');
+
+    const calls = (simplePipeline.process as jest.Mock<any>).mock.calls;
+    expect(calls.length).toBe(names.length);
+    const seen = calls.map((call) => (call[0] as { audioFile: { name: string } }).audioFile.name);
+    expect([...seen].sort()).toEqual([...names].sort());
+
+    const optionObjects = calls.map((call) => (call[0] as { options: object }).options);
+    for (let i = 0; i < optionObjects.length; i++) {
+      for (let j = i + 1; j < optionObjects.length; j++) {
+        expect(optionObjects[i]).not.toBe(optionObjects[j]);
+      }
+    }
   });
 });
