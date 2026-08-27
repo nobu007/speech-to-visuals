@@ -171,3 +171,53 @@ describe('readMWBody helper (unit)', () => {
     expect(body!).toMatch(/^- \*\*claim\*\*:/m);
   });
 });
+
+describe('MW ledger structural contract (generic, derived from helper)', () => {
+  // Eval weakness 対応: MW-091 単体に閉じず、ledger 全体の contract を generalize。
+  // 既存 readMWBody helper の boundary / robustness を pin し、
+  // 「MW-091 が壊れていないなら ledger も壊れていない」事を構造的に保証する。
+  // ガード文化: 既存 11 leg は verbatim 維持、新規 contract のみを追加。
+
+  const ledger = readFileSync(LEDGER, 'utf-8');
+  const mwIds = (ledger.match(/^## (MW-\d{3}) /gm) || []).map((m) => m.match(/(MW-\d{3})/)![1]);
+  const uniqueIds = Array.from(new Set(mwIds));
+
+  it('every MW heading is unique across the ledger (no duplicate entries)', () => {
+    // 既存 MW-091 uniqueness test の ledger-wide 版。
+    // regression trap: 重複 heading は readMWBody の silent skip を生む。
+    expect(mwIds.length).toBe(uniqueIds.length);
+  });
+
+  it('every unique MW heading resolves to a non-null body via readMWBody (no orphan headings)', () => {
+    // boundary contract: heading に対応する body が必ず存在し、
+    // 空文字/null を返して silent-pass する事が無い事を保証。
+    for (const id of uniqueIds) {
+      const body = readMWBody(ledger, id);
+      expect(body).not.toBeNull();
+      expect(body!.length).toBeGreaterThan(0);
+    }
+  });
+
+  it('every MW body slice ends strictly before the next MW heading (boundary contract)', () => {
+    // readMWBody の終端判定 (next `## MW-NNN ` heading) が全 entry で成立。
+    for (const id of uniqueIds) {
+      const body = readMWBody(ledger, id);
+      expect(body).not.toBeNull();
+      expect(body!).not.toMatch(/^## MW-/m);
+    }
+  });
+
+  it('readMWBody returns null for an empty ledger (helper robustness)', () => {
+    // regression trap: 空 ledger で空文字を返すと "見つかっていない" ケースと区別がつかず
+    // silent-pass する。明示的に null を返す事を pin。
+    expect(readMWBody('', 'MW-001')).toBeNull();
+  });
+
+  it('MW heading count meets the PINNED_MIN_ENTRIES floor (derived, not bare-pinned)', () => {
+    // PINNED_MIN_ENTRIES を parent guard から動的導出 (78→85 floor bump の stale pin 防止)。
+    const guardSrc = readFileSync(GUARD_TEST, 'utf-8');
+    const pinned = Number((guardSrc.match(/PINNED_MIN_ENTRIES = (\d+);/) || [])[1]);
+    expect(Number.isFinite(pinned)).toBe(true);
+    expect(uniqueIds.length).toBeGreaterThanOrEqual(pinned);
+  });
+});
