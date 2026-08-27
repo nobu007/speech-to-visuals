@@ -514,6 +514,22 @@ invariants:
         quote: "    expect(sweptFiles).toContain('tests/guards/mw-091-ledger-integrity.test.ts');"
       - source: "tests/guards/conflict-marker-sweep.test.ts#L196"
         quote: "  it('root config and CI-workflow surfaces are in scope — the post-push blind spot', () => {"
+      - source: "tests/guards/conflict-marker-sweep.test.ts#L213"
+        quote: "  it('.github sweep coverage is structural — disk parity, not an enumeration', () => {"
     checks:
       - type: "test"
         target: "tests/guards/conflict-marker-sweep.test.ts"
+  - id: "INV-TEST-009"
+    related_terms: ["GuardHarness"]
+    status: "stable"
+    strength: "hard"
+    statement: "claims.ndjson の全 retained line は compact JSON 1 行形式 (先頭 `{\"run_id\":\"` — key/value separator に空白を挟まない) を保つ事。run_id は常に先頭 key であり、line 先頭 prefix が ledger の byte 規約である"
+    rationale: "append-only ledger は line diff で運用される為、byte 形式が 2 dialect (compact / spaced) に分裂すると appender が近傍の少数 dialect を写して分裂が拡大し、prefix を前提とする ndjson byte census の前提が崩れる。JSON.parse は両形式を同一視する為 semantic leg では検出不能 — byte 形式の pin が唯一の検出器。2026-08-28 時点で 112 line 中 11 line が spaced dialect だったものを正規化 (JSON semantic は deep-equal 確証済み) し今後の分裂を封じた"
+    evidence:
+      - source: "tests/guards/concept-sync-consistency.test.ts#L1254"
+        quote: "  it('claims: retained lines keep the ledger compact byte form (INV-TEST-009)', () => {"
+      - source: "tests/guards/concept-sync-consistency.test.ts#L1266"
+        quote: "    const spaced = claimLines.filter((line) => !line.startsWith('{\"run_id\":\"'));"
+    checks:
+      - type: "test"
+        target: "tests/guards/concept-sync-consistency.test.ts"
