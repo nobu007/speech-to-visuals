@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Iteration43Interface from "./components/Iteration43Interface";
+import { CorruptionOverlay } from "./components/CorruptionOverlay";
 import TutorialSystem from "./components/TutorialSystem";
 import ProductionDashboard from "./components/ProductionDashboard";
 import ErrorAlertSystem from "./components/ErrorAlertSystem";
@@ -22,6 +23,13 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
+      {/* Storage corruption recovery UI — MUST mount before any component
+          that reads localStorage in its mount effect (TutorialSystem below).
+          report-corruption keeps a single activeHandler with no replay
+          buffer, so a later mount silently drops mount-time corruption
+          events (pinned by tests/guards/corruption-overlay-app-mount.test.ts
+          and src/__tests__/corruption-overlay-app-integration.test.tsx). */}
+      <CorruptionOverlay />
       <TutorialSystem />
       {/* Production Error Monitoring */}
       <div className="fixed top-4 right-4 z-50 max-w-md">
