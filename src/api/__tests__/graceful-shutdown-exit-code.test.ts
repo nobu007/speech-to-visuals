@@ -12,13 +12,25 @@
  * reported to the orchestrator and CI as a successful exit. This test pins
  * the parity that the abnormal paths must surface a non-zero code.
  *
- * We exercise `exitCodeForSignal` directly for the four signal categories,
- * then one integration leg drives gracefulShutdown('uncaughtException') on
- * the shared module instance through to a spied process.exit (the clean
- * SIGTERM → exit(0) half stays pinned in graceful-shutdown.test.ts).
+ * Import discipline (eval follow-up on run 20260827-193717): `../index` is
+ * loaded via a DYNAMIC import only. A static import is linked before the
+ * `unstable_mockModule` registrations run, so it resolves the REAL
+ * dependency graph — including `app.listen(3001)` at module scope, which
+ * boots a live socket inside the jest worker.
+ *
+ * The wiring-level counterpart (gracefulShutdown → exitCodeForSignal →
+ * process.exit, driven on a FRESH module instance) lives in
+ * graceful-shutdown-exit-wiring.test.ts: jest gives each test FILE its own
+ * module registry, so hosting the wiring leg in a dedicated file resets the
+ * module-private `isShuttingDown` guard by construction — no leg-ordering
+ * dependency on this file's shared instance. (`jest.isolateModulesAsync`
+ * is NOT usable for that leg: an isolated import of a mock-wired
+ * `../index` is evaluated in a separate VM context whose `process.exit`
+ * is unobservable from the test realm — verified empirically on jest
+ * 30.4.2; see the wiring file's header.)
  */
 
-import { jest } from '@jest/globals';
+import { jest, beforeAll } from '@jest/globals';
 
 // Mocks required to load src/api/index.ts (mirrors the suite in
 // graceful-shutdown.test.ts so the module imports resolve).
@@ -93,7 +105,13 @@ jest.unstable_mockModule('@stv/core/utils/logger', () => ({
   logger: { info: jest.fn(), error: jest.fn(), warn: jest.fn() },
 }));
 
-import { exitCodeForSignal, gracefulShutdown } from '../index';
+// Loaded after the mock registrations above (the dynamic import is what
+// makes unstable_mockModule apply — see the header's import discipline note).
+let exitCodeForSignal: typeof import('../index')['exitCodeForSignal'];
+
+beforeAll(async () => {
+  ({ exitCodeForSignal } = await import('../index'));
+});
 
 describe('graceful shutdown exit code parity', () => {
   it('SIGTERM resolves to exit code 0 (orchestrator-requested clean drain)', () => {
@@ -129,27 +147,5 @@ describe('graceful shutdown exit code parity', () => {
     expect(codes.uncaughtException).toBe(1);
     expect(codes.unhandledRejection).toBe(1);
     expect(new Set(Object.values(codes)).size).toBe(2);
-  });
-});
-
-describe('gracefulShutdown integration — the exit code reaches process.exit', () => {
-  it('uncaughtException path calls process.exit with code 1', async () => {
-    // Integration leg (eval follow-up on run 20260827-191221): the legs above
-    // pin the pure signal→code map; this leg pins the wiring — the signal
-    // must flow gracefulShutdown → exitCodeForSignal → process.exit. The
-    // module instance imported above has never had gracefulShutdown invoked
-    // (the pure legs do not touch isShuttingDown), so the idempotent guard
-    // does not swallow this call. The pre-fix shape (process.exit(0) on
-    // every path) REDs here exactly like the pure uncaught/unhandled legs.
-    const originalExit = process.exit;
-    const exitSpy = jest.fn((_code?: number) => undefined as never);
-    process.exit = exitSpy as typeof process.exit;
-    try {
-      await gracefulShutdown('uncaughtException');
-    } finally {
-      process.exit = originalExit;
-    }
-    expect(exitSpy).toHaveBeenCalledTimes(1);
-    expect(exitSpy).toHaveBeenCalledWith(1);
   });
 });
