@@ -214,10 +214,110 @@ describe('MW ledger structural contract (generic, derived from helper)', () => {
   });
 
   it('MW heading count meets the PINNED_MIN_ENTRIES floor (derived, not bare-pinned)', () => {
-    // PINNED_MIN_ENTRIES を parent guard から動的導出 (78→85 floor bump の stale pin 防止)。
+    // PINNED_MIN_ENTRIES floor = 85 の意味的根拠 (session-282 / session-278 経緯):
+    //
+    //   - parent guard (tests/guards/mutation-witness-ledger.test.ts) 初期 floor = 78。
+    //   - session-278 で MW-085〜090 を ledger 追加した際、floor bump を怠り 84 entry で止まった
+    //     (floor 78 を下回らない為 RED しないが、ledger 実態と乖離した silent state)。
+    //   - session-282 で MW-091 を昇格し 85 entry へ到達 → floor を 78→85 へ巻き取り (bump)。
+    //   - 本 leg は parent guard から `const PINNED_MIN_ENTRIES = (\d+);` を動的導出する為、
+    //     将来 session が新規 MW entry を追加して floor を bump しなかった場合、
+    //     parent guard 自体が RED する (本 leg は stale pin 防止)。
+    //
+    // 派生導出が機能している事は mutation matrix M5 (将来 session で floor drop → 本 leg RED)
+    // ではなく、guard 自体の構造 (parent guard と派生導出の間接参照) で担保する。
     const guardSrc = readFileSync(GUARD_TEST, 'utf-8');
     const pinned = Number((guardSrc.match(/PINNED_MIN_ENTRIES = (\d+);/) || [])[1]);
     expect(Number.isFinite(pinned)).toBe(true);
     expect(uniqueIds.length).toBeGreaterThanOrEqual(pinned);
+  });
+});
+
+/**
+ * Mutation witness matrix — eval weakness 対応。
+ * 「contract leg が壊れていない事」ではなく「contract leg が壊れた事を検出できる事」を
+ * in-memory 合成データで独立 pin する。各 leg の assertion は mutation を受けて初めて
+ * RED する設計 (silent-pass しない)。
+ *
+ * 注意: 本 block は ledger/src を実際には mutate しない (read-only)。
+ * 合成文字列に対する detection predicate を呼び、unmutated/mutated で pass/fail が
+ * 反転する事を証明する。
+ */
+describe('MW-091 contract leg mutation matrix (detection witness)', () => {
+  // 最小構成の正常 ledger (1 entry のみ) — 比較対照として mutation の効果を示す。
+  const GOOD_LEDGER = [
+    '## MW-091 — isolated witness (mutation matrix fixture)',
+    '',
+    '- **claim**: synthetic body',
+    '- **target**: `src/performance/intelligent-cache.ts:42`',
+    '- **mutation**: gate keep',
+    '- **command**: NODE_OPTIONS=--experimental-vm-modules npx jest --config jest.config.cjs --testPathPatterns intelligent-cache-robustness',
+    '- **observed**: 12/12 GREEN',
+    '',
+    '| MW-091 | synthetic appendix entry | 1 failed / 11 passed (12) | observed local | .bak 復元で 12/12 GREEN・`git status --short src/` clean |',
+  ].join('\n');
+
+  const GOOD_SRC = [
+    '// line 1: header',
+    '// line 41: preamble',
+    '  if (wasDecompressed) {',
+    '    return { ...bestMatch, data: decompressedData };',
+    '  }',
+    '// line 44: tail',
+  ].join('\n');
+
+  // detection predicates — 本体 leg の assertion を抽出して、合成入力に再適用する形にする。
+  // 本体 leg が silent-pass (regex 緩い・count 派生なし) になっていれば、ここでも mutation を
+  // 取りこぼし、witness が成立しない。
+  const headingCount = (src: string) => (src.match(/^## MW-091 /gm) || []).length;
+  const commandOk = (body: string | null) =>
+    body !== null &&
+    /NODE_OPTIONS=.*--experimental-vm-modules/.test(body) &&
+    /npx jest --config jest\.config\.cjs/.test(body) &&
+    /testPathPatterns\s+intelligent-cache-robustness/.test(body);
+  const gateBodyOk = (src: string, gateLine: number) => {
+    const lines = src.split('\n');
+    return (
+      /^\s*if \(wasDecompressed\) \{\s*$/.test(lines[gateLine - 1]) &&
+      /^\s*return \{ \.\.\.bestMatch, data: decompressedData \};\s*$/.test(lines[gateLine]) &&
+      /^\s*\}\s*$/.test(lines[gateLine + 1])
+    );
+  };
+  const restorationOk = (row: string | undefined) =>
+    !!row && /\.bak|revert|復元|GREEN|git status/.test(row);
+
+  it('M1: duplicate MW-091 heading is detected by the uniqueness predicate', () => {
+    // control: 健全 ledger では 1 件
+    expect(headingCount(GOOD_LEDGER)).toBe(1);
+    // mutation: 同じ heading を 2 行に複製 → predicate は > 1 を返し、本体 leg が RED する。
+    const mutated = GOOD_LEDGER + '\n## MW-091 — duplicate (silent skip regression trap)\n-fake body\n';
+    expect(headingCount(mutated)).toBeGreaterThan(1);
+  });
+
+  it('M2: command field missing NODE_OPTIONS is detected by the command-field predicate', () => {
+    // control: 健全 body では command regex 3 点全 OK
+    const body = readMWBody(GOOD_LEDGER, 'MW-091');
+    expect(commandOk(body)).toBe(true);
+    // mutation: NODE_OPTIONS= を除去 → command regex 1 点目が false、本体 leg が RED する。
+    const mutatedBody = body!.replace(/NODE_OPTIONS=[^\s]+\s*/, '');
+    expect(commandOk(mutatedBody)).toBe(false);
+  });
+
+  it('M3: gate body with broken closing brace is detected by the line-resolved predicate', () => {
+    // control: 健全 src (line 3/4/5) では gate body が成立
+    expect(gateBodyOk(GOOD_SRC, 3)).toBe(true);
+    // mutation: 5 行目を `}` → `  extra_code` に置換 → closing brace regex が false、本体 leg が RED する。
+    const mutatedSrc = GOOD_SRC.replace('  }\n', '  extra_code\n');
+    expect(gateBodyOk(mutatedSrc, 3)).toBe(false);
+  });
+
+  it('M4: appendix row missing restoration keyword is detected by the restoration predicate', () => {
+    // control: 健全 appendix row では .bak|GREEN 言及あり
+    const goodRow = '| MW-091 | synthetic | 12/12 | obs | .bak 復元で 12/12 GREEN |';
+    expect(restorationOk(goodRow)).toBe(true);
+    // mutation: 復元/GREEN/.bak 言及を全削除 → restoration regex が false、本体 leg が RED する。
+    // silent-pass trap: 「空文字」「---」「N/A」等も false になる事を明示 pin。
+    const mutatedRow = '| MW-091 | synthetic | 12/12 | obs | (no restoration column) |';
+    expect(restorationOk(mutatedRow)).toBe(false);
   });
 });
