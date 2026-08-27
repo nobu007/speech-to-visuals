@@ -76,7 +76,11 @@ export class LLMCache<T> {
    * shortening of the digest, astronomically unlikely to collide at this
    * cache's scale. Only the INPUT must not be truncated.)
    */
-  private generateKey(text: string, prefix: string = ''): string {
+  // `protected` (not `private`) so test subclasses can install a mutation witness
+  // (see tests/guards/llm-cache-namespace-mutation-witness.test.ts). The internal
+  // key-mixing algorithm MUST not be silently bypassed by a future refactor —
+  // namespace isolation is the contract INV-CACHE-001 pins.
+  protected generateKey(text: string, prefix: string = ''): string {
     const normalized = text.trim().toLowerCase();
     const hash = crypto.createHash('sha256').update(normalized).digest('hex').slice(0, 16);
     return prefix ? `${prefix}:${hash}` : hash;
