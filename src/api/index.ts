@@ -23,7 +23,16 @@ const server: Server = app.listen(PORT, () => {
  */
 let isShuttingDown = false;
 
-async function gracefulShutdown(signal: string): Promise<void> {
+// SIGTERM / SIGINT are normal container-orchestrator shutdown signals — exit 0
+// signals "the process chose to stop cleanly" to the orchestrator. uncaught /
+// unhandled paths are abnormal exits and must surface a non-zero code so the
+// orchestrator (and CI) record the failure rather than treat the crash as a
+// successful drain.
+export function exitCodeForSignal(signal: string): 0 | 1 {
+  return signal === 'uncaughtException' || signal === 'unhandledRejection' ? 1 : 0;
+}
+
+export async function gracefulShutdown(signal: string): Promise<void> {
   if (isShuttingDown) return;
   isShuttingDown = true;
 
@@ -61,7 +70,7 @@ async function gracefulShutdown(signal: string): Promise<void> {
     if (timeoutHandle) clearTimeout(timeoutHandle);
   }
 
-  process.exit(0);
+  process.exit(exitCodeForSignal(signal));
 }
 
 process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
