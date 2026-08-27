@@ -45,7 +45,7 @@ milestones:
         target: "npm test -- \"guards\""
     priority: "P0"
     status: "active"
-    progress_note: "2026-08-27: INV-BATCH-001 新設 — batch preset の request-scope 分離 (session-259 parked A1 解消・汚染 witness 2 leg は fix 前 RED 実証)・adaptive-quality-presets 直列 override 4 leg + validatePreset 2 leg 追加 (guards 105 suite / 3750 test green)。"
+    progress_note: "2026-08-27: INV-BATCH-001 新設 — batch preset の request-scope 分離 (session-259 parked A1 解消・汚染 witness 2 leg は fix 前 RED 実証)・adaptive-quality-presets 直列 override 4 leg + validatePreset 2 leg 追加 (guards 105 suite / 3750 test green)。2026-08-27: INV-CACHE-002 新設 — IntelligentCache findSimilar が decompression 失敗を get() と同じ契約 (purge + miss + null) で扱うよう parity 修正 (session-259 parked C3 解消・robustness suite 11→12 leg・pre-fix RED 実証)。"
   - id: "MS-003"
     name: "品質メトリクスの実測 producer 化"
     intent: "捏造・未populate metric を実測値に置換する（Phase 169〜190 系列・layoutOverlap 系は完結）"

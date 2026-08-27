@@ -179,6 +179,46 @@ describe('IntelligentCache - corruptedKeys unbounded-growth guard', () => {
     expect(internals.corruptedKeys.size).toBe(0);
   });
 
+  test('findSimilar()-path decompression failure counts as a miss and purges the entry (get() parity)', async () => {
+    const cache = new IntelligentCache();
+    const internals = cache as unknown as {
+      cache: Map<string, { data: string; compressed: boolean; originalSize: number }>;
+      corruptedKeys: Set<string>;
+      stats: { totalHits?: number; totalMisses?: number; totalSavedTime: number };
+      generateCacheKey: (content: string) => string;
+    };
+
+    // A real compressed entry whose fingerprint matches the lookup content, so
+    // findSimilar() selects it as bestMatch and takes the decompress branch.
+    const content = 'process flow step system diagram structure hierarchy timeline sequence network cycle matrix';
+    await cache.store(content, { text: 'a'.repeat(2000) }, makeMetadata());
+
+    const key = internals.generateCacheKey(content);
+    const entry = internals.cache.get(key)!;
+    expect(entry.compressed).toBe(true);
+
+    // Corrupt the stored payload (same idiom as the get()-path leg above).
+    entry.data = '!!!not-valid-json!!!';
+    entry.originalSize = entry.data.length;
+
+    const hitsBefore = internals.stats.totalHits ?? 0;
+    const savedBefore = internals.stats.totalSavedTime;
+
+    const result = await cache.findSimilar(content);
+
+    // get() contract: decompression failure is a MISS — null return, entry
+    // purged (incl. corruptedKeys via removeEntry), and no hit-rate /
+    // saved-time inflation. Before this parity fix findSimilar() returned a
+    // data:null entry while counting it as a hit and adding 1000ms of phantom
+    // "saved" time, leaving the corrupt entry resident to hit again.
+    expect(result).toBeNull();
+    expect(internals.cache.has(key)).toBe(false);
+    expect(internals.corruptedKeys.size).toBe(0);
+    expect(internals.stats.totalHits ?? 0).toBe(hitsBefore);
+    expect(internals.stats.totalMisses ?? 0).toBeGreaterThan(0);
+    expect(internals.stats.totalSavedTime).toBe(savedBefore);
+  });
+
   test('removeEntry clears every shadow collection symmetrically', () => {
     const cache = new IntelligentCache();
     const internals = cache as unknown as {

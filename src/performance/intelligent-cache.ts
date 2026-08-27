@@ -774,6 +774,25 @@ export class IntelligentCache {
       (this.stats.averageRetrievalTime + retrievalTime) / 2;
 
     if (bestMatch) {
+      // Decompress BEFORE recording the hit: decompression failure is a miss
+      // that purges the corrupt entry — the same contract get() applies.
+      // (Counting a data:null "match" as a hit inflated hitRate and
+      // totalSavedTime, and left the corrupt entry resident to hit again.)
+      let decompressedData: unknown;
+      let wasDecompressed = false;
+      if (bestMatch.compressed) {
+        decompressedData = this.decompressData(bestMatch.data as string, bestMatch.originalSize, bestMatch.id);
+        if (decompressedData === null) {
+          // Decompression failed — purge corrupted entry
+          this.removeEntry(bestMatch.id);
+          this.updateMemoryUsage();
+          this.updateHitRate(false);
+          this.updatePerformanceScore();
+          return null;
+        }
+        wasDecompressed = true;
+      }
+
       bestMatch.accessCount++;
       bestMatch.lastAccessed = Date.now();
       bestMatch.priority = this.calculatePriority(bestMatch);
@@ -788,8 +807,7 @@ export class IntelligentCache {
       }
 
       // Return decompressed data
-      if (bestMatch.compressed) {
-        const decompressedData = this.decompressData(bestMatch.data as string, bestMatch.originalSize, bestMatch.id);
+      if (wasDecompressed) {
         return { ...bestMatch, data: decompressedData };
       }
     } else {
