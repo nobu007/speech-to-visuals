@@ -1251,6 +1251,22 @@ describe('concept-sync consistency guard (.concept/ bootstrap 5fd0dd60)', () => 
     expect(offenders).toEqual([]);
   });
 
+  it('claims: retained lines keep the ledger compact byte form (INV-TEST-009)', () => {
+    // Eval follow-up (run 20260827-180028): 101 of the 112 retained entries
+    // were written compact (`{"run_id":"…"`) but 11 landed as spaced JSON
+    // (`{"run_id": "…"`) — byte-identical to JSON.parse, so every semantic
+    // leg above stayed green while the ledger's byte style silently split
+    // into two dialects. A line-diffed append-only ledger needs ONE byte
+    // form: an appender copying the nearest spaced neighbor would keep
+    // widening the minority dialect forever, and ndjson tooling that keys
+    // on the line prefix (the same convention `wc -l`/byte censuses lean on)
+    // sees two shapes where the schema says one. The pin is the line PREFIX
+    // (`{"run_id":"` — run_id is first in every record), not a whole-line
+    // regex: values are free prose and may contain any bytes.
+    const spaced = claimLines.filter((line) => !line.startsWith('{"run_id":"'));
+    expect(spaced).toEqual([]);
+  });
+
   it('sources: a `#L…`-shaped fragment that fails the anchor grammar is a typo, not a heading', () => {
     // parseLineAnchor returns null for every non-anchor fragment BY DESIGN
     // (bare paths and heading slugs keep the file-level contract), so a

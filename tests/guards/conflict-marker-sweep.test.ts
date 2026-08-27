@@ -209,4 +209,29 @@ describe('git conflict-marker sweep guard (INV-TEST-008)', () => {
     expect(sweptFiles).toContain('.github/workflows/infrastructure.yml');
     expect(sweptFiles).not.toContain('package-lock.json');
   });
+
+  it('.github sweep coverage is structural — disk parity, not an enumeration', () => {
+    // Eval follow-up (run 20260827-180028): the two named sentinels above pin
+    // TODAY's workflows, but a workflow file added later has no per-file pin —
+    // it is covered only by the walk, and a refactor that swapped the .github
+    // walk for the same explicit-list pattern as SWEEP_ROOT_FILES would keep
+    // both named sentinels green while every file the list forgot fell out of
+    // scope. Parity against the directory itself is the self-maintaining form:
+    // whatever `*.yml` files exist on disk under .github/workflows, ALL of
+    // them must appear in the census — read straight from readdirSync, not
+    // from the walk, so the leg sees the disk truth the walk could drift
+    // from (the self-consistent-attribution trap this repo has already paid
+    // for once). Scoped to workflows/ because that is the CI surface whose
+    // markers only surface after the push; other .github files keep the
+    // census floor plus the named sentinels.
+    // RED-witnessed: with a third workflow on disk and the walk narrowed to
+    // an explicit two-file list, this leg alone goes RED naming the unswept
+    // file while the named-sentinel leg above stays green.
+    const onDisk = readdirSync(join(REPO_ROOT, '.github/workflows'))
+      .filter((name) => /\.(?:ya?ml)$/.test(name))
+      .map((name) => `.github/workflows/${name}`);
+    expect(onDisk.length).toBeGreaterThanOrEqual(2); // ci.yml + infrastructure.yml
+    const unswept = onDisk.filter((rel) => !sweptFiles.includes(rel));
+    expect(unswept).toEqual([]);
+  });
 });
