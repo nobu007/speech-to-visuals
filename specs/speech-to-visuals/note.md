@@ -10,7 +10,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-08-23（kairo-design session 統合記録 — design-interview.md A126 追加・audit-pass-first pattern をアーキテクチャ不変量に昇格・architecture.md に独立節新設・Acceptance に Phase 189-193 の REQ-391/392/393/394/395 census 5 chain + REQ-396/397 facet 5 計画 spec 受理 + A126 統合記録の 7 行追加）/ 2026-08-21（Phase 176 REQ-378 履行 — count-or-null 契約を health-check-service の fallback に拡張：6 つの gate-fed field（successRate/avgProcessingTime/activeRequests/cacheHitRate/errorRate/recoverySuccessRate）の DEFAULT 0 を明示 null に置換・PerformanceSnapshot 型を `number | null` に widen・`hitRate = ... || 0` silent-PASS を `totalHits+totalMisses === 0 → degraded "no events recorded yet"` へ置換・MW-043 mutation-verified）
+**最終更新**: 2026-08-27（kairo-design session A127 統合記録 — design-interview.md A127 追加・PR #73/#74/#75 INV-CACHE-002 chain (79108a07/54bc8e1b/22448fe1) を cache integrity contract 拡張として昇格・MW-085〜091 mutation matrix ledger 構造化・CorruptionOverlay マウント 4 hop 連結・PINNED_MIN_ENTRIES bump discipline 警告・A2/C2 parked 継続観察）/ 2026-08-23（kairo-design session 統合記録 — design-interview.md A126 追加・audit-pass-first pattern をアーキテクチャ不変量に昇格・architecture.md に独立節新設・Acceptance に Phase 189-193 の REQ-391/392/393/394/395 census 5 chain + REQ-396/397 facet 5 計画 spec 受理 + A126 統合記録の 7 行追加）/ 2026-08-21（Phase 176 REQ-378 履行 — count-or-null 契約を health-check-service の fallback に拡張：6 つの gate-fed field（successRate/avgProcessingTime/activeRequests/cacheHitRate/errorRate/recoverySuccessRate）の DEFAULT 0 を明示 null に置換・PerformanceSnapshot 型を `number | null` に widen・`hitRate = ... || 0` silent-PASS を `totalHits+totalMisses === 0 → degraded "no events recorded yet"` へ置換・MW-043 mutation-verified）
 **プロジェクト**: Speech-to-Visuals - 音声→図解動画自動生成システム
 
 ## 技術スタック

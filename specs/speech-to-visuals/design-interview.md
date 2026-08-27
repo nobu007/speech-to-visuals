@@ -10,7 +10,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-04-27
-**最終更新**: 2026-08-06（第209回検証: NaN/Infinityガード横展開完了・clampFinite Infinity対応・DiagramVideo時間単位バグ修正・property-based fuzz tests 7ファイル1,107行追加・11+モジュール坚牢化・570ファイル・543テストファイル・107パッケージ）
+**最終更新**: 2026-08-27（kairo-design session A127 統合記録 — PR #73/#74/#75 の 3 commit chain (79108a07/54bc8e1b/22448fe1) を INV-CACHE-002 不変量昇格 + MW-085〜091 mutation matrix ledger 構造化 + CorruptionOverlay マウント 4 hop 連結 + PINNED_MIN_ENTRIES bump discipline 🔴 警告として記録 + A2/C2 parked 🟡 継続観察）/ 2026-08-23（A126 audit-pass-first census pattern 統合・Phase 189-193 REQ-391〜397 family pin）/ 2026-08-21（Phase 176 REQ-378 count-or-null 契約履行）/ 2026-08-06（第209回検証: NaN/Infinityガード横展開完了・clampFinite Infinity対応・DiagramVideo時間単位バグ修正・property-based fuzz tests 7ファイル1,107行追加・11+モジュール坚牢化・570ファイル・543テストファイル・107パッケージ）
 **履歴**: 第208回検証(2026-08-06)・第200回検証(2026-06-24)・第199回検証(2026-06-24)・第197回検証(2026-06-23)・第196回検証(2026-06-22)・第176回検証(2026-06-02)・第171回検証(2026-06-01)・第170回検証(2026-05-29)・第167回検証(2026-05-27)・第165回検証(2026-05-26)・第158回検証(2026-05-20)・第157回検証(2026-05-18)・第151回検証(2026-05-18)・第150回検証(2026-05-18)・第149回検証(2026-05-17)・第148回検証(2026-05-16)・第109回検証(2026-05-03)・第107回検証(2026-05-03)・第105回検証(2026-05-03)・第103回検証(2026-05-03)・第102回検証(2026-05-03)・第96回検証(2026-05-02)・第94回検証(2026-05-02)・第92回検証(2026-05-02)・第89回検証(2026-05-02)・第86回検証(2026-05-02)・第84回検証(2026-05-02)・第81回検証(2026-05-02)・第78回検証(2026-05-02)・第72回検証(2026-05-02)・第63回検証(2026-05-02)・第50回検証(2026-05-01)・第46回検証(2026-05-01)・第39回検証(2026-05-01)・第29回検証(2026-05-01)・第27回検証(2026-05-01)・第24回検証(2026-05-01)・第23回検証(2026-05-01)・第22回検証(2026-04-30)
 **分析実施**: step4 既存情報ベースの差分分析と自動統合
 
@@ -4581,6 +4581,63 @@ interfaces.ts には既にこれらの主要型が反映済み。
 - 🔵: design-interview.md A1-A125 の running analysis lineage を A126 で継続。closure acceptance 727 + 6 = 733/733 への編入パスは note.md の acceptance 行 [x] 化で確定。
 
 **Disposition**: ARCH-PATTERN-UPGRADE + PLAN-CONFIRM + RECEIPT-DEFER + PHANTOM-MAINTAIN + INTERVIEW-CONTINUE。(1) audit-pass-first census pattern を `architecture.md` に独立節として昇格（5 REQ chain の構造同一性 + 2 戦略使い分け + family registry）、(2) REQ-396/397 計画 spec の actionable 性を独立検証（5d098b8b で plan text 正本化済み・次 TASK で実装着手可能な状態）、(3) T0250 closing receipt 単一 range 化を 🟡 次 TASK 履行待ちとして記録、(4) spine anchor title 微調整を canonical-anchor PR batch 方針で 🔵 採用、(5) cross-repo phantom 警告継続（specific symbol 0 hit 確認）、(6) design-interview.md A126 として本エントリ追加。本 A126 は docs 統合記録（1 docs コミット）+ architecture.md 1 節追加 + note.md 6 行 acceptance [x] 化の**3 file 統合更新**を生成。
+
+---
+
+### A127: 第218回検証 — INV-CACHE-002 / INV-BATCH-001 / CorruptionOverlay マウントの 3 commit chain 統合（2026-08-27）
+
+**背景**: A126（2026-08-23）から 4 日間で PR #73 / #74 / #75 が連続 merge 着地した — (i) `79108a07` IntelligentCache.findSimilar の decompression 失敗時を「miss + purge」とする parity 修正（INV-CACHE-002 新設、PR #73）、(ii) `54bc8e1b` findSimilar の非圧縮 entry 成功分岐を ledger pin（MW-091 + 12 leg witness、PR #74）、(iii) `22448fe1` MW-091 findSimilar branch-gate を ledger 行昇格（PR #75）。これら 3 commit を**単一設計単位**として、(1) cache integrity contract が INV-CACHE-001 → INV-CACHE-002 へ拡張された点を不変量昇格できるか、(2) batch preset isolation（INV-BATCH-001, 0c82b132）の最終 leg 群が MW-085〜090 で固定された構造を design-interview 側で再吟味できるか、(3) CorruptionOverlay が App.tsx にマウントされた（ea691d5b、A125 既述）結果と Cache integrity ガード群の相互作用、を判定する。
+
+**分析項目と判断**:
+
+1. **INV-CACHE-002 の不変量昇格（findSimilar decompress 失敗 parity）** 🔵: PR #73 の 79108a07 は `src/performance/intelligent-cache.ts` の `findSimilar()` で decompress が失敗した経路を「`get()` parity に揃える」=「entry を purge + miss 返却 + `null`」という挙動に統一。これにより (a) corrupt entry が以後 read 系で透過しない事、(b) `null` 返却が caller 側で「cache miss」として扱われ再生成に流れる事、(c) purge が silent でなく observable（=同 entry への以降アクセスが hit 計上されない事）の 3 性質が確定。
+   - **判定**: 🔵 **INV-CACHE-001 → INV-CACHE-002 への contract 拡張として昇格**。`architecture.md` の cache 章が「cache integrity: hit/miss parity + decompress failure parity」の 2 軸を保持する形に更新可能。
+   - **根拠**: 79108a07 commit message 内の「decompression failure is a miss, not a data:null hit」が設計意図を明文化、PR #74 (54bc8e1b) で 12/12 GREEN baseline + MW-091 1/12 RED isolated が独立証跡。corrupt entry が read path で透過しない事は「cache integrity」の最小要件の 1 つ。
+
+2. **MW-085〜090 の mutation witness ledger 統合構造（INV-BATCH-001 test-stage chain）** 🔵: PR #72 merge (0c82b132: setPreset→validatePreset + per-file toPipelineOptions) 以降、session 274-278 で M1〜M8 の mutation matrix を 6 commit に分散 pin 完了 — MW-085 (M1 call-site 正規化)、MW-086 (M2 params write-in)、MW-087 (M3 pre-fix 復元)、MW-088 (M4 explicit preset customOverrides merge)、MW-089 (M7 options 構築 hoist)、MW-090 (M8 per-job 共有 options)。各 MW エントリは「claim + RED 件数 + 復元後 GREEN 件数 + 1 行サマリ」の 4 要素で標準化済。
+   - **判定**: 🔵 **MW-085〜090 を INV-BATCH-001 の mutation matrix として正式に位置付け**。`mutation-witness-ledger.md` 上に既に 6 行 + appendix 表が完成、本 A127 は design-interview 側からの lineage 接続のみ。
+   - **根拠**: 6 commit の構造同一性（test site 修正 + ledger 行追加 + Appendix 1 行追加 + acceptance-criteria 1 行 + interview-record 1 段落）。MW-089 の「multi-line mutation は閉じ括弧まで変更しないと TS1005」教訓が次 TASK 着手時の discipline として A127 で再記録。
+
+3. **CorruptionOverlay マウント完了と cache integrity ガード群の相互作用** 🔵: ea691d5b (A125 既述・Phase 270-272) で App.tsx に CorruptionOverlay がマウントされた結果、(i) cache integrity guard 群（INV-CACHE-001/002、INV-STAT-006 等）で発見された drift が corruption event として surface に届く経路が成立、(ii) `report-corruption` が単一 activeHandler で tree order 後 mount の限界を 4/4 RED 実証、(iii) `'unified-llm-service'` literal 単一ソース化 + census guard 5 legs (Phase 272)。
+   - **判定**: 🔵 **CorruptionOverlay マウントを cache integrity ガード群の**「観測点」**として位置付け**。cache integrity 系 guard が赤を出す経路 = (guard 発見 → corruption event emit → Overlay handler 受信 → UI surface) の 4 hop が App.tsx 内で連結したことを A127 で再確認。
+   - **根拠**: ea691d5b の 4/4 RED 証跡（tree order before mount で activeHandler 未到達）+ Phase 272 の namespace literal 5 legs RED が独立証跡。invariants_total 16→26 (Phase 245) 以降の累積が INV-CACHE-002 で 27 に達した構造。
+
+4. **MW-091 (PR #75) の branch-gate 昇格の構造的意味** 🔵: 22448fe1 は 54bc8e1b (PR #74) で導入された MW-091 を claims text から **ledger 行へ昇格** (再実測 1/12 isolated・appendix row 追加)。これは「witness を ledger に正式登録 = invariants_total への編入」を意味し、A126 で定式化した audit-pass-first pattern の「(iv) family 番号昇順管理」の実例。
+   - **判定**: 🔵 **MW-091 ledger 昇格を audit-pass-first pattern family pin の実例として記録**。`mutation-witness-ledger.md` の appendix 表が MW-085 (family 13) 〜 MW-091 (family 19) で 7 行追加済、family pin 番号は単調増加 (max 19:40→20:15)。
+   - **副次**: 🔴 **PINNED_MIN_ENTRIES bump 必須**: 278 が MW-085〜090 で怠慢 (78 のまま 84 entry)、85 へ巻き取り。次回 MW 追加時も同 discipline 適用 (MW-091 追加時 84→85 が履歴上一度スキップされた事を教訓化)。
+
+5. **PR #65 並行対応 (A2 gracefulShutdown) と今回 PR #73-#75 chain の独立性** 🟡: MEMORY 259 parked list の A2 (api/index.ts:64 gracefulShutdown exit(0) on uncaughtException) は並行 PR #65 対応中と記録。本 A127 時点 (2026-08-27) で PR #65 が merge されたかは要独立検証。
+   - **判定**: 🟡 **A2 解消 status は cross-repo phantom 警告の継続**。specific symbol (`gracefulShutdown` / `uncaughtException`) は repo 内に実在するため phantom ではないが、merge 完了証跡は次イテレーションで `gh pr view 65` 等の独立確認必要。
+   - **副次**: C2 (RLE escape collision U+00FF) と C3 (INV-CACHE-002) は C3 が解消済 (PR #73)、C2 は引き続き parked (C-1 schema 外で guard RED 化未着手)。C2 は design-heavy として継続観察。
+
+**根拠**:
+
+- 3 commit (79108a07 / 54bc8e1b / 22448fe1) の構造同一性: 全て `tests/performance/intelligent-cache*.test.ts` 系の新規 leg + `src/performance/intelligent-cache.ts` 修正 + `mutation-witness-ledger.md` 行追加 + appendix 表 1 行追加 + `acceptance-criteria.md` 1 行の 5 要素同梱。
+- MW-091 証跡: 1 failed / 11 passed (12 total) で `findSimilar - non-compressed success branch › findSimilar() hit on a NON-compressed entry returns the raw data and still records the hit` のみ RED・他 11 leg green のまま = isolated 検出力。
+- ea691d5b CorruptionOverlay 4/4 RED → mount 完了 (PR #72 / Phase 272 統合記録) + 0c82b132 batch preset isolation (PR #68 / Phase 274) の 2 実装が前回イテレーション (A125-A126) と今回 (A127) の境界。
+- MEMORY セッション履歴 274-282 (batch preset isolation + findSimilar decompression + branch-gate witness) と commit 1d5dc8af / 17d9e163 / 3aa6c47a / 79108a07 の 1:1 対応。
+
+**Closure Acceptance Criteria**:
+
+- [x] INV-CACHE-002 (findSimilar decompress 失敗 parity) を INV-CACHE-001 からの contract 拡張として 🔵 昇格
+- [x] MW-085〜090 (INV-BATCH-001 mutation matrix) を ledger 6 行 + appendix 1 行の構造で正式位置付け
+- [x] MW-091 ledger 昇格 (PR #75) を audit-pass-first pattern family pin の実例として記録
+- [x] CorruptionOverlay マウント + cache integrity ガード群の 4 hop 連結（guard → corruption event → Overlay handler → UI surface）を再確認
+- [x] PINNED_MIN_ENTRIES bump discipline (MW-091 追加時 84→85 がスキップされた教訓) を 🔴 警告として記録
+- [x] A2 (gracefulShutdown) / C2 (RLE escape collision) の parked status を 🟡 継続観察として記録
+- [x] design-interview.md A127 エントリ追加（kairo-design session 2026-08-27 の統合記録）
+- [x] 3 commit chain (79108a07 / 54bc8e1b / 22448fe1) を唯一の ground truth として参照、MEMORY 274-282 と 1:1 対応
+
+**信頼性への影響**:
+
+- 🔵: cache integrity contract が INV-CACHE-001 → INV-CACHE-002 へ 2 軸化（hit/miss parity + decompress failure parity）。`architecture.md` cache 章が「corrupt entry の透過禁止」を明文化可能。
+- 🔵: INV-BATCH-001 mutation matrix (MW-085〜090) が 6 commit で構造化完了、MW-091 昇格 (PR #75) で family pin 19 に到達。audit-pass-first pattern family 番号 max 19:40→20:15 単調増加が ledger appendix で追跡可能。
+- 🔵: CorruptionOverlay マウント完了 + cache integrity ガード群 4 hop 連結 = corruption 復旧 UI の end-to-end 観測点成立。
+- 🔴: PINNED_MIN_ENTRIES bump discipline (78 のまま 84 entry) が過去 1 度スキップされた教訓 = discipline 違反履歴あり。次回 MW 追加時は冒頭で bump を必ず起こす discipline を A127 で再警告。
+- 🟡: A2 (gracefulShutdown) / C2 (RLE escape collision) parked status は次イテレーションで独立検証必要。
+- 🔵: design-interview.md A1-A126 の running analysis lineage を A127 で継続。closure acceptance 733 + 8 = 741/741 への編入パスは本 A127 で確定。
+
+**Disposition**: CACHE-CONTRACT-EXTEND + MW-MATRIX-FORMALIZE + OVERLAY-MOUNT-CONFIRM + DISCIPLINE-WARN + PARKED-MAINTAIN + INTERVIEW-CONTINUE。(1) INV-CACHE-002 を INV-CACHE-001 からの contract 拡張として正式昇格、(2) MW-085〜090 mutation matrix を ledger 構造として位置付け、(3) CorruptionOverlay マウント + cache integrity 4 hop 連結を再確認、(4) PINNED_MIN_ENTRIES bump discipline を 🔴 警告として記録、(5) A2 / C2 parked status を 🟡 継続観察、(6) design-interview.md A127 として本エントリ追加。本 A127 は design-interview.md A127 追加 + note.md / architecture.md / dataflow.md 最終更新日更新の **4 file 統合更新**を生成。
 
 
 <!-- spine:children:begin -->
