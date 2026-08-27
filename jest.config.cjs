@@ -15,10 +15,15 @@ module.exports = {
   // AI Hub が repo 直下に作る `worktrees/<timestamp>/` は stale な mirror で、
   // `**/src/**/*.test.ts` がそこも拾って偽 RED を出す（feedback 2026-08-27 §1）。
   // .gitignore でファイルとしては除外しているが jest 起動時の testMatch glob は
-  // .gitignore を尊重しないので、ここで明示的に除外する。`/worktrees/` を含む
-  // パスは全てテスト対象外。ai-hub が将来別の隔離ディレクトリを追加したら
-  // ここに追記する。
-  testPathIgnorePatterns: ['/node_modules/', '/worktrees/'],
+  // .gitignore を尊重しないので、ここで明示的に除外する。
+  //
+  // ⚠️ `<rootDir>/worktrees/` と **rootDir 相対で** 書く事。裸の `/worktrees/` は
+  // パス中の任意位置に一致する為、repo 自体が `…/worktrees/<ts>/` 配下に
+  // checkout されている場合（ai-hub の自律ループは常にこの形）に *自分自身の*
+  // test path も除外し、`--listTests` が 0 件になってスイート全体が沈黙する
+  // （CI は /home/runner/work/… なので気付けない = self-disabling guard）。
+  // 契約は tests/guards/jest-worktree-isolation.test.ts が pin する。
+  testPathIgnorePatterns: ['/node_modules/', '<rootDir>/worktrees/'],
   moduleFileExtensions: ['ts', 'tsx', 'js', 'json'],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',

@@ -21,9 +21,19 @@
  */
 import { readFileSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { createRequire } from 'node:module';
 import { join } from 'node:path';
 
 const REPO_ROOT = fileURLToPath(new URL('../../', import.meta.url));
+
+/**
+ * js-yaml は ESM test から createRequire 経由で読む (tests/guards/
+ * concept-sync-consistency.test.ts の先例と同一 load 戦略)。
+ * invariants 件数の「regex に依存しない独立 oracle」として使う — regex 側を
+ * 緩めた/anchor を落した書き換えは parse 済み配列長と disagree して RED する。
+ */
+const nodeRequire = createRequire(import.meta.url);
+const yamlLoad = (nodeRequire('js-yaml') as { load: (input: string) => unknown }).load;
 
 /**
  * TypeScript assertion function — narrows `T | null | undefined` to `T` for
@@ -44,6 +54,8 @@ const RUN_STATE = join(REPO_ROOT, '.concept/run_state.json');
 const CLAIMS = join(REPO_ROOT, '.concept/claims.ndjson');
 const METRICS = join(REPO_ROOT, '.concept/ontology_metrics.json');
 const INVARIANTS = join(REPO_ROOT, '.concept/invariants.yml');
+/** 自身のソース (M6 の source-anchored pin 用・cwd 非依存に import.meta.url から解決) */
+const SELF_TEST = fileURLToPath(import.meta.url);
 
 /**
  * Body slice between `## <id> ` and the next `## MW-NNN ` heading.
@@ -121,9 +133,24 @@ describe('MW-091 ledger integrity (PR #75 follow-up)', () => {
   it('ontology_metrics.json invariants_total matches the disk count (derived, not bare-pinned)', () => {
     // Eval weakness 対応: 32 硬 pin 排除 → invariants.yml の `- id:` 件数と一致
     // (虚胖 detection は disk 件数と一致しなくなった時点で RED)
+    //
+    // ⚠️ indent は `{2}` 量化子で表す。旧 `/^  - id: /gm` (literal 2 spaces) は ESLint
+    //    no-regex-spaces で **CI lint FATAL** になり、all-checks-pass 経由で PR を
+    //    blocking していた (本 commit の主眼)。`{2}` 化は意味等価だが「等価な筈」を
+    //    信用せず、regex に依存しない独立 oracle (js-yaml parse 済み配列長) と
+    //    一致する事を同 leg で pin する。実測した検出力 (2026-08-27):
+    //      - `{2}` → `{4}` / `{1}` 等 indent 数の取り違え → 0 件 / 件数変化 → disagree (RED)
+    //      - `- ` を落した書き換え (`/id: /g` 相当)          → 33 件 → disagree (RED)
+    //      - `/^ *- id: /gm` への緩和                        → 今日の invariants.yml は
+    //        全 `- id:` が indent 2 の為 32 件のまま = **oracle は捕えない**。
+    //        nested `- id:` が入った時点で初めて捕える (data-dependent な限界を明記)。
     const metrics = JSON.parse(readFileSync(METRICS, 'utf-8'));
     const invariantsSrc = readFileSync(INVARIANTS, 'utf-8');
-    const diskCount = (invariantsSrc.match(/^  - id: /gm) || []).length;
+    const diskCount = (invariantsSrc.match(/^ {2}- id: /gm) || []).length;
+    const parsed = yamlLoad(invariantsSrc) as { invariants?: unknown[] };
+    const yamlCount = (parsed.invariants || []).length;
+    expect(yamlCount).toBeGreaterThan(0);
+    expect(diskCount).toBe(yamlCount);
     expect(metrics.invariants_total).toBe(diskCount);
   });
 
@@ -249,8 +276,7 @@ describe('MW ledger structural contract (generic, derived from helper)', () => {
     //     将来 session が新規 MW entry を追加して floor を bump しなかった場合、
     //     parent guard 自体が RED する (本 leg は stale pin 防止)。
     //
-    // 派生導出が機能している事は mutation matrix M5 (将来 session で floor drop → 本 leg RED)
-    // ではなく、guard 自体の構造 (parent guard と派生導出の間接参照) で担保する。
+    // 派生導出が機能している事は mutation matrix M5 (下記) が独立に witness する。
     const guardSrc = readFileSync(GUARD_TEST, 'utf-8');
     const pinned = Number((guardSrc.match(/PINNED_MIN_ENTRIES = (\d+);/) || [])[1]);
     expect(Number.isFinite(pinned)).toBe(true);
@@ -345,5 +371,110 @@ describe('MW-091 contract leg mutation matrix (detection witness)', () => {
     // silent-pass trap: 「空文字」「---」「N/A」等も false になる事を明示 pin。
     const mutatedRow = '| MW-091 | synthetic | 12/12 | obs | (no restoration column) |';
     expect(restorationOk(mutatedRow)).toBe(false);
+  });
+
+  it('M5: PINNED_MIN_ENTRIES floor-bypass is detected by the floor predicate (drop / bump)', () => {
+    // Eval weakness 対応: parent guard の floor constant が drop / bump された事を
+    // 検出できる事を独立 pin。M1〜M4 と異なり ledger / src ではなく parent guard
+    // (mutation-witness-ledger.test.ts) 側の変更を検出する。
+    //
+    //   - mutation 1: PINNED_MIN_ENTRIES が parent guard から drop
+    //     → parseFloor returns NaN, floorOk returns false (silent-pass trap を封鎖)
+    //   - mutation 2: floor constant を realCount 由来の値へ bump
+    //     → entryCount < bumpFloor になり floorOk returns false
+    //
+    // silent-pass trap: 元の floor test は `85 >= 85` を許容する為、bump が
+    // small (e.g. 86) なら entryCount の増加で偶然 pass する可能性がある。
+    // bump 値は arbitrary literal ではなく realCount から導出し、
+    // 「entryCount を上回る」事を assert して silent-pass 保証を検証する。
+
+    // detection predicate — extracted from floor test (line 254-257)
+    const parseFloor = (src: string): number => {
+      const m = src.match(/PINNED_MIN_ENTRIES = (\d+);/);
+      return m ? Number(m[1]) : NaN;
+    };
+    const floorOk = (entryCount: number, floor: number): boolean =>
+      Number.isFinite(floor) && entryCount >= floor;
+
+    // entry count — real ledger から動的導出 (mutation matrix block 内で完結)
+    const realLedger = readFileSync(LEDGER, 'utf-8');
+    const mwHeadings = (realLedger.match(/^## (MW-\d{3}) /gm) || []).map((h) => {
+      const idMatch = h.match(/(MW-\d{3})/);
+      assertNotNull(idMatch, 'mwHeadings id parse failed');
+      return idMatch[1];
+    });
+    const entryCount = Array.from(new Set(mwHeadings)).length;
+
+    // control: real parent guard has PINNED_MIN_ENTRIES = 85, parseFloor + floorOk pass
+    const realGuardSrc = readFileSync(GUARD_TEST, 'utf-8');
+    const realFloor = parseFloor(realGuardSrc);
+    expect(Number.isFinite(realFloor)).toBe(true);
+    expect(floorOk(entryCount, realFloor)).toBe(true);
+
+    // mutation 1: PINNED_MIN_ENTRIES constant dropped entirely → parseFloor returns NaN
+    const droppedGuard = realGuardSrc.replace(/const PINNED_MIN_ENTRIES = \d+;/, '// dropped');
+    expect(parseFloor(droppedGuard)).toBeNaN();
+    expect(floorOk(entryCount, parseFloor(droppedGuard))).toBe(false);
+
+    // mutation 2: floor constant を entryCount から導出した値へ bump → floorOk returns false。
+    // 旧実装は arbitrary な 9999 を使っていたが「9999 は現実的な entry 数を超える」という
+    // silent-pass 保証が暗黙前提のままだった (ledger が 9999 entry に育てば witness が死ぬ)。
+    // realCount から導出し、bump 値が entryCount を上回る事自体を assert して
+    // 前提を検証済み事実へ格上げする (`* 10 + 1000` は entry 追加ペースに対し十分な余裕)。
+    const bumpFloor = entryCount * 10 + 1000;
+    expect(bumpFloor).toBeGreaterThan(entryCount);
+    const bumpedGuard = realGuardSrc.replace(
+      /PINNED_MIN_ENTRIES = \d+/,
+      `PINNED_MIN_ENTRIES = ${bumpFloor}`,
+    );
+    // mutation が実際に適用された事を pin (no-op replace なら floor は 85 のまま = witness 不成立)
+    expect(parseFloor(bumpedGuard)).toBe(bumpFloor);
+    expect(floorOk(entryCount, parseFloor(bumpedGuard))).toBe(false);
+  });
+
+  it('M6: heading anchor de-tampering (line-anchored → substring regex) bypasses the floor gate', () => {
+    // M5 は floor 定数側の改変を witness するが、floor gate はもう一方の入力
+    // (entry count の導出方法) からも bypass できる。両 guard は heading を
+    // **行頭 anchor 付き** (`^## MW-\d+ `) で数えており、この anchor を落として
+    // substring match (`MW-\d+`) にすると body 中の相互参照 (「MW-022 と同型」等) が
+    // count に混入して膨張し、ledger が構造的に壊れていても floor を満たしてしまう。
+    //
+    //   - anchored:   heading 行のみ → 実 entry 数
+    //   - permissive: 本文の言及も拾う → 実 entry 数を上回る
+    //   - bypass:     全 heading の `## ` を剥がすと anchored=0 (gate RED) だが
+    //                 permissive は不変 (gate silent-pass) → anchor が load-bearing
+    const realLedger = readFileSync(LEDGER, 'utf-8');
+    const anchoredUnique = (src: string) => new Set(src.match(/^## MW-\d+ /gm) || []).size;
+    const permissiveUnique = (src: string) => new Set(src.match(/MW-\d+/g) || []).size;
+    const realFloor = Number(
+      (readFileSync(GUARD_TEST, 'utf-8').match(/PINNED_MIN_ENTRIES = (\d+);/) || [])[1],
+    );
+
+    // control: anchored 導出は floor を満たす (generic contract block と同じ実 entry 数)
+    expect(anchoredUnique(realLedger)).toBeGreaterThanOrEqual(realFloor);
+
+    // 膨張が合成 fixture ではなく real ledger 上で起きている事
+    expect(permissiveUnique(realLedger)).toBeGreaterThan(anchoredUnique(realLedger));
+    expect((realLedger.match(/MW-\d+/g) || []).length).toBeGreaterThan(
+      anchoredUnique(realLedger),
+    );
+
+    // corruption: heading を平文へ降格 (`## MW-091 …` → `MW-091 …`)。
+    // readMWBody が body を解決できない = ledger 構造が壊れた状態。
+    const deAnchored = realLedger.replace(/^## (MW-\d+ )/gm, '$1');
+    expect(readMWBody(deAnchored, 'MW-091')).toBeNull();
+
+    // anchored 導出は corruption を検出して floor gate を RED にする
+    expect(anchoredUnique(deAnchored)).toBe(0);
+    expect(anchoredUnique(deAnchored) >= realFloor).toBe(false);
+
+    // permissive 導出は count 不変で floor を満たす = silent-pass (bypass 成立)
+    expect(permissiveUnique(deAnchored)).toBe(permissiveUnique(realLedger));
+    expect(permissiveUnique(deAnchored) >= realFloor).toBe(true);
+
+    // source-anchored pin: 両 guard の導出が行頭 anchor 付きである事
+    // (anchor を落す refactor は本 leg を RED にする)
+    expect(readFileSync(GUARD_TEST, 'utf-8')).toMatch(/\/\^## \(MW-\\d\+\) \//);
+    expect(readFileSync(SELF_TEST, 'utf-8')).toMatch(/\/\^## \(MW-\\d\{3\}\) \/gm/);
   });
 });

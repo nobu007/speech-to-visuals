@@ -477,3 +477,21 @@ invariants:
     checks:
       - type: "test"
         target: "src/performance/__tests__/intelligent-cache-robustness.test.ts"
+  - id: "INV-TEST-007"
+    related_terms: ["GuardHarness"]
+    status: "stable"
+    strength: "hard"
+    statement: "テスト除外設定 (jest testPathIgnorePatterns) は rootDir 相対で書く。パス中の任意位置に一致する裸のディレクトリ名パターンは、repo 自身が同名ディレクトリ配下に checkout された時に自分自身の test を除外してスイート全体を沈黙させる為 禁止する"
+    rationale: "self-disabling guard bug class。ai-hub 自律ループは repo を `…/speech-to-visuals/worktrees/<ts>/` へ checkout して jest を起動する為、裸の `/worktrees/` は全 test path に一致し `--listTests` が 0 件になる (本 worktree 実測: 0 件 → rootDir 相対化後 784 件)。CI は `/home/runner/work/…` で走る為この差は CI では観測できず、ローカル検証だけが静かに死ぬ"
+    evidence:
+      - source: "jest.config.cjs#L20"
+        quote: "// ⚠️ `<rootDir>/worktrees/` と **rootDir 相対で** 書く事。裸の `/worktrees/` は"
+      - source: "jest.config.cjs#L26"
+        quote: "testPathIgnorePatterns: ['/node_modules/', '<rootDir>/worktrees/'],"
+      - source: "tests/guards/jest-worktree-isolation.test.ts#L67"
+        quote: "expect(isIgnored(SELF_TEST, patterns, REPO_ROOT)).toBe(false);"
+      - source: "tests/guards/jest-worktree-isolation.test.ts#L76"
+        quote: "expect(isIgnored(ownTest, ['/node_modules/', '/worktrees/'], worktreeRoot)).toBe(true);"
+    checks:
+      - type: "test"
+        target: "tests/guards/jest-worktree-isolation.test.ts"
