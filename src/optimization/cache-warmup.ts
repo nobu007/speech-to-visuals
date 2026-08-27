@@ -81,6 +81,20 @@ export interface HitRateReport {
 export interface WarmupOptions {
   /** Minimum number of entries required to not be considered cold-start (default: 5) */
   coldStartThreshold?: number;
+  /**
+   * Optional cache namespace prefix (INV-CACHE-001 parity).
+   *
+   * `LLMService.makeRequest` (llm-service.ts:264/348/463) always reads/writes
+   * under the `'unified-llm-service'` namespace. Without this option,
+   * `CacheWarmupManager` writes prefix-less keys that the LLMService reader
+   * path cannot observe — warmup becomes a silent no-op. Production wiring in
+   * `llm-service.ts:184`/`864` passes `'unified-llm-service'` explicitly so
+   * warmup writes land in the same namespace the runtime reader queries.
+   *
+   * Existing callers (tests/integration) that omit this option retain the
+   * prefix-less write for backward compatibility.
+   */
+  namespace?: string;
 }
 
 /**
@@ -145,6 +159,7 @@ const DEFAULT_COLD_START_THRESHOLD = 5;
 export class CacheWarmupManager<T> {
   private cache: LLMCache<T>;
   private coldStartThreshold: number;
+  private readonly namespace: string | undefined;
   private warmupPatterns: WarmupPattern[] = [];
   private hitRateBeforeWarmup: number = 0;
   private queriesAfterWarmup: number = 0;
@@ -159,6 +174,7 @@ export class CacheWarmupManager<T> {
   constructor(cache: LLMCache<T>, options: WarmupOptions = {}) {
     this.cache = cache;
     this.coldStartThreshold = options.coldStartThreshold ?? DEFAULT_COLD_START_THRESHOLD;
+    this.namespace = options.namespace;
   }
 
   /**
@@ -224,16 +240,20 @@ export class CacheWarmupManager<T> {
 
     for (const pattern of patterns) {
       try {
-        // Check if already cached to avoid redundant resolution
-        const existing = this.cache.get(pattern.text);
+        // Check if already cached to avoid redundant resolution. The read
+        // must use the same namespace the write below uses, otherwise a
+        // pre-existing warmed entry is missed (LLMService side always uses
+        // `'unified-llm-service'` — see INV-CACHE-001 parity contract).
+        const existing = this.cache.get(pattern.text, this.namespace);
         if (existing !== null) {
           successCount++;
           continue;
         }
 
-        // Resolve and cache
+        // Resolve and cache — namespace is forwarded so warmed entries land
+        // in the same key-space the runtime reader path queries.
         const result = await resolver(pattern.text);
-        this.cache.set(pattern.text, result);
+        this.cache.set(pattern.text, result, this.namespace);
         successCount++;
       } catch (err) {
         logger.error('[CacheWarmup] Failed to warm pattern:', { pattern: pattern.text, error: err instanceof Error ? err.message : String(err) });

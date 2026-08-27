@@ -180,8 +180,14 @@ export class LLMService {
 
     this.complexityDetector = new ComplexityDetector();
 
-    // REQ-202: Initialize cache warmup manager
-    this.cacheWarmupManager = new CacheWarmupManager<unknown>(this.cache);
+    // REQ-202: Initialize cache warmup manager. The namespace MUST match the
+    // `LLMService.makeRequest` read/write namespace (`'unified-llm-service'`,
+    // see llm-service.ts:264/348/463) — otherwise warmup writes land in a
+    // different key-space than the runtime reader queries and warmup becomes
+    // a silent no-op (session-259 parked C1, INV-CACHE-001 parity).
+    this.cacheWarmupManager = new CacheWarmupManager<unknown>(this.cache, {
+      namespace: 'unified-llm-service',
+    });
 
     // REQ-098: Initialize monitoring
     this.tokenTracker = new TokenUsageTracker();
@@ -861,7 +867,11 @@ export class LLMService {
    */
   clearCache(): void {
     this.cache = new LLMCache<unknown>({ maxSize: 200, ttlMinutes: 120 });
-    this.cacheWarmupManager = new CacheWarmupManager<unknown>(this.cache);
+    // Same namespace parity as the constructor above — keep warmup writes
+    // observable to the `LLMService.makeRequest` reader path.
+    this.cacheWarmupManager = new CacheWarmupManager<unknown>(this.cache, {
+      namespace: 'unified-llm-service',
+    });
   }
 
   /**

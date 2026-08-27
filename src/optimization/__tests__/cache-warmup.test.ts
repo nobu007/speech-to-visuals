@@ -211,9 +211,12 @@ describe('CacheWarmupManager', () => {
       await manager.warmup(samplePatterns, resolver);
 
       expect(cache.set).toHaveBeenCalledTimes(3);
-      expect(cache.set).toHaveBeenCalledWith('pattern-1', 'cached-result');
-      expect(cache.set).toHaveBeenCalledWith('pattern-2', 'cached-result');
-      expect(cache.set).toHaveBeenCalledWith('pattern-3', 'cached-result');
+      // 3rd arg (namespace) is `undefined` when no namespace option is set —
+      // mirrors the real `LLMCache.set(text, data, prefix?)` signature where
+      // an omitted prefix is observable as `undefined` in call records.
+      expect(cache.set).toHaveBeenCalledWith('pattern-1', 'cached-result', undefined);
+      expect(cache.set).toHaveBeenCalledWith('pattern-2', 'cached-result', undefined);
+      expect(cache.set).toHaveBeenCalledWith('pattern-3', 'cached-result', undefined);
     });
 
     it('should skip already cached patterns', async () => {
