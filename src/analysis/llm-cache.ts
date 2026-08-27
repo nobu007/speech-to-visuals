@@ -15,6 +15,18 @@ import { logger } from '@stv/core/utils/logger';
 import { reportCorruption } from '@stv/core/utils/report-corruption';
 import { sanitizeUntrustedJsonValue } from './llm-utils';
 
+/**
+ * Cache namespace that `LLMService.makeRequest` reads and writes under
+ * (INV-CACHE-001 parity contract). Single-sourced HERE because both sides of
+ * the parity already import this module: llm-service.ts (runtime reader and
+ * writers) and cache-warmup.ts (REQ-202 warmup writer). Before this const,
+ * the literal was open-coded at 5 llm-service.ts sites — any one drifting
+ * silently reintroduced the session-259 parked C1 divergence (warmup writes
+ * landing in a keyspace the runtime reader never queries). Census-guarded by
+ * tests/guards/llm-service-cache-namespace-single-source.test.ts.
+ */
+export const LLM_SERVICE_CACHE_NAMESPACE = 'unified-llm-service';
+
 interface CacheEntry<T> {
   data: T;
   timestamp: number;

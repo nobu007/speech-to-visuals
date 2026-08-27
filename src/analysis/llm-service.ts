@@ -19,7 +19,7 @@
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { LLMResponseError } from "./analysis-errors";
-import { LLMCache } from "./llm-cache";
+import { LLMCache, LLM_SERVICE_CACHE_NAMESPACE } from "./llm-cache";
 import { ComplexityDetector, ComplexityAnalysis } from "./complexity-detector";
 import { parseJsonFromLLMText } from "./llm-utils";
 import { DEFAULT_RETRY_OPTIONS } from "./retry-strategy";
@@ -181,12 +181,12 @@ export class LLMService {
     this.complexityDetector = new ComplexityDetector();
 
     // REQ-202: Initialize cache warmup manager. The namespace MUST match the
-    // `LLMService.makeRequest` read/write namespace (`'unified-llm-service'`,
+    // `LLMService.makeRequest` read/write namespace (`LLM_SERVICE_CACHE_NAMESPACE`,
     // see llm-service.ts:264/348/463) — otherwise warmup writes land in a
     // different key-space than the runtime reader queries and warmup becomes
     // a silent no-op (session-259 parked C1, INV-CACHE-001 parity).
     this.cacheWarmupManager = new CacheWarmupManager<unknown>(this.cache, {
-      namespace: 'unified-llm-service',
+      namespace: LLM_SERVICE_CACHE_NAMESPACE,
     });
 
     // REQ-098: Initialize monitoring
@@ -267,7 +267,7 @@ export class LLMService {
 
     // Check cache first
     const cacheKey = request.options?.cacheKey || request.context;
-    const cached = this.cache.get(cacheKey, 'unified-llm-service');
+    const cached = this.cache.get(cacheKey, LLM_SERVICE_CACHE_NAMESPACE);
     if (cached) {
       // REQ-202: Track cache hit for warmup effectiveness reporting
       this.cacheWarmupManager.recordQuery(true);
@@ -351,7 +351,7 @@ export class LLMService {
         }
 
         // Cache successful result
-        this.cache.set(cacheKey, parsedData, 'unified-llm-service');
+        this.cache.set(cacheKey, parsedData, LLM_SERVICE_CACHE_NAMESPACE);
         this.modelMetrics.successCount++;
 
         // REQ-098: Record token usage and cost for monitoring
@@ -466,7 +466,7 @@ export class LLMService {
         }
 
         // Cache successful result
-        this.cache.set(cacheKey, parsedData, 'unified-llm-service');
+        this.cache.set(cacheKey, parsedData, LLM_SERVICE_CACHE_NAMESPACE);
         this.modelMetrics.successCount++;
 
         // REQ-098: Record token usage and cost for monitoring (fallback stage)
@@ -870,7 +870,7 @@ export class LLMService {
     // Same namespace parity as the constructor above — keep warmup writes
     // observable to the `LLMService.makeRequest` reader path.
     this.cacheWarmupManager = new CacheWarmupManager<unknown>(this.cache, {
-      namespace: 'unified-llm-service',
+      namespace: LLM_SERVICE_CACHE_NAMESPACE,
     });
   }
 

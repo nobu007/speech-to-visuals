@@ -37,7 +37,10 @@ jest.unstable_mockModule('@google/generative-ai', () => ({
 // Mock LLMCache - each instance gets its own isolated storage
 jest.unstable_mockModule('@/analysis/llm-cache', () => {
   return {
-    LLMCache: jest.fn().mockImplementation(() => {
+    // llm-service imports this named export alongside LLMCache — ESM mock
+  // must re-export it or the SUT import fails hard.
+  LLM_SERVICE_CACHE_NAMESPACE: 'unified-llm-service',
+  LLMCache: jest.fn().mockImplementation(() => {
       const store = new Map<string, unknown>();
       return {
         get: jest.fn((key: string) => store.get(key) ?? null),
