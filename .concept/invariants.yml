@@ -20,7 +20,7 @@ invariants:
     evidence:
       - source: "SYSTEM_CONSTITUTION.md#L91-L99"
         quote: "総ファイル数: 320ファイル以下… 総コード行数: 90,000行以下… 上限超過は npm run audit:code-size が exit 1 → CI の code-size-audit ジョブが fail"
-      - source: "tests/guards/code-size-audit-v29-drift.test.ts#L50"
+      - source: "tests/guards/code-size-audit-v29-drift.test.ts#L83"
         quote: "describe('code-size-audit script — V2.9 identifier drift guard (REQ-419-005)', () => {"
     checks:
       - type: "command"
