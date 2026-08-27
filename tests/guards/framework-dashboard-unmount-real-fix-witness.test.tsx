@@ -126,7 +126,7 @@ describe('FrameworkDashboard unmount guard — source anchor pinned (TC-322-01)'
 // wall-clock dependence, no live interval during flush.
 
 describe('FrameworkDashboard unmount guard — production code absorbs a late fetch resolution (TC-322-02)', () => {
-  let consoleErrorSpy: jest.SpyInstance;
+  let consoleErrorSpy: ReturnType<typeof jest.spyOn>;
   let originalFetch: typeof globalThis.fetch | undefined;
 
   beforeEach(() => {
@@ -147,11 +147,11 @@ describe('FrameworkDashboard unmount guard — production code absorbs a late fe
     // Hold the status fetch pending until AFTER the unmount — the exact
     // vector guard #1 closes (interval cleanup clears the next tick, not the
     // in-flight request).
-    let resolveFetch!: (value: unknown) => void;
+    const resolveFetchRef: { fn?: (value: unknown) => void } = {};
     const fetchMock = jest.fn(
       () =>
         new Promise((res) => {
-          resolveFetch = res;
+          resolveFetchRef.fn = res;
         }),
     );
     globalThis.fetch = fetchMock as unknown as typeof fetch;
@@ -176,7 +176,7 @@ describe('FrameworkDashboard unmount guard — production code absorbs a late fe
     // clock past further interval slots to prove the cleared interval plus
     // the guard absorb every straggler.
     await act(async () => {
-      resolveFetch({ ok: false, text: async () => '' });
+      resolveFetchRef.fn?.({ ok: false, text: async () => '' });
       await Promise.resolve();
     });
     act(() => {
@@ -184,8 +184,8 @@ describe('FrameworkDashboard unmount guard — production code absorbs a late fe
     });
 
     const unmountedWarnings = consoleErrorSpy.mock.calls
-      .map((c) => String(c[0] ?? ''))
-      .filter((msg) => /setState.*unmounted|state update.*unmounted|Warning.*unmounted component/i.test(msg));
+      .map((c: unknown[]) => String(c[0] ?? ''))
+      .filter((msg: string) => /setState.*unmounted|state update.*unmounted|Warning.*unmounted component/i.test(msg));
     expect(unmountedWarnings).toEqual([]);
   });
 
@@ -238,8 +238,8 @@ describe('FrameworkDashboard unmount guard — production code absorbs a late fe
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const warnings = consoleErrorSpy.mock.calls
-      .map((c) => String(c[0] ?? ''))
-      .filter((m) => /unmounted component/i.test(m));
+      .map((c: unknown[]) => String(c[0] ?? ''))
+      .filter((m: string) => /unmounted component/i.test(m));
     expect(warnings).toEqual([]);
   });
 });
