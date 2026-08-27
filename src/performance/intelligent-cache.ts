@@ -115,6 +115,27 @@ export class IntelligentCache {
   private readonly preloadThreshold = 0.7; // Similarity threshold for preloading
 
   /**
+   * RLE escape-marker byte. The OLD value was `0xFF` (Latin-1 ÿ), a valid
+   * character that JSON.stringify would NOT escape — so any future input
+   * format that bypasses JSON.stringify (manual concatenation, alternate
+   * serializers, raw byte buffers) would silently produce an unparseable
+   * "decompressed" string. Today the collision is dormant: `compressData`
+   * always feeds through JSON.stringify, which escapes every non-ASCII
+   * character as `\uXXXX`, and the corruption-recovery fallback in
+   * `get()`/`findSimilar()` purges the entry as a miss. But the contract
+   * was still unsafe — the marker could collide with literal input the
+   * moment the input shape changes.
+   *
+   * `0x01` is a control character (range 0x00–0x1F) that JSON.stringify
+   * always escapes as ``, so it can never appear as a raw byte in
+   * any JSON.stringify output. Pinning the constant below means a future
+   * revert to a printable escape would fail the integrity test rather
+   * than silently regress.
+   */
+  private static readonly RLE_ESCAPE_BYTE = 0x01;
+  private readonly RLE_ESCAPE_CHAR = String.fromCharCode(IntelligentCache.RLE_ESCAPE_BYTE);
+
+  /**
    * @param maxSize Maximum entries before LRU eviction. Defaults to 1000 (the
    *   documented contract). Exposed as a parameter so capacity/eviction
    *   behavior is unit-testable without filling 1000 slots, and so callers can
@@ -150,7 +171,7 @@ export class IntelligentCache {
         count++;
       } else {
         if (count > 3) {
-          compressed += `${current}${String.fromCharCode(255)}${String.fromCharCode(count)}`;
+          compressed += `${current}${this.RLE_ESCAPE_CHAR}${String.fromCharCode(count)}`;
         } else {
           compressed += current.repeat(count);
         }
@@ -160,7 +181,7 @@ export class IntelligentCache {
     }
 
     if (count > 3) {
-      compressed += `${current}${String.fromCharCode(255)}${String.fromCharCode(count)}`;
+      compressed += `${current}${this.RLE_ESCAPE_CHAR}${String.fromCharCode(count)}`;
     } else {
       compressed += current.repeat(count);
     }
@@ -186,7 +207,7 @@ export class IntelligentCache {
       let i = 0;
 
       while (i < compressed.length) {
-        if (i + 2 < compressed.length && compressed.charCodeAt(i + 1) === 255) {
+        if (i + 2 < compressed.length && compressed.charCodeAt(i + 1) === IntelligentCache.RLE_ESCAPE_BYTE) {
           const char = compressed[i];
           const count = compressed.charCodeAt(i + 2);
           decompressed += char.repeat(count);

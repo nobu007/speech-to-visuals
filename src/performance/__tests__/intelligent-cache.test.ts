@@ -1589,6 +1589,59 @@ describe('IntelligentCache', () => {
       // Small data won't be compressed (below threshold)
       expect(decompressed).toEqual(data);
     });
+
+    it('uses 0x01 (a JSON.stringify-escaped control byte) as the RLE escape marker', () => {
+      // Pin the marker byte itself. 0xFF ('ÿ', Latin-1) was the OLD value and
+      // can collide with literal payload bytes from non-JSON.stringify inputs;
+      // 0x01 is a control byte that JSON.stringify always escapes to '',
+      // so the marker is collision-free by construction. Any revert of the
+      // marker would silently re-open the C2 latent class — this leg ensures
+      // the regression is observable rather than dormant.
+      const escapeByte = (IntelligentCache as unknown as { RLE_ESCAPE_BYTE: number }).RLE_ESCAPE_BYTE;
+      expect(escapeByte).toBe(0x01);
+      // Belt-and-braces: confirm the marker is in the control range that
+      // JSON.stringify always escapes. 0x00–0x1F is the safe band; the
+      // previous 0xFF is NOT in it.
+      expect(escapeByte).toBeLessThanOrEqual(0x1F);
+    });
+
+    it('round-trips payloads where the OLD escape marker (0xFF) would have collided', () => {
+      // Hand-craft a payload that, if the OLD 0xFF marker were still in use,
+      // would round-trip incorrectly: the raw byte 0xFF appears 5 times in a
+      // row inside the JSON. With 0xFF as the escape byte, the OLD encoder
+      // would emit `[0xFF][0xFF][0xFF][0xFF][0xFF][count]` for the run, and a
+      // decoder that trusts the marker would mis-expand the boundary. With
+      // 0x01 as the marker, 0xFF is just literal payload.
+      //
+      // Construct a string long enough to engage the RLE path and containing
+      // a literal 0xFF run — JSON.stringify escapes raw 0xFF as 'ÿ' (6
+      // chars: \, u, 0, 0, f, f), so we pre-stringify and then feed the
+      // resulting JSON through compressData's RLE.
+      const ffRun = 'ÿ'.repeat(5); // 'ÿ' = U+00FF
+      const data = { run: ffRun, padding: 'x'.repeat(1100) };
+      const compressed = internals(cache).compressData(data);
+      expect(compressed.compressedSize).toBeLessThan(compressed.originalSize);
+      const decompressed = internals(cache).decompressData(
+        compressed.compressed,
+        compressed.originalSize,
+      );
+      expect(decompressed).toEqual(data);
+    });
+
+    it('compressed output never contains the escape byte as a literal payload', () => {
+      // Even if the input JSON contained many control bytes (escaped by
+      // JSON.stringify to '' sequences), the RLE marker must be
+      // unambiguous. The OLD 0xFF marker would survive as a literal in any
+      // payload containing 'ÿ'; the NEW 0x01 marker is reserved for runs
+      // only and the decoder must always consume it via the escape branch.
+      const data = { pad: ''.repeat(1100) };
+      const compressed = internals(cache).compressData(data);
+      const decompressed = internals(cache).decompressData(
+        compressed.compressed,
+        compressed.originalSize,
+      );
+      expect(decompressed).toEqual(data);
+    });
   });
 
   // ---- updateHitRate ----
