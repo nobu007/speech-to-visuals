@@ -111,4 +111,63 @@ describe('MW-091 ledger integrity (PR #75 follow-up)', () => {
     const diskCount = (invariantsSrc.match(/^  - id: /gm) || []).length;
     expect(metrics.invariants_total).toBe(diskCount);
   });
+
+  it('MW-091 heading is unique in the ledger (no duplicate or missing entry)', () => {
+    // regression trap: 同じ id で heading が重複すると readMWBody が最初の body だけを返し、
+    // 2 件目の mutation/observed は silent に coverage 漏れになる。
+    const headingCount = (ledger.match(/^## MW-091 /gm) || []).length;
+    expect(headingCount).toBe(1);
+  });
+
+  it('MW-091 mutation command references the actual jest invocation used by reproduce.sh', () => {
+    // MW-091 の `command` field が「PR #74 follow-up で eval 検出力を受けた eval 形式」
+    // と一致している事 (eval weakness 評価で command 単独 witness が引かれる為)。
+    expect(body).not.toBeNull();
+    expect(body!).toMatch(/NODE_OPTIONS=.*--experimental-vm-modules/);
+    expect(body!).toMatch(/npx jest --config jest\.config\.cjs/);
+    expect(body!).toMatch(/testPathPatterns\s+intelligent-cache-robustness/);
+  });
+
+  it('gate body in src has the 3-line shape expected by the ledger mutation (gate / return / closing brace)', () => {
+    // Ledger mutation: `if (wasDecompressed) { return { ...bestMatch, data: decompressedData }; }`
+    // → 3 行 (gate / return / closing brace) が line-resolved で連続している事。
+    // sed 置換範囲 (GATE_LINE..GATE_LINE+2) が gate を壊した時 1 leg のみ RED する根拠。
+    expect(body).not.toBeNull();
+    const srcText = readFileSync(TARGET_FILE, 'utf-8');
+    const gateLine = Number((body!.match(/target\*\*: `src\/performance\/intelligent-cache\.ts:(\d+)`/) || [])[1]);
+    expect(Number.isFinite(gateLine)).toBe(true);
+    const lines = srcText.split('\n');
+    expect(lines[gateLine - 1]).toMatch(/^\s*if \(wasDecompressed\) \{\s*$/);
+    expect(lines[gateLine]).toMatch(/^\s*return \{ \.\.\.bestMatch, data: decompressedData \};\s*$/);
+    expect(lines[gateLine + 1]).toMatch(/^\s*\}\s*$/);
+  });
+
+  it('appendix row carries the restoration column matching the recoverability contract', () => {
+    // MW-091 は reproduce.sh が `.bak` 復元 + `git checkout --` sync で green 復帰する設計。
+    // appendix restoration 列が `.bak` または `revert` を言及している事を確認 (silent-pass 防止)。
+    const appendixRows = ledger.split('\n').filter((l) => /^\| MW-\d{3} \|/.test(l));
+    const mw091Row = appendixRows.find((r) => r.startsWith('| MW-091 |'));
+    expect(mw091Row).toBeDefined();
+    expect(mw091Row!).toMatch(/\.bak|revert|復元|GREEN|git status/);
+  });
+});
+
+describe('readMWBody helper (unit)', () => {
+  const ledger = readFileSync(LEDGER, 'utf-8');
+
+  it('returns null for a non-existent MW id (negative path)', () => {
+    // test stage follow-up: helper 汎用化後の negative path を pin。
+    // 既存エントリと衝突しない仮想 id で null を返す事を確認。
+    const result = readMWBody(ledger, 'MW-999');
+    expect(result).toBeNull();
+  });
+
+  it('returns the MW-091 body slice between heading and the next MW heading', () => {
+    const body = readMWBody(ledger, 'MW-091');
+    expect(body).not.toBeNull();
+    // boundary 条件: body は次の `## MW-` heading を含まない
+    expect(body!).not.toMatch(/^## MW-/m);
+    // body は最初の bullet list を含む
+    expect(body!).toMatch(/^- \*\*claim\*\*:/m);
+  });
 });
