@@ -843,3 +843,85 @@ language-detector test 68/68 GREEN（挙動同一の実測）。
 ### 信頼性レベル分布（REQ-418 追計分）
 
 **分析後**: 🔵 4（REQ-418-001〜004）/ 🟡 0
+
+## A-419-1: 第十回 sweep の候補選定と計測（2026-08-26）
+
+**分析日時**: 2026-08-26
+**カテゴリ**: 技術選定（dead-idiom class の母集団計測）
+**背景**: REQ-410 steering batch 契約の 10 回目。未計測の dead-idiom class
+群（deprecated/removed Web API・Node legacy 綴り・React legacy API・
+非標準 engine 拡張・言語 dead 慣用）を同一 walk で評決する必要があった。
+
+**判断**: 36 candidate を canonical `walkProductionSurface`（331 file）
+直接使用で計測し、33 class を exact-0 pin・1 class（localedatestring-bare）
+を ALLOWED 4 site 同梱・2 class（inner-text-assign・array-literal-concat）
+を pin 前棄却とした。
+
+**根拠**: 計測 log（candidate 36 件の実測 site 数・hit 行 text 付き）。
+walk は guard と同一 walker import なので評決母集団と guard 母集団が一致
+（A-416-1 手順の維持）。
+
+**信頼性への影響**: REQ-419-001 を追加（🔵・全候補実測）。
+
+## A-419-2: 計測・fixture 工程による detector 初稿 bug の発見（REQ-419-002）
+
+**分析日時**: 2026-08-26
+**カテゴリ**: 技術選定（detector の検出域境界）
+**背景**: MW-082 は mutation 検証が detector の optional-chain 抜けを発見
+した初例だった。本 sweep の計測・fixture 工程も同じ性質の gap を拾うかが
+問われた。
+
+**判断**: 計測が偽陽性 2 件（self-ternary-default の keyword consequent
+`null ? null :`・event-path-access の識別子末尾 `e`）を、liveness fixture
+が検出漏れ 1 件（node-createcipher 初稿 `create(?:De)?Cipher\(` は
+`createDecipher` = create + De + 小文字 cipher を拾えない）を発見。
+いずれも修正し境界を fixture 両側で固定。
+
+**根拠**: 偽陽性は clean surface（memory-backend.ts:94・
+code-size-audit.ts:95）での実 hit として再現・検出漏れは fixture 正例
+（createDecipher 行 2 hit 期待 → 1 hit の RED）として再現。偽陽性の
+発見経路は計測のみ・検出漏れの発見経路は fixture 正例のみ（clean
+surface に陽性がないため計測では原理的に不発）。
+
+**信頼性への影響**: REQ-419-002 を追加（🔵・両方向の再現確認）。
+
+## A-419-3: pin 前棄却 2 class の根拠（REQ-419-003）
+
+- **inner-text-assign（0 src site）**: 書き込み経路の `.innerText =` は
+  `.textContent =` と挙動ほぼ一致（innerHTML と違い HTML 解析なし・
+  reflow・hidden 要素差は読み取り側の性質で書き込み単独では incident 形を
+  持たない）。`a ** b`↔Math.pow・`.charAt()` に続く挙動一致型棄却の
+  3 例目。
+- **array-literal-concat（0 src site）**: `[].concat(x)` の「x が array
+  なら spread される」挙動は ensure-array idiom の本質機能そのもので
+  死んだ綴りではない（spread による代替は可読性の好み）。site 母集団 ≠
+  incident 母集団の機能本質型初例。
+
+**信頼性への影響**: REQ-419-003 を追加（🔵・綴り域全体の挙動読み）。
+
+## 分析結果サマリー（REQ-419 分の追計）
+
+### 確認できた事項
+
+- 36 candidate class の実測（331 file・canonical walker 直接使用）
+- 34 kind pin（33 exact-0 + ALLOWED 4 site 同梱）と ALLOWED 27 /
+  ERADICATED 13 の確認
+- 棄却 2 class の綴り域全体の挙動読み（挙動一致型 3 例目・
+  機能本質型初例）
+- detector 初稿 bug 3 件の計測・fixture での再現と修正
+  （REQ-419-002 — 偽陽性は計測が・検出漏れは fixture が発見）
+
+### 追加/変更要件
+
+- REQ-419-001〜004（34 kind 追加・2 class 棄却記録・MW-083・src 変更ゼロ）
+
+### 残課題
+
+- innerText 読み取り経路（layout 依存の読み side incident）の実装追加時
+  に再分類（書き込み専用 pin の前提が崩れるため）
+- `[].concat` 以外の暗黙 spread 系（`Array.prototype.concat.call`）の
+  実出現時に grep 再計測
+
+### 信頼性レベル分布（REQ-419 追計分）
+
+**分析後**: 🔵 4（REQ-419-001〜004）/ 🟡 0

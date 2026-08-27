@@ -256,3 +256,37 @@
   mutation 検証が detector の検出域 bug を発見した初例。
 - **再計測条件**: `outerText =` 系（別 member）・行跨ぎ with 文・
   template literal 内 `split(``)` 以外の surrogate 分離形の実出現時。
+
+## REQ-419 sweep #10（2026-08-26・Phase 227）
+
+- **計測**: 36 candidate class を canonical `walkProductionSurface`
+  （331 file・repo src/ + core-four）直接使用で計測。候補は
+  deprecated/removed Web API 群（execCommand・clipboardData・XDomainRequest
+  ・ActiveXObject・prefix 綴り）・Node legacy 綴り群（url.parse・
+  querystring・Buffer ctor・setImmediate・process.binding・createCipher）・
+  React legacy 群（forceUpdate・propTypes・unstable API）・非標準
+  engine 拡張群（Error.captureStackTrace・importScripts・event.path）・
+  言語 dead 慣用（self-ternary・splice(indexOf) remove）。
+- **評決の内訳**: exact-0 pin 33 kind + ALLOWED 同梱 1 kind
+  （localedatestring-bare = dashboard 4 site の表示専用壁時計 —
+  AdminAnalyticsDashboard:56/:606・FrameworkDashboard:494・
+  Iteration43Interface:106・いずれも表 cell / 詳細行 / log 接頭の
+  人間向け表示で CSV/PDF export 経路には乗らない。REQ-414 の
+  tolocalestring-bare:207 row と同一 rationale・floor ≥ 4 で固定）。
+  ALLOWED 27 / ERADICATED 13（不変）/ kind 152 entry。**src 変更ゼロ**。
+- **detector 初稿 bug 3 件（REQ-419-002）**: 計測が 2 件
+  （self-ternary は `null ? null :` の keyword consequent 偽陽性 →
+  予約語排除・event-path は `largestFile.path` の識別子末尾 e 偽陽性 →
+  lookbehind）、liveness fixture が 1 件（node-createcipher 初稿
+  `create(?:De)?Cipher\(` は `createDecipher`（De + 小文字 cipher）を
+  検出漏れ → 正例 RED で発見し `create(?:Decipher|Cipher)\(` に修正）。
+  MW-082 の「mutation が detector gap を発見」の計測・fixture 版 —
+  偽陽性は計測が、検出漏れは fixture 正例が、それぞれ唯一の発見経路。
+- **棄却の根拠**: inner-text-assign は書き込み経路で `.textContent =`
+  と挙動ほぼ一致（reflow 差は読み側の性質）= 挙動一致型 3 例目。
+  array-literal-concat（`[].concat(x)`）は spread される挙動自体が
+  ensure-array idiom の本質機能 = 機能本質型の初例（site 母集団 ≠
+  incident 母集団）。
+- **再計測条件**: innerText 読み取り経路（layout 依存）の実装追加時・
+  `[].concat` 以外の暗黙 spread 系（Array.prototype.concat.call）の
+  実出現時。
