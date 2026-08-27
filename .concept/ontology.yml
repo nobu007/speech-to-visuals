@@ -533,7 +533,7 @@ canonical_terms:
     evidence:
       - source: "package.json"
         quote: "\"audit:code-size\": \"tsx scripts/code-size-audit.ts --ci\""
-      - source: "tests/guards/code-size-audit-v29-drift.test.ts#L50"
+      - source: "tests/guards/code-size-audit-v29-drift.test.ts#L83"
         quote: "describe('code-size-audit script — V2.9 identifier drift guard (REQ-419-005)', () => {"
   GuardHarness:
     id: "TERM-GUARD-HARNESS"
