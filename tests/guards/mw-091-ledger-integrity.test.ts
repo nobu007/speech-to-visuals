@@ -249,8 +249,7 @@ describe('MW ledger structural contract (generic, derived from helper)', () => {
     //     将来 session が新規 MW entry を追加して floor を bump しなかった場合、
     //     parent guard 自体が RED する (本 leg は stale pin 防止)。
     //
-    // 派生導出が機能している事は mutation matrix M5 (将来 session で floor drop → 本 leg RED)
-    // ではなく、guard 自体の構造 (parent guard と派生導出の間接参照) で担保する。
+    // 派生導出が機能している事は mutation matrix M5 (下記) が独立に witness する。
     const guardSrc = readFileSync(GUARD_TEST, 'utf-8');
     const pinned = Number((guardSrc.match(/PINNED_MIN_ENTRIES = (\d+);/) || [])[1]);
     expect(Number.isFinite(pinned)).toBe(true);
@@ -345,5 +344,55 @@ describe('MW-091 contract leg mutation matrix (detection witness)', () => {
     // silent-pass trap: 「空文字」「---」「N/A」等も false になる事を明示 pin。
     const mutatedRow = '| MW-091 | synthetic | 12/12 | obs | (no restoration column) |';
     expect(restorationOk(mutatedRow)).toBe(false);
+  });
+
+  it('M5: PINNED_MIN_ENTRIES floor-bypass is detected by the floor predicate (drop / bump)', () => {
+    // Eval weakness 対応: parent guard の floor constant が drop / bump された事を
+    // 検出できる事を独立 pin。M1〜M4 と異なり ledger / src ではなく parent guard
+    // (mutation-witness-ledger.test.ts) 側の変更を検出する。
+    //
+    //   - mutation 1: PINNED_MIN_ENTRIES が parent guard から drop
+    //     → parseFloor returns NaN, floorOk returns false (silent-pass trap を封鎖)
+    //   - mutation 2: floor constant を 9999 等に bump
+    //     → entryCount < 9999 になり floorOk returns false
+    //
+    // silent-pass trap: 元の floor test は `85 >= 85` を許容する為、bump が
+    // small (e.g. 86) なら entryCount の増加で偶然 pass する可能性が
+    // ある。9999 は any realistic entry count を上回る為確実に RED する。
+
+    // detection predicate — extracted from floor test (line 254-257)
+    const parseFloor = (src: string): number => {
+      const m = src.match(/PINNED_MIN_ENTRIES = (\d+);/);
+      return m ? Number(m[1]) : NaN;
+    };
+    const floorOk = (entryCount: number, floor: number): boolean =>
+      Number.isFinite(floor) && entryCount >= floor;
+
+    // entry count — real ledger から動的導出 (mutation matrix block 内で完結)
+    const realLedger = readFileSync(LEDGER, 'utf-8');
+    const mwHeadings = (realLedger.match(/^## (MW-\d{3}) /gm) || []).map((h) => {
+      const idMatch = h.match(/(MW-\d{3})/);
+      assertNotNull(idMatch, 'mwHeadings id parse failed');
+      return idMatch[1];
+    });
+    const entryCount = Array.from(new Set(mwHeadings)).length;
+
+    // control: real parent guard has PINNED_MIN_ENTRIES = 85, parseFloor + floorOk pass
+    const realGuardSrc = readFileSync(GUARD_TEST, 'utf-8');
+    const realFloor = parseFloor(realGuardSrc);
+    expect(Number.isFinite(realFloor)).toBe(true);
+    expect(floorOk(entryCount, realFloor)).toBe(true);
+
+    // mutation 1: PINNED_MIN_ENTRIES constant dropped entirely → parseFloor returns NaN
+    const droppedGuard = realGuardSrc.replace(/const PINNED_MIN_ENTRIES = \d+;/, '// dropped');
+    expect(parseFloor(droppedGuard)).toBeNaN();
+    expect(floorOk(entryCount, parseFloor(droppedGuard))).toBe(false);
+
+    // mutation 2: floor constant bumped to 9999 → floorOk returns false
+    const bumpedGuard = realGuardSrc.replace(
+      /PINNED_MIN_ENTRIES = \d+/,
+      'PINNED_MIN_ENTRIES = 9999',
+    );
+    expect(floorOk(entryCount, parseFloor(bumpedGuard))).toBe(false);
   });
 });
