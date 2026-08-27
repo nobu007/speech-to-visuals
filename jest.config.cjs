@@ -12,6 +12,13 @@ module.exports = {
   globalTeardown: '<rootDir>/tests/globalTeardown.ts',
   setupFiles: ['<rootDir>/tests/setupJestGlobals.ts'],
   testMatch: ['**/src/**/*.test.ts', '**/src/**/*.test.tsx', '**/tests/**/*.test.ts', '**/tests/**/*.test.tsx'],
+  // AI Hub が repo 直下に作る `worktrees/<timestamp>/` は stale な mirror で、
+  // `**/src/**/*.test.ts` がそこも拾って偽 RED を出す（feedback 2026-08-27 §1）。
+  // .gitignore でファイルとしては除外しているが jest 起動時の testMatch glob は
+  // .gitignore を尊重しないので、ここで明示的に除外する。`/worktrees/` を含む
+  // パスは全てテスト対象外。ai-hub が将来別の隔離ディレクトリを追加したら
+  // ここに追記する。
+  testPathIgnorePatterns: ['/node_modules/', '/worktrees/'],
   moduleFileExtensions: ['ts', 'tsx', 'js', 'json'],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
