@@ -422,12 +422,15 @@ const tombstones = loadYaml<{ tombstones: TombstoneEntry[] }>(
   '.concept/tombstones.yml',
 );
 
-const metrics = JSON.parse(
-  readSource('.concept/ontology_metrics.json'),
-) as Metrics;
-const runState = JSON.parse(
-  readSource('.concept/run_state.json'),
-) as { last_run_id: string; claims_retained_lines: number };
+// Raw bytes kept alongside the parses: the INV-TEST-010 byte-dialect leg
+// below needs the on-disk form, not the parsed value.
+const metricsRaw = readSource('.concept/ontology_metrics.json');
+const runStateRaw = readSource('.concept/run_state.json');
+const metrics = JSON.parse(metricsRaw) as Metrics;
+const runState = JSON.parse(runStateRaw) as {
+  last_run_id: string;
+  claims_retained_lines: number;
+};
 
 const termNames = Object.keys(ontology.canonical_terms);
 const termEntries = Object.entries(ontology.canonical_terms);
@@ -1265,6 +1268,32 @@ describe('concept-sync consistency guard (.concept/ bootstrap 5fd0dd60)', () => 
     // regex: values are free prose and may contain any bytes.
     const spaced = claimLines.filter((line) => !line.startsWith('{"run_id":"'));
     expect(spaced).toEqual([]);
+  });
+
+  it('state files: run_state/ontology_metrics keep one JSON byte dialect (INV-TEST-010)', () => {
+    // Eval follow-up (run 20260827-220857): the two machine-written JSON
+    // state files had drifted into OPPOSITE dialects — run_state.json compact
+    // single-line (no trailing newline, landed that run), ontology_metrics.json
+    // pretty-printed 13 lines. JSON.parse is byte-blind, so every semantic leg
+    // above stayed green while the dialects split — the same failure mode
+    // INV-TEST-009 closed for claims.ndjson, one file class over. State files
+    // are rewritten (not appended) every cycle by a different agent hand, so a
+    // dialect split here means every future run's diff noise is dialect
+    // roulette, and byte-level review can't tell a value change from a
+    // re-format. The pin: each file's bytes must equal its own parsed value
+    // re-serialized by JSON.stringify plus one trailing newline (POSIX text
+    // hygiene — claims.ndjson ends in \n too). Expected bytes are DERIVED from
+    // the parsed content, never hand-pinned, so the leg cannot go stale; it
+    // catches pretty-printing, spaced separators, missing/extra trailing
+    // newlines, interior newlines, and a BOM in one equality.
+    const stateFiles: ReadonlyArray<[string, string]> = [
+      ['.concept/run_state.json', runStateRaw],
+      ['.concept/ontology_metrics.json', metricsRaw],
+    ];
+    const offenders = stateFiles
+      .filter(([, raw]) => raw !== `${JSON.stringify(JSON.parse(raw))}\n`)
+      .map(([name]) => name);
+    expect(offenders).toEqual([]);
   });
 
   it('sources: a `#L…`-shaped fragment that fails the anchor grammar is a typo, not a heading', () => {
