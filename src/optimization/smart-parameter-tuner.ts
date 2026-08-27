@@ -37,6 +37,25 @@ export interface OptimizationResult {
   confidence: number;
 }
 
+/**
+ * Strategy-confidence bounds shared by `SmartParameterTuner.calculateOptimizationConfidence`
+ * and `AdaptiveContentProcessor.calculateStrategyConfidence`. Both compute a
+ * heuristic "how confident are we in the chosen strategy" number that started
+ * at a base of 0.8 and gets nudged by characteristics — `Math.min(MAX,
+ * Math.max(MIN, value))` was open-coded at both sites. Two open-coded copies
+ * drifted silently when one was tuned and the other wasn't; the exported
+ * clamp helper is the single source so the two strategies cannot disagree.
+ *
+ * `??`-style clamping would also work for absent values; these constants are
+ * about the RANGE, not the undefined-coalesce, so a plain helper keeps the
+ * "shared bound" intent obvious at every call site.
+ */
+export const STRATEGY_CONFIDENCE_MIN = 0.6;
+export const STRATEGY_CONFIDENCE_MAX = 0.95;
+export function clampStrategyConfidence(value: number): number {
+  return Math.min(STRATEGY_CONFIDENCE_MAX, Math.max(STRATEGY_CONFIDENCE_MIN, value));
+}
+
 class SmartParameterTuner {
   private historicalData: Map<string, ParameterSet> = new Map();
   private performanceHistory: Map<string, number[]> = new Map();
@@ -401,7 +420,7 @@ class SmartParameterTuner {
     // Adjust based on diagram likelihood
     confidence += characteristics.diagramLikelihood * 0.1;
 
-    return Math.min(0.95, Math.max(0.6, confidence));
+    return clampStrategyConfidence(confidence);
   }
 
   private getCharacteristicsKey(characteristics: ContentCharacteristics): string {

@@ -6,6 +6,7 @@
 
 import { performance } from 'perf_hooks';
 import type { AudioCharacteristics, ParameterSet as OptimalParameters } from './smart-parameter-tuner';
+import { clampStrategyConfidence } from './smart-parameter-tuner';
 import { logger } from '@stv/core/utils/logger';
 import { roundTo } from '@stv/core/lib/metrics-utils';
 
@@ -259,7 +260,7 @@ export class AdaptiveContentProcessor {
       confidence += 0.05;
     }
 
-    return Math.min(0.95, Math.max(0.6, confidence));
+    return clampStrategyConfidence(confidence);
   }
 
   /**

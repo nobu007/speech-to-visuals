@@ -4,6 +4,12 @@
 
 import SmartParameterTuner from '../smart-parameter-tuner';
 import type { ContentCharacteristics, ParameterSet } from '../smart-parameter-tuner';
+import {
+  STRATEGY_CONFIDENCE_MIN,
+  STRATEGY_CONFIDENCE_MAX,
+  clampStrategyConfidence,
+} from '../smart-parameter-tuner';
+import { AdaptiveContentProcessor } from '../adaptive-content-processor';
 
 describe('SmartParameterTuner', () => {
   let tuner: SmartParameterTuner;
@@ -388,5 +394,67 @@ describe('SmartParameterTuner', () => {
         expect(result.parameters.processingMode).toBeDefined();
       }
     });
+  });
+});
+
+describe('clampStrategyConfidence', () => {
+  // Pin the shared bounds so a future tuning cannot drift the
+  // smart-parameter-tuner / adaptive-content-processor pair apart
+  // (cross-path parity leg — the helpers exported here are imported at
+  // both call sites, so a literal `Math.min(0.95, Math.max(0.6, …))`
+  // returning here would mean one site was reverted to open-coding).
+  it('pins the strategy-confidence bounds to the documented values', () => {
+    expect(STRATEGY_CONFIDENCE_MIN).toBe(0.6);
+    expect(STRATEGY_CONFIDENCE_MAX).toBe(0.95);
+  });
+
+  it('floors values below MIN', () => {
+    expect(clampStrategyConfidence(-0.5)).toBe(0.6);
+    expect(clampStrategyConfidence(0)).toBe(0.6);
+    expect(clampStrategyConfidence(0.59)).toBe(0.6);
+  });
+
+  it('caps values above MAX', () => {
+    expect(clampStrategyConfidence(1)).toBe(0.95);
+    expect(clampStrategyConfidence(0.96)).toBe(0.95);
+    expect(clampStrategyConfidence(Number.POSITIVE_INFINITY)).toBe(0.95);
+  });
+
+  it('passes through values within the range', () => {
+    expect(clampStrategyConfidence(0.6)).toBe(0.6);
+    expect(clampStrategyConfidence(0.7)).toBe(0.7);
+    expect(clampStrategyConfidence(0.95)).toBe(0.95);
+  });
+
+  it('keeps the two strategy paths within the SAME bounds', async () => {
+    // Cross-path parity leg: SmartParameterTuner.calculateOptimizationConfidence
+    // and AdaptiveContentProcessor.calculateStrategyConfidence used to
+    // open-code `Math.min(0.95, Math.max(0.6, …))` independently, so a
+    // tune of one didn't reach the other. Both must now reach a value
+    // inside [MIN, MAX] for the same characteristics shape.
+    const chars: ContentCharacteristics = {
+      speechRate: 150,
+      complexity: 'medium',
+      domain: 'technical',
+      audioQuality: 0.8,
+      keywordDensity: 0.5,
+      diagramLikelihood: 0.5,
+    };
+    const params: ParameterSet = {
+      confidenceThreshold: 0.7,
+      segmentMinLength: 10,
+      segmentMaxLength: 100,
+      keywordWeights: { process: 1.5 },
+      layoutDensity: 0.5,
+      processingMode: 'balanced',
+    };
+
+    const tunerResult = await new SmartParameterTuner().optimizeParameters(chars);
+    const acpResult = await new AdaptiveContentProcessor().selectStrategy(chars, params);
+
+    expect(tunerResult.confidence).toBeGreaterThanOrEqual(STRATEGY_CONFIDENCE_MIN);
+    expect(tunerResult.confidence).toBeLessThanOrEqual(STRATEGY_CONFIDENCE_MAX);
+    expect(acpResult.confidence).toBeGreaterThanOrEqual(STRATEGY_CONFIDENCE_MIN);
+    expect(acpResult.confidence).toBeLessThanOrEqual(STRATEGY_CONFIDENCE_MAX);
   });
 });
