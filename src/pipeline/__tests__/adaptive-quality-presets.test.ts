@@ -269,6 +269,31 @@ describe('AdaptiveQualityPresetsManager', () => {
           .toThrow('Invalid preset: ultra');
         expect(manager.getCurrentPreset().name).toBe('balanced');
       });
+
+      it('hands out a fresh options object — caller writes cannot reach QUALITY_PRESETS', () => {
+        // The explicit-preset path reads config.parameters by reference when
+        // building the returned options. Callers write request-scoped flags
+        // onto what we hand them (batch API sets includeVideoGeneration), so
+        // the returned object must never BE (or embed) the shared per-preset
+        // parameters object — otherwise one job's flags reconfigure every
+        // later job in the process.
+        const first = manager.toPipelineOptions(createMockFile(5000), 'fast');
+        first.options.includeVideoGeneration = false;
+        first.options.maxConcurrency = 999;
+
+        // Order-independent (a snapshot here would be masked when earlier
+        // legs already wrote through the same alias): the shared parameters
+        // must not gain request-scoped option keys...
+        expect(QUALITY_PRESETS.fast.parameters).not.toHaveProperty('includeVideoGeneration');
+        expect(QUALITY_PRESETS.fast.parameters.maxConcurrency).not.toBe(999);
+
+        // ...and the write stays call-scoped: the next caller sees the preset
+        // untouched, not the previous caller's flags.
+        const second = manager.toPipelineOptions(createMockFile(5000), 'fast');
+        expect(second.options).not.toBe(first.options);
+        expect(second.options.includeVideoGeneration).toBe(true);
+        expect(second.options.maxConcurrency).toBe(QUALITY_PRESETS.fast.parameters.maxConcurrency);
+      });
     });
 
     it('maps each preset video-quality tier onto a valid renderer quality', () => {
