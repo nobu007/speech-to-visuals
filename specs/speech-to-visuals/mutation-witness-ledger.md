@@ -729,6 +729,54 @@ CI 実行 = 再検証なので台帳対象外（出典は各テストファイ�
 2. 既存エントリの再実行を行った場合は observed/date を更新し、可能なら [EVIDENCE] 行を差し替える（commit hash はその時点の HEAD）。
 3. 台帳の主張と specs 本文の主張が矛盾した場合は、**再実行結果を正**として specs 本文を修正する。
 
+## MW-085 — INV-BATCH-001 M1: call-site preset 正規化（batch-preset-isolation mutation matrix 手順固定・test stage 第4 follow-up）
+
+- **claim**: INV-BATCH-001 test-stage claims（run 2026-08-27T14:55/15:40/16:55）が「M1 は customOverrides leg のみ RED」と主張しながら再現手順を artifact に残していなかった（PR #71 評価 weakness）。本エントリは同 mutant の正確な text と実測を台帳へ固定する。
+- **target**: `src/api/batch-processing-api.ts:494`
+- **mutation**: `adaptiveQualityPresets.toPipelineOptions(file, request.preset);` → `adaptiveQualityPresets.toPipelineOptions(file, request.preset ?? 'balanced');`（per-request 引数を manager default へ正規化 — preset 省略ジョブが明示 'balanced' 扱いになり global customOverrides を黙殺される退化）
+- **command**: `NODE_OPTIONS='--experimental-vm-modules --max-old-space-size=4096' npx jest --config jest.config.cjs --testPathPatterns "batch-preset-isolation|adaptive-quality-presets"`
+- **observed** (2026-08-27 再実行): `Tests: 1 failed, 83 passed, 84 total` — RED は INV-BATCH-001 suite `a preset-less job still runs on the global configuration (custom overrides apply)` のみ。manager 60 leg と残り 8 leg は green（bypass が条件付きである事の単独 pin）。復元後 84/84 GREEN・`git status --short src/` clean。
+
+## MW-086 — INV-BATCH-001 M2: params write-in（request-scoped write が共有 QUALITY_PRESETS parameters に到達）
+
+- **claim**: 同 matrix の M2。歴史的 variant（run 20260827-16:55 で 7/60 と記録）は手順が未記録のため、本エントリが `Object.assign(params, …)` 形で mutant を再定義し実測を固定する — 以後の再実行は本 text が正本。
+- **target**: `src/pipeline/adaptive-quality-presets.ts:283`
+- **mutation**: toPipelineOptions の return で `options: {` → `options: Object.assign(params, {`（options 閉じ括弧を `})` に対応変更）。explicit-preset path では `params` が共有 `config.parameters` そのものなので options object = 共有定義となり、caller の `includeVideoGeneration` write が定義側に到達する。
+- **command**: `NODE_OPTIONS='--experimental-vm-modules --max-old-space-size=4096' npx jest --config jest.config.cjs --testPathPatterns "batch-preset-isolation|adaptive-quality-presets"`
+- **observed** (2026-08-27 再実行): `Tests: 3 failed, 81 passed, 84 total` — RED は manager `hands out a fresh options object — caller writes cannot reach QUALITY_PRESETS`・API `merges request.options on the preset path without mutating the QUALITY_PRESETS definitions`（`not.toHaveProperty` + `toEqual` snapshot 両面）・API `processes every file of a job under its own audioFile with a fresh options object`（pairwise `not.toBe`）。復元後 84/84 GREEN・src clean。
+
+## MW-087 — INV-BATCH-001 M3: pre-fix 復元（setPreset による process-global 汚染）
+
+- **claim**: fix 0c82b132 の前後比較を git object から再現 — 汚染 witness leg が fix 前に RED である事の実測。
+- **target**: `src/api/batch-processing-api.ts`（`src/pipeline/adaptive-quality-presets.ts` を同時復元）
+- **mutation**: `git show 0c82b132^:src/api/batch-processing-api.ts > src/api/batch-processing-api.ts` + `git show 0c82b132^:src/pipeline/adaptive-quality-presets.ts > src/pipeline/adaptive-quality-presets.ts`（impl commit の parent = submitJob 内 setPreset 汚染・validatePreset / toPipelineOptions preset 引数なしの旧実装）
+- **command**: `NODE_OPTIONS='--experimental-vm-modules --max-old-space-size=4096' npx jest --config jest.config.cjs --testPathPatterns "batch-preset-isolation"`
+- **observed** (2026-08-27 再実行): `Tests: 5 failed, 4 passed, 9 total` — RED は汚染 4 leg（applies…without mutating the global manager / a later preset-less job does not inherit / concurrent jobs…own preset / forces the mid-flight submit window）+ leak-in leg（a mid-flight global override install does not reach an explicit-preset job）。green は invalid-preset rejection・merge leg・customOverrides leg・per-file leg（pre-fix も per-file fresh options は保持）。復元後 9/9 GREEN。
+
+## MW-088 — INV-BATCH-001 M4: explicit preset への customOverrides merge（bypass の片側剥離）
+
+- **claim**: 同 matrix の M4「explicit preset にも customOverrides を merge する退化」— AMB-BATCH-001（明示 preset は customOverrides を bypass）の違反方向。
+- **target**: `src/pipeline/adaptive-quality-presets.ts:277`
+- **mutation**: `const params = preset !== undefined ? config.parameters : { ...config.parameters, ...this.customOverrides };` → `const params = { ...config.parameters, ...this.customOverrides };`
+- **command**: `NODE_OPTIONS='--experimental-vm-modules --max-old-space-size=4096' npx jest --config jest.config.cjs --testPathPatterns "batch-preset-isolation|adaptive-quality-presets"`
+- **observed** (2026-08-27 再実行): `Tests: 2 failed, 82 passed, 84 total` — RED は manager `bypasses global custom overrides for an explicit preset` + API `a mid-flight global override install does not reach an explicit-preset job`。復元後 84/84 GREEN・src clean。
+
+## MW-089 — INV-BATCH-001 M7: options 構築の per-file loop 外 hoist
+
+- **claim**: 同 matrix の M7「options は per-job なので再構築不要」refactor — 全 file が files[0] で処理される collapse。per-file plumbing leg の multiset 検出力の根拠。
+- **target**: `src/api/batch-processing-api.ts:494`
+- **mutation**: `const processFile =` 直前に `const jobPipelineInput = adaptiveQualityPresets.toPipelineOptions(files[0], request.preset);` を hoist し、processFile 内 `const pipelineInput = adaptiveQualityPresets.toPipelineOptions(file, request.preset);` を `const pipelineInput = jobPipelineInput;` に置換。
+- **command**: `NODE_OPTIONS='--experimental-vm-modules --max-old-space-size=4096' npx jest --config jest.config.cjs --testPathPatterns "batch-preset-isolation"`
+- **observed** (2026-08-27 再実行): `Tests: 3 failed, 6 passed, 9 total` — RED は 2 window leg（deferred-map が files[0].name に collapse し pool 飽和を観測できない waitForState timeout ×2）+ per-file leg（audioFile multiset mismatch）。復元後 9/9 GREEN・src clean。
+
+## MW-090 — INV-BATCH-001 M8: per-job 共有 options object
+
+- **claim**: 同 matrix の M8 — PR #71 の中心的 isolation claim（旧 7 leg では 0/7 の完全不検出 → per-file leg 追加で isolated 1 leg RED）。
+- **target**: `src/api/batch-processing-api.ts:494`
+- **mutation**: `const processFile =` 直前に `const jobOptions = adaptiveQualityPresets.toPipelineOptions(files[0], request.preset).options;` を hoist し、processFile 内を `const pipelineInput = { audioFile: file, options: jobOptions };` に置換（audioFile は per-file のまま options のみ共有 — M7 と違い plumbing は保持）。
+- **command**: `NODE_OPTIONS='--experimental-vm-modules --max-old-space-size=4096' npx jest --config jest.config.cjs --testPathPatterns "batch-preset-isolation"`
+- **observed** (2026-08-27 再実行): `Tests: 1 failed, 8 passed, 9 total` — RED は `processes every file of a job under its own audioFile with a fresh options object` のみ（`Expected: not {"enableParallelProcessing": true, … "maxConcurrency": 2, …}` — pairwise `not.toBe` が同一 object を検出）。他 8 leg green = isolated 検出。復元後 9/9 GREEN・`git status --short src/` clean。
+
 ## 4-row mutant ledger template（再利用可能付録）
 
 make-run steering feedback「future ratchet tasks don't reinvent the table shape」対応として、MW エントリを以下の 5 列 template に正規化する。template は新設 `tests/guards/mutation-witness-ledger-shape.test.ts` で `grep -cE '^\\| MW-0' specs/speech-to-visuals/mutation-witness-ledger.md` >= `LEDGER.length` を担保（TC-365-01・REQ-381）。既存 MW-001〜042 エントリの free-form narrative（本文）は保持し、各エントリ末尾に template 行（` | MW-NNN | <mutant> | <redCount> | <received> | <restoration> |`）を追加していく可逆正規化を許容する。
@@ -778,3 +826,9 @@ make-run steering feedback「future ratchet tasks don't reinvent the table shape
 | MW-082 | language-detector:537 unify revert（`[...text]`→`text.split('')`）/ untrusted-json-core 末尾に `const SWEEP9_HTML = el.outerHTML = markup;` 注入（outer-html-assignment）/ 同位置に `const SWEEP9_EVT = globalThis.document?.createEvent("HTMLEvents");` 注入（legacy-dispatch-event・optional-chain 形）/ 同位置に `window.addEventListener("onclick", SWEEP9_HANDLER);` 注入（on-prefixed-event-name）（4 mutation・実 src 直接編集・(b)〜(d) は末尾追記で行 shift なし） | (a) 3 failed (b) 1 failed (c) 1 failed (d) 1 failed | (a) completeness `src/analysis/language-detector.ts:537 [string-char-split]: const chars = text.split('');` + eradicated-reappear + negative anchor の **3 独立面** (b) completeness `src/analysis/untrusted-json-core.ts:125 [outer-html-assignment]: const SWEEP9_HTML = el.outerHTML = markup;` (c) completeness `:125 [legacy-dispatch-event]` — 初稿 regex が optional-chain 形を見落とし GREEN のまま → `document\??\.createEvent` 拡張で RED 化（mutation 検証が detector gap を発見した初例） (d) completeness `:125 [on-prefixed-event-name]: window.addEventListener("onclick", SWEEP9_HANDLER);` | 4 mutation とも復元後 8/8 GREEN 復元・`git status --short src/` は unify 1 file（language-detector.ts）のみ・language-detector unit 68/68 GREEN |
 | MW-083 | untrusted-json-core 末尾に `const SWEEP10_FIRST = xs.filter(isNum)[0];` 注入（filter-index-zero）/ 同位置に `document.execCommand('copy');` 注入（exec-command-legacy）/ 同位置に `setImmediate(callback);` 注入（setimmediate-call）/ 同位置に `process.nextTick(callback);` 注入（process-nexttick）（4 mutation・実 src 直接編集・いずれも末尾追記で行 shift なし） | (a) 1 failed (b) 1 failed (c) 1 failed (d) 1 failed | (a) completeness `src/analysis/untrusted-json-core.ts:125 [filter-index-zero]: const SWEEP10_FIRST = xs.filter(isNum)[0];` (b) completeness `:126 [exec-command-legacy]: document.execCommand('copy');`（別 kind 独立発火） (c) completeness `:127 [setimmediate-call]: setImmediate(callback);`（同上） (d) completeness `:128 [process-nexttick]: process.nextTick(callback);`（同上） | 4 mutation とも復元後 8/8 GREEN 復元・`git status --short src/` 0 file（src 変更ゼロ sweep #10） |
 | MW-084 | untrusted-json-core 末尾に **2 mutation 形（sibling-statement / chained-call）** を注入 — (a) `const FP_SIBLING = xs.filter(isOn); const a = m.get(k)[0];`（`.filter(…)` 終端 `)` の直後に別 statement・別 receiver への `[0]`） / (b) `const FP_CHAIN = xs.filter(isOn).length + m.get(k)[0];`（`.filter(…)` 戻り値に `.length` 連結・`.length + m.get(k)` 経由で `[0]` が別 receiver を index）（2 mutation・実 src 直接編集・いずれも末尾追記で行 shift なし） | (a) 0 failed (b) 0 failed | (a) 8/8 GREEN のまま = detector が sibling-statement 形の `)` cross を**抑制**できた（fail-open 受容 — REQ-419-004 ad1b fixture と同形を本物 src で実証） (b) 8/8 GREEN のまま = chained-call 形の `)` cross を**抑制**できた（fail-open 受容 — REQ-419-004 ad1c fixture と同形を本物 src で実証） | 2 mutation とも復元後 8/8 GREEN 復元・`git status --short src/` 0 file・MW-083 (a) の陽性経路 `const SWEEP11_FIRST = xs.filter(isNum)[0];` 注入は `Tests: 1 failed` を維持（detector の陽性捕獲能力を保持） |
+| MW-085 | batch API call-site を `request.preset ?? 'balanced'` に正規化（preset 省略ジョブが global customOverrides を黙殺） | 1 failed / 83 passed (84) | `a preset-less job still runs on the global configuration (custom overrides apply)` のみ RED | .bak 復元で 84/84 GREEN・`git status --short src/` clean |
+| MW-086 | toPipelineOptions の options を `Object.assign(params, {…})` 化（request-scoped write が共有 parameters に到達） | 3 failed / 81 passed (84) | manager fresh-options leg + API merge leg（`not.toHaveProperty`/`toEqual` 両面）+ per-file leg（`not.toBe`） | .bak 復元で 84/84 GREEN・src clean |
+| MW-087 | pre-fix 復元（`git show 0c82b132^:` で 2 file — submitJob 内 setPreset 汚染・旧 presets API） | 5 failed / 4 passed (9) | 汚染 4 leg + leak-in leg（green: rejection・merge・customOverrides・per-file — pre-fix も per-file fresh options は保持） | git 復元で 9/9 GREEN |
+| MW-088 | params 選択 ternary を無条件 `{ ...config.parameters, ...this.customOverrides }` 化（explicit preset へも overrides merge） | 2 failed / 82 passed (84) | manager `bypasses global custom overrides for an explicit preset` + API leak-in leg | .bak 復元で 84/84 GREEN・src clean |
+| MW-089 | options 構築を per-file loop 外へ hoist（全 file が files[0] で処理される collapse） | 3 failed / 6 passed (9) | 2 window leg（deferred collapse による waitForState timeout ×2）+ per-file leg（audioFile multiset mismatch） | .bak 復元で 9/9 GREEN・src clean |
+| MW-090 | per-job 共有 options object（audioFile は per-file・options のみ files[0] のものを共有） | 1 failed / 8 passed (9) | per-file leg のみ（`Expected: not {"enableParallelProcessing": true, … "maxConcurrency": 2, …}` — pairwise `not.toBe` isolated RED） | .bak 復元で 9/9 GREEN・`git status --short src/` clean |

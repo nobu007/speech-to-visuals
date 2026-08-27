@@ -271,6 +271,8 @@ describe('INV-BATCH-001: batch preset must not leak into process-global state', 
     const jobAFiles = Array.from({ length: poolSize + 1 }, (_, i) => stubFile(`held-${i}.wav`));
     const deferreds = new Map<string, (value: unknown) => void>();
     const processMock = simplePipeline.process as jest.Mock<any>;
+    // The non-held branch is dead in THIS leg (every file is held-*) — it
+    // mirrors the submit leg's mock shape so the two windows stay diffable.
     processMock.mockImplementation((input: { audioFile: { name: string } }) =>
       input.audioFile.name.startsWith('held-')
         ? new Promise((resolve) => deferreds.set(input.audioFile.name, resolve))
