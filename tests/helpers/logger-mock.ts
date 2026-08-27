@@ -26,6 +26,19 @@
  */
 import { jest } from '@jest/globals';
 
+// Mirrors @stv/core/utils/logger's enum. Needed because consumers of the
+// mocked module re-import LogLevel alongside logger (e.g.
+// @stv/core/config/production-config.js does `import { logger, LogLevel }`)
+// and ESM named-import resolution fails hard on a missing export — the
+// mock must be export-complete, not just call-complete.
+export const MOCK_LOG_LEVEL = {
+  DEBUG: 0,
+  INFO: 1,
+  WARN: 2,
+  ERROR: 3,
+  SILENT: 4,
+} as const;
+
 export function mockLogger() {
   return {
     logger: {
@@ -34,5 +47,6 @@ export function mockLogger() {
       error: jest.fn(),
       debug: jest.fn(),
     },
+    LogLevel: MOCK_LOG_LEVEL,
   };
 }

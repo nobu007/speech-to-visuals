@@ -159,7 +159,7 @@ const ALLOWED: Record<string, string> = {
   // list (alias / format / backward compatibility / …) filters most of
   // these out at the regex layer; the ones below pass the regex because
   // they describe a deliberate, live bridge to the predecessor.
-  'src/analysis/llm-cache.ts:341':
+  'src/analysis/llm-cache.ts:357':
     '`legacy/tampered` is a COMPOUND hypothesis (the cache file may be either pre-rewrite format OR attacker-tampered), not a self-claim of dead code.',
   'src/quality/pipeline-error-guidance.ts:67':
     '`legacy ErrorCategory used by UserGuidedErrorRecovery` — documentation of an intentional name bridge to the older recovery module; the bridge is live.',
