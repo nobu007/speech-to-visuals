@@ -7,17 +7,20 @@
  * discipline. Throwing (rather than returning false) keeps a mistimed leg a
  * loud failure instead of a vacuous pass.
  *
- * Budget note: the defaults poll 500 times at 10ms — 5s of wall clock,
- * matching the waitForJob timeout the batch tests already use.
+ * Budget note: polls 500 times at 10ms — 5s of wall clock, matching the
+ * waitForJob timeout the batch tests already use. No options parameter on
+ * purpose: no consumer needs a different budget yet, so the signature stays
+ * minimal (add one when a second budget actually appears).
  */
+const ATTEMPTS = 500;
+const INTERVAL_MS = 10;
+
 export async function waitForState(
   predicate: () => boolean,
   what: string,
-  options: { attempts?: number; intervalMs?: number } = {},
 ): Promise<void> {
-  const { attempts = 500, intervalMs = 10 } = options;
-  for (let i = 0; i < attempts && !predicate(); i++) {
-    await new Promise((resolve) => setTimeout(resolve, intervalMs));
+  for (let i = 0; i < ATTEMPTS && !predicate(); i++) {
+    await new Promise((resolve) => setTimeout(resolve, INTERVAL_MS));
   }
   if (!predicate()) {
     throw new Error(`timed out waiting for ${what}`);

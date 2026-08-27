@@ -446,7 +446,7 @@ invariants:
         quote: "a preset-less job still runs on the global configuration (custom overrides apply)"
       - source: "tests/unit/api/batch-preset-isolation.test.ts#L261"
         quote: "a mid-flight global override install does not reach an explicit-preset job"
-      - source: "tests/unit/api/batch-preset-isolation.test.ts#L313"
+      - source: "tests/unit/api/batch-preset-isolation.test.ts#L315"
         quote: "processes every file of a job under its own audioFile with a fresh options object"
     checks:
       - type: "test"
