@@ -8,16 +8,15 @@
  * 本 guard は両者を構造的に pin し、ledger 単独で witness が再現可能な状態を維持する:
  *
  *   - MW-091 が canonical 4-section (claim/target/mutation/command/observed) を満たす
- *   - target ファイル:行 が実在し `if (wasDecompressed)` を含む
- *   - appendix 5-column row が MW-001〜template 形式で存在する (table-normalized)
+ *   - target ファイルに行番号非依存で `if (wasDecompressed)` が含まれる
+ *   - appendix 5-column row が MW-001〜template 形式で存在する
  *   - mutation-witness-ledger.test.ts の PINNED_MIN_ENTRIES = 85 (78→85 floor bump 復帰)
- *   - run_state.json last_run_id が MW-091 昇格時刻 (20:15) と一致
- *   - ontology_metrics.json invariants_total=32 (witness 昇格で虚胖させていない)
+ *   - run_state.json last_run_id が claims.ndjson 末尾と一致 (硬 pin 排除)
+ *   - ontology_metrics.json invariants_total が invariants.yml の disk 件数と一致 (硬 pin 排除)
  *
- * 補完: scripts/concept-guard/mw-091-reproduce.sh — 実際に sed mutation + jest を回す
- * reproducibility artifact。静的 guard は嘘をつけない事を、script は再現可能を担保。
+ * 補完: scripts/concept-guard/mw-091-reproduce.sh — 動的 grep ベースで mutation を再現。
  *
- * 関連 parent guard: tests/guards/mutation-witness-ledger.test.ts (PINNED_MIN_ENTRIES 機構側)
+ * 関連 parent guard: tests/guards/mutation-witness-ledger.test.ts
  * 関連 memory: [[session-282-mw091-ledger-promotion]]
  */
 import { readFileSync, existsSync } from 'node:fs';
@@ -31,78 +30,59 @@ const GUARD_TEST = join(REPO_ROOT, 'tests/guards/mutation-witness-ledger.test.ts
 const RUN_STATE = join(REPO_ROOT, '.concept/run_state.json');
 const CLAIMS = join(REPO_ROOT, '.concept/claims.ndjson');
 const METRICS = join(REPO_ROOT, '.concept/ontology_metrics.json');
-
-interface LedgerEntry {
-  header: string;
-  body: string[];
-}
+const INVARIANTS = join(REPO_ROOT, '.concept/invariants.yml');
 
 /**
- * Read the MW-091 entry (or null if absent) from ledger text.
- * Stops at the next ## MW-NNN heading to avoid bleeding into later entries.
+ * Body slice between `## <id> ` and the next `## MW-NNN ` heading.
+ * Generic for any MW entry id — no early-return branching.
  */
-function readEntryMW091(ledger: string): LedgerEntry | null {
+function readMWBody(ledger: string, id: string): string | null {
   const lines = ledger.split('\n');
-  let current: LedgerEntry | null = null;
-  for (const line of lines) {
-    const m = line.match(/^## (MW-\d+) /);
-    if (m) {
-      if (current && current.header.startsWith('## MW-091 ')) return current;
-      current = { header: line, body: [] };
-      if (m[1] === 'MW-091') {
-        // keep accumulating
-      } else if (!current.header.startsWith('## MW-091 ')) {
-        current.body = []; // discard non-091 entries
-      }
-    } else if (current && current.header.startsWith('## MW-091 ')) {
-      current.body.push(line);
-    }
+  const start = lines.findIndex((l) => l.startsWith(`## ${id} `));
+  if (start === -1) return null;
+  let end = lines.length;
+  for (let i = start + 1; i < lines.length; i++) {
+    if (/^## MW-\d+ /.test(lines[i])) { end = i; break; }
   }
-  return current && current.header.startsWith('## MW-091 ') ? current : null;
+  return lines.slice(start + 1, end).join('\n');
 }
 
 describe('MW-091 ledger integrity (PR #75 follow-up)', () => {
   const ledger = readFileSync(LEDGER, 'utf-8');
-  const entry = readEntryMW091(ledger);
+  const body = readMWBody(ledger, 'MW-091');
 
   it('MW-091 entry exists in the canonical ledger', () => {
-    expect(entry).not.toBeNull();
+    expect(body).not.toBeNull();
   });
 
   it('MW-091 carries the canonical 5-section body (claim/target/mutation/command/observed)', () => {
-    expect(entry).not.toBeNull();
-    const body = entry!.body.join('\n');
-    expect(body).toMatch(/- \*\*claim\*\*:/);
-    expect(body).toMatch(/- \*\*target\*\*: `[^`]+`/);
-    expect(body).toMatch(/- \*\*mutation\*\*:/);
-    expect(body).toMatch(/- \*\*command\*\*:/);
-    expect(body).toMatch(/- \*\*observed\*\*/);
+    expect(body).not.toBeNull();
+    expect(body!).toMatch(/- \*\*claim\*\*:/);
+    expect(body!).toMatch(/- \*\*target\*\*: `[^`]+`/);
+    expect(body!).toMatch(/- \*\*mutation\*\*:/);
+    expect(body!).toMatch(/- \*\*command\*\*:/);
+    expect(body!).toMatch(/- \*\*observed\*\*/);
   });
 
-  it('MW-091 target points at src/performance/intelligent-cache.ts:810', () => {
-    expect(entry).not.toBeNull();
-    const body = entry!.body.join('\n');
-    expect(body).toMatch(/- \*\*target\*\*: `src\/performance\/intelligent-cache\.ts:810`/);
-  });
-
-  it('MW-091 target file:line exists on disk and contains the wasDecompressed gate', () => {
+  it('MW-091 target points at intelligent-cache.ts and the file contains the wasDecompressed gate (line-resolved)', () => {
+    // Eval weakness 対応: 810 行 硬 pin 排除 → 任意行 OK + 動的 grep で gate 存在担保
+    expect(body).not.toBeNull();
+    expect(body!).toMatch(/- \*\*target\*\*: `src\/performance\/intelligent-cache\.ts:\d+`/);
     expect(existsSync(TARGET_FILE)).toBe(true);
-    const srcLines = readFileSync(TARGET_FILE, 'utf-8').split('\n');
-    // line 810 is 1-indexed; srcLines[809] is 0-indexed
-    expect(srcLines[809]).toMatch(/^\s*if \(wasDecompressed\) \{\s*$/);
+    const srcText = readFileSync(TARGET_FILE, 'utf-8');
+    expect(srcText).toMatch(/^\s*if \(wasDecompressed\) \{\s*$/m);
   });
 
   it('MW-091 carries the appendix 5-column row matching the MW-001 template shape', () => {
     // 既存 85 entry のうち 49 が appendix 5-column に移行済み (移行は漸進)。
     // 本 guard の焦点は MW-091 が必ず appendix row を持つ事 (template 列に
-    // "1 failed / 12 GREEN" の数値が出力されている事も含む)。
-    const appendixRows = ledger
-      .split('\n')
-      .filter((l) => /^\| MW-\d{3} \|/.test(l));
+    // "1 failed / 11 passed" の数値が出力されている事も含む)。
+    const appendixRows = ledger.split('\n').filter((l) => /^\| MW-\d{3} \|/.test(l));
     const mw091Rows = appendixRows.filter((row) => row.startsWith('| MW-091 |'));
     expect(mw091Rows.length).toBeGreaterThanOrEqual(1);
     // 台帳 mutation の expected 値が出力に含まれている事 (eval weakness 対応)
     expect(mw091Rows[0]).toMatch(/1 failed/);
+    expect(mw091Rows[0]).toMatch(/11 passed/);
     expect(mw091Rows[0]).toMatch(/12\/12 GREEN/);
   });
 
@@ -113,25 +93,22 @@ describe('MW-091 ledger integrity (PR #75 follow-up)', () => {
     expect(guardSrc).not.toMatch(/const PINNED_MIN_ENTRIES = 78;/);
   });
 
-  it('run_state last_run_id matches the MW-091 ledger promotion timestamp (20:15Z)', () => {
+  it('run_state.last_run_id matches the claims.ndjson tail (derived, not bare-pinned)', () => {
+    // Eval weakness 対応: 20:15Z 硬 pin 排除 → claims.ndjson 末尾から動的導出
     const runState = JSON.parse(readFileSync(RUN_STATE, 'utf-8'));
-    expect(runState.last_run_id).toBe('2026-08-27T20:15:00Z');
+    const claimsLines = readFileSync(CLAIMS, 'utf-8').trim().split('\n');
+    const lastClaim = JSON.parse(claimsLines[claimsLines.length - 1]);
+    expect(runState.last_run_id).toBe(lastClaim.run_id);
+    // 単調増加: prior max (19:40) 以降である事
+    expect(runState.last_run_id >= '2026-08-27T19:40:00Z').toBe(true);
   });
 
-  it('ontology_metrics.json invariants_total=32 (witness 昇格で counter を虚胖させていない)', () => {
+  it('ontology_metrics.json invariants_total matches the disk count (derived, not bare-pinned)', () => {
+    // Eval weakness 対応: 32 硬 pin 排除 → invariants.yml の `- id:` 件数と一致
+    // (虚胖 detection は disk 件数と一致しなくなった時点で RED)
     const metrics = JSON.parse(readFileSync(METRICS, 'utf-8'));
-    expect(metrics.invariants_total).toBe(32);
-    expect(metrics.run_id).toBe('2026-08-27T20:15:00Z');
-  });
-
-  it('claims.ndjson last entry preserves monotonicity (PR #75 tail = 20:15 ≥ prior 19:40)', () => {
-    // PR #75 で append された末尾行 (MW-091 ledger promotion) は session 282 直前
-    // max (19:40) 以降の run_id を持つ事 — history-wide 単調化は eval-acknowledged
-    // (session 281 の 07:31 entry は append-only 制約のため履歴訂正せず保持)。
-    const lines = readFileSync(CLAIMS, 'utf-8').trim().split('\n');
-    const last = JSON.parse(lines[lines.length - 1]);
-    expect(last.run_id).toBe('2026-08-27T20:15:00Z');
-    // 末尾 run_id が台帳の prior max (19:40) 以降である事
-    expect(last.run_id >= '2026-08-27T19:40:00Z').toBe(true);
+    const invariantsSrc = readFileSync(INVARIANTS, 'utf-8');
+    const diskCount = (invariantsSrc.match(/^  - id: /gm) || []).length;
+    expect(metrics.invariants_total).toBe(diskCount);
   });
 });
