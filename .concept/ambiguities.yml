@@ -133,3 +133,29 @@ ambiguities:
         quote: "expect(await (svg.data as Blob).text()).toContain('<rect width=\"800\" height=\"600\" fill=\"#3C88\"/>');"
       - source: "tests/unit/export/multi-format-exporter.test.ts#L415-L418"
         quote: "The expect is rect-anchored (the … background rect's attribute list is exactly width/height/fill), so a … '#3C88' that leaked into a node fill cannot mask a broken background … hand-off the way a bare `fill=\"#3C88\"` containment would."
+  - id: "AMB-BATCH-001"
+    term: "AdaptiveQualityPresets"
+    topic: "toPipelineOptions への明示 per-job preset 指定時に、manager の global customOverrides を layer するか bypass するかは仕様未指定"
+    severity: "low"
+    uncertainty: 0.4
+    candidates:
+      - "bypass: 明示 preset は manager 状態を回避する呼び出しであり override も適用しない (現行実装)"
+      - "layer: 明示 preset の上に global customOverrides を重ねる"
+    missing_info:
+      - "customOverrides を設定する運用経路の有無 (src 内に setCustomOverrides 呼び出しは無し・batch API 経由では 'custom' preset 指定のみ)"
+    linked_conflicts: []
+    auto_decision:
+      status: "applied"
+      decision_key: "AUTO:AdaptiveQualityPresets.toPipelineOptions.explicit-preset-overrides:bypass"
+      chosen: "bypass — 明示 preset は request-scope 設定であり process-global の customOverrides (別 caller が設定した状態) を継承すると汚染が復活するため"
+      policy: "blast_radius_min + INV-BATCH-001 と同一方向 (request-scope 分離)"
+      confidence_auto: 0.7
+      decided_at_run: "2026-08-27T13:40:00Z"
+      expires_after_runs: 20
+      revert_triggers:
+        - "primary_evidence_contradiction"
+        - "仕様が layer を要求する文書の出現"
+    last_touched_run: "2026-08-27T13:40:00Z"
+    evidence:
+      - source: "src/pipeline/__tests__/adaptive-quality-presets.test.ts#L257-L263"
+        quote: "bypasses global custom overrides for an explicit preset"

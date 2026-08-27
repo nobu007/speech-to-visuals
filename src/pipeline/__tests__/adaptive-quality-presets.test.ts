@@ -110,6 +110,24 @@ describe('AdaptiveQualityPresetsManager', () => {
 
   // --- getCurrentPreset ---
 
+  // --- validatePreset ---
+
+  describe('validatePreset', () => {
+    it('accepts every defined preset without changing state', () => {
+      manager.setPreset('balanced');
+      for (const preset of ['fast', 'balanced', 'quality', 'custom'] as QualityPreset[]) {
+        expect(() => manager.validatePreset(preset)).not.toThrow();
+      }
+      expect(manager.getCurrentPreset().name).toBe('balanced');
+    });
+
+    it('throws for an invalid preset without changing state', () => {
+      manager.setPreset('balanced');
+      expect(() => manager.validatePreset('ultra' as QualityPreset)).toThrow('Invalid preset: ultra');
+      expect(manager.getCurrentPreset().name).toBe('balanced');
+    });
+  });
+
   describe('getCurrentPreset', () => {
     it('should return balanced by default', () => {
       const preset = manager.getCurrentPreset();
@@ -214,6 +232,43 @@ describe('AdaptiveQualityPresetsManager', () => {
 
       expect(options.options.maxConcurrency).toBe(16);
       expect(options.options.videoOptions.resolution).toBe('4k');
+    });
+
+    // --- per-call preset override (INV-BATCH-001) ---
+
+    describe('per-call preset override', () => {
+      it('resolves against the override, not the manager state', () => {
+        manager.setPreset('balanced');
+        const file = createMockFile(5000);
+        const options = manager.toPipelineOptions(file, 'fast');
+
+        expect(options.audioFile).toBe(file);
+        expect(options.options.maxConcurrency).toBe(QUALITY_PRESETS.fast.parameters.maxConcurrency);
+        expect(options.options.videoOptions.resolution).toBe(QUALITY_PRESETS.fast.parameters.videoResolution);
+      });
+
+      it('leaves the manager preset untouched (no process-global mutation)', () => {
+        manager.setPreset('quality');
+        manager.toPipelineOptions(createMockFile(5000), 'fast');
+
+        expect(manager.getCurrentPreset().name).toBe('quality');
+      });
+
+      it('bypasses global custom overrides for an explicit preset', () => {
+        // Custom overrides belong to the global configuration; a caller that
+        // names a preset is sidestepping that state, not layering onto it.
+        manager.setCustomOverrides({ maxConcurrency: 16 });
+        const options = manager.toPipelineOptions(createMockFile(5000), 'fast');
+
+        expect(options.options.maxConcurrency).toBe(QUALITY_PRESETS.fast.parameters.maxConcurrency);
+      });
+
+      it('throws for an invalid override without touching state', () => {
+        manager.setPreset('balanced');
+        expect(() => manager.toPipelineOptions(createMockFile(5000), 'ultra' as QualityPreset))
+          .toThrow('Invalid preset: ultra');
+        expect(manager.getCurrentPreset().name).toBe('balanced');
+      });
     });
 
     it('maps each preset video-quality tier onto a valid renderer quality', () => {

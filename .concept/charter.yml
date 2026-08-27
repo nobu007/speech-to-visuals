@@ -45,7 +45,7 @@ milestones:
         target: "npm test -- \"guards\""
     priority: "P0"
     status: "active"
-    progress_note: "2026-08-27: CorruptionOverlay app-mount guard + 非モック corruption chain 統合 test 新設・LLM_SERVICE_CACHE_NAMESPACE 単一ソース化 guard 新設・base 残置の行シフト re-point 滞留 5 suite 解消 (guards 105 suite / 3750 test green)."
+    progress_note: "2026-08-27: INV-BATCH-001 新設 — batch preset の request-scope 分離 (session-259 parked A1 解消・汚染 witness 2 leg は fix 前 RED 実証)・adaptive-quality-presets 直列 override 4 leg + validatePreset 2 leg 追加 (guards 105 suite / 3750 test green)。"
   - id: "MS-003"
     name: "品質メトリクスの実測 producer 化"
     intent: "捏造・未populate metric を実測値に置換する（Phase 169〜190 系列・layoutOverlap 系は完結）"

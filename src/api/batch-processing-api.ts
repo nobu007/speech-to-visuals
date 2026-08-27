@@ -253,9 +253,13 @@ export class BatchProcessingAPI {
     const skippedCount = skippedFiles.length;
     const jobId = jobStore.createJob(dedupedRequest.files, originalTotal);
 
-    // Set preset if provided
+    // Validate the per-job preset WITHOUT installing it on the process-global
+    // manager. The preset travels on the job's own request and is applied per
+    // file in processFilesWithConcurrency — mutating the global here used to
+    // reconfigure every later preset-less job in this process (A1 /
+    // INV-BATCH-001).
     if (request.preset) {
-      adaptiveQualityPresets.setPreset(request.preset);
+      adaptiveQualityPresets.validatePreset(request.preset);
     }
 
     // Start processing in background
@@ -487,7 +491,7 @@ export class BatchProcessingAPI {
       jobStore.updateJobStatus(jobId, { currentFile: sanitizeFilename(file.name) });
 
       try {
-        const pipelineInput = adaptiveQualityPresets.toPipelineOptions(file);
+        const pipelineInput = adaptiveQualityPresets.toPipelineOptions(file, request.preset);
 
         if (request.options?.generateVideo !== undefined) {
           if (pipelineInput.options === undefined) {
