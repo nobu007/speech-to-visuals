@@ -544,6 +544,8 @@ invariants:
         quote: "it('uncaughtException resolves to exit code 1 (abnormal termination)', () => {"
       - source: "src/api/index.ts#L31"
         quote: "export function exitCodeForSignal(signal: string): 0 | 1 {"
+      - source: "src/api/__tests__/graceful-shutdown-exit-code.test.ts#L136"
+        quote: "it('uncaughtException path calls process.exit with code 1', async () => {"
     checks:
       - type: "test"
         target: "src/api/__tests__/graceful-shutdown-exit-code.test.ts"
