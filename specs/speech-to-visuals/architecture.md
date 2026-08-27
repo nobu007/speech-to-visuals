@@ -1000,7 +1000,6 @@ make-run steering feedback「371 → next-target delta is auditable without re-r
 - [boundary-operator-census タスク概要](../boundary-operator-census/tasks/overview.md)
 - [rounding-mode census（同一式への Math.round/floor/ceil 混在）要件定義書（軽量版）](../rounding-mode-census/requirements.md)
 - [rounding-mode-census タスク概要](../rounding-mode-census/tasks/overview.md)
-- [spine-edge-bidirectional-census アーキテクチャ設計](../spine-edge-bidirectional-census/architecture.md)
 - [spine edge 双方向 census（SPEC_LANDING_ATOMICITY 構造化）要件定義書（軽量版）](../spine-edge-bidirectional-census/requirements.md)
 - [spine-edge-bidirectional-census タスク概要](../spine-edge-bidirectional-census/tasks/overview.md)
 - [fallback-default census（同一 chain への primitive literal fallback 混在）要件定義書（軽量版）](../fallback-default-census/requirements.md)
@@ -1011,6 +1010,7 @@ make-run steering feedback「371 → next-target delta is auditable without re-r
 - [spine-registry-title-sync タスク概要](../spine-registry-title-sync/tasks/overview.md)
 - [dead-idiom-batch-census タスク概要](../dead-idiom-batch-census/tasks/overview.md)
 - [dead-idiom batch census（複数 confirmed-zero イディオム class の一括 pin）要件定義書（軽量版）](../dead-idiom-batch-census/requirements.md)
+- [spine-edge-bidirectional-census アーキテクチャ設計](../spine-edge-bidirectional-census/architecture.md)
 
 <!-- spine:children:end -->
 
