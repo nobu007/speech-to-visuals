@@ -253,3 +253,53 @@ describe('IntelligentCache - corruptedKeys unbounded-growth guard', () => {
     expect(internals.accessOrder).toEqual(['keep-before', 'keep-after']);
   });
 });
+
+/**
+ * Branch-parity complement to the findSimilar decompress-failure leg above
+ * (INV-CACHE-002): the same decompress gate also guards the SUCCESS path for
+ * entries that were never compressed (compressed=false → wasDecompressed
+ * stays false). This leg pins that branch — the raw stored data comes back
+ * as-is, the entry stays resident, and the hit bookkeeping (hit count,
+ * saved-time estimate, access mutation) still executes. A regression here
+ * (e.g. unconditionally returning `{ ...bestMatch, data: decompressedData }`
+ * after a helper extraction) would hand every small-entry caller
+ * `data: undefined` while still counting the hit.
+ */
+describe('IntelligentCache - findSimilar non-compressed success branch (INV-CACHE-002 parity)', () => {
+  test('findSimilar() hit on a NON-compressed entry returns the raw data and still records the hit', async () => {
+    const cache = new IntelligentCache();
+    const internals = cache as unknown as {
+      cache: Map<string, { data: unknown; compressed: boolean; accessCount: number }>;
+      stats: { totalHits?: number; totalMisses?: number; totalSavedTime: number };
+      generateCacheKey: (content: string) => string;
+    };
+
+    // Small payload: compression is not beneficial, so store() keeps the raw
+    // object and the entry stays compressed=false — the branch the gate skips.
+    const content = 'process flow step system diagram structure hierarchy timeline sequence network cycle matrix';
+    const payload = { type: 'flow', version: 7 };
+    await cache.store(content, payload, makeMetadata());
+
+    const key = internals.generateCacheKey(content);
+    const entry = internals.cache.get(key);
+    // Precondition: this leg exercises the wasDecompressed=false branch.
+    expect(entry?.compressed).toBe(false);
+
+    const hitsBefore = internals.stats.totalHits ?? 0;
+    const missesBefore = internals.stats.totalMisses ?? 0;
+    const savedBefore = internals.stats.totalSavedTime;
+    const accessBefore = entry?.accessCount ?? 0;
+
+    const result = await cache.findSimilar(content);
+
+    // Success semantics of the uncompressed branch: raw data out, entry stays
+    // resident (contrast the corrupt leg's purge), hit accounting still runs —
+    // the gate must guard the failure path without removing the bookkeeping.
+    expect(result?.data).toEqual(payload);
+    expect(internals.cache.has(key)).toBe(true);
+    expect(internals.stats.totalHits ?? 0).toBe(hitsBefore + 1);
+    expect(internals.stats.totalMisses ?? 0).toBe(missesBefore);
+    expect(internals.stats.totalSavedTime).toBe(savedBefore + 1000);
+    expect(internals.cache.get(key)?.accessCount).toBe(accessBefore + 1);
+  });
+});
