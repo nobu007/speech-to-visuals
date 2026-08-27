@@ -5,7 +5,10 @@ import reactRefresh from "eslint-plugin-react-refresh";
 import tseslint from "typescript-eslint";
 
 export default tseslint.config(
-  { ignores: ["dist", "_bmad/**", "coverage/**"] },
+  // worktrees/** — gitignored parallel ai-hub checkouts (jest parity:
+  // testPathIgnorePatterns '/worktrees/', INV-TEST-007). Without this,
+  // eslint run from the main repo lints every sibling worktree's full copy.
+  { ignores: ["dist", "_bmad/**", "coverage/**", "worktrees/**"] },
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     files: ["**/*.{ts,tsx}"],
