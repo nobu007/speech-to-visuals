@@ -197,7 +197,7 @@ const ALLOWED: Record<string, string> = {
   'src/monitoring/production-error-handler.ts:420:strategies':
     'LOCAL-BUILT — strategy candidates pushed in-function; the priority sort finalizes the local for the return value.',
   // -- performance/intelligent-cache: candidate ranking ----------------
-  'src/performance/intelligent-cache.ts:292:candidates':
+  'src/performance/intelligent-cache.ts:313:candidates':
     'LOCAL-BUILT — preload candidates pushed in-function; the combined-score sort ranks the local before its top-5 slice.',
   // -- quality: local strategy/chain/distribution accumulators --------
   'src/quality/enhanced-error-recovery.ts:801:chains':

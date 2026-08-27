@@ -780,7 +780,7 @@ CI 実行 = 再検証なので台帳対象外（出典は各テストファイ�
 ## MW-091 — INV-CACHE-002 branch gate: wasDecompressed 無条件 return（findSimilar 非圧縮成功分岐の isolated witness・test stage follow-up）
 
 - **claim**: run 2026-08-27T07:31 test-stage claim が「`if (wasDecompressed)` gate を無条件 `{ ...bestMatch, data: decompressedData }` return に壊すと新 leg のみ RED (1 failed / 11 passed)」と主張しながら再現手順を claims text のみに残していた（PR #74 評価 weakness — witness 系の再現手順の正典は本台帳）。本エントリは同 mutant の text・command・observed を固定する。
-- **target**: `src/performance/intelligent-cache.ts:810`
+- **target**: `src/performance/intelligent-cache.ts:831`
 - **mutation**: `if (wasDecompressed) { return { ...bestMatch, data: decompressedData }; }` → `return { ...bestMatch, data: decompressedData };`（gate 剥離 — get() と findSimilar() の decompress-failure 処理を private helper へ統合する際に想定される回帰形。非圧縮 entry では `decompressedData` が undefined のまま data を上書きする）
 - **command**: `NODE_OPTIONS='--experimental-vm-modules --max-old-space-size=4096' npx jest --config jest.config.cjs --testPathPatterns intelligent-cache-robustness`
 - **observed** (2026-08-27 再実行): ベースライン 12/12 GREEN。mutant 下 `Tests: 1 failed, 11 passed, 12 total` — RED は `IntelligentCache - findSimilar non-compressed success branch (INV-CACHE-002 parity) › findSimilar() hit on a NON-compressed entry returns the raw data and still records the hit` のみ（`Expected: {"type": "flow", "version": 7}` / `Received: undefined`）。corrupt purge leg（get() parity）含む他 11 leg は green のまま = isolated 検出力。復元後 12/12 GREEN・`git status --short src/` clean。
