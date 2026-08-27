@@ -470,6 +470,10 @@ invariants:
         quote: "findSimilar()-path decompression failure counts as a miss and purges the entry (get() parity)"
       - source: "src/performance/__tests__/intelligent-cache-robustness.test.ts#L214"
         quote: "expect(result).toBeNull();"
+      - source: "src/performance/__tests__/intelligent-cache-robustness.test.ts#L269"
+        quote: "findSimilar() hit on a NON-compressed entry returns the raw data and still records the hit"
+      - source: "src/performance/__tests__/intelligent-cache-robustness.test.ts#L298"
+        quote: "expect(result?.data).toEqual(payload);"
     checks:
       - type: "test"
         target: "src/performance/__tests__/intelligent-cache-robustness.test.ts"
