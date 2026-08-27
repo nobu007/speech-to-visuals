@@ -206,6 +206,16 @@ export class WhisperTranscriber {
     // Step 3: Run transcription with best available method
     let segments: TranscriptionSegment[];
 
+    // Neither emitter below runs ASR inference (README「音声認識の現状」):
+    // runRealWhisperTranscription emits fixed sentences via
+    // generateHighQualityTranscript() and runEnhancedFallback a hardcoded
+    // English block. `inferenceRan` marks the slot where a real backend will
+    // set true; until then the result must disclose `placeholder: true` so the
+    // pipeline's priority routing cannot mistake the fabricated success for a
+    // measured transcription (which kept the browser Web Speech fallback
+    // unreachable).
+    const inferenceRan = false;
+
     if (this.isWhisperReady) {
       segments = await this.runRealWhisperTranscription(processedAudio);
     } else {
@@ -230,6 +240,7 @@ export class WhisperTranscriber {
       duration: this.calculateDuration(validatedSegments),
       processingTime: performance.now() - startTime,
       success: true,
+      placeholder: !inferenceRan,
       captions
     };
 
@@ -296,34 +307,39 @@ export class WhisperTranscriber {
    */
   private async runEnhancedFallback(audioBuffer: ArrayBuffer): Promise<TranscriptionSegment[]> {
 
+    // REQ-391 sibling unify: this emitter used to freeze its own
+    // 0.92/0.89/0.94/0.87 ladder — measurement-looking values with no ASR
+    // behind them, the same dressed-up placeholder the random-jitter fix
+    // killed in runRealWhisperTranscription. The disclosed single-source
+    // constant carries the "placeholder, not a measurement" semantics.
     const enhancedSegments: TranscriptionSegment[] = [
       {
         id: 0,
         start: 0,
         end: 8000,
         text: "Welcome to our organizational structure presentation. The company hierarchy consists of executive leadership at the top, followed by department heads, team managers, and individual contributors.",
-        confidence: 0.92
+        confidence: PLACEHOLDER_SEGMENT_CONFIDENCE
       },
       {
         id: 1,
         start: 8000,
         end: 16000,
         text: "The project timeline spans twelve months, beginning with the research phase in January through March. Development occurs from April to September, followed by testing and quality assurance.",
-        confidence: 0.89
+        confidence: PLACEHOLDER_SEGMENT_CONFIDENCE
       },
       {
         id: 2,
         start: 16000,
         end: 24000,
         text: "The workflow process demonstrates a continuous cycle starting with requirements gathering. After analysis and design, we move to implementation and testing.",
-        confidence: 0.94
+        confidence: PLACEHOLDER_SEGMENT_CONFIDENCE
       },
       {
         id: 3,
         start: 24000,
         end: 32000,
         text: "The network architecture shows data flowing from user interfaces through API gateways to microservices. Information passes through authentication layers and business logic components.",
-        confidence: 0.87
+        confidence: PLACEHOLDER_SEGMENT_CONFIDENCE
       }
     ];
 

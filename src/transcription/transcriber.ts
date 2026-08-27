@@ -134,7 +134,16 @@ export class TranscriptionPipeline {
 
       const whisperResult = await this.whisperTranscriber.transcribe(audioInput);
 
-      if (whisperResult.success && whisperResult.segments.length > 0) {
+      // Priority 1: only an inference-backed whisper result is authoritative.
+      // WhisperTranscriber returns `success: true` with `placeholder: true`
+      // segments when no ASR backend exists (README「音声認識の現状」); treating
+      // that as real made the browser engine below unreachable dead code and
+      // reported fabricated placeholder content as a successful transcription.
+      const whisperIsReal =
+        whisperResult.success === true &&
+        whisperResult.segments.length > 0 &&
+        whisperResult.placeholder !== true;
+      if (whisperIsReal) {
         return { segments: whisperResult.segments, isFallback: false };
       }
 
