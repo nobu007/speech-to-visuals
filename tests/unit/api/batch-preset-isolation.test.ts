@@ -112,4 +112,78 @@ describe('INV-BATCH-001: batch preset must not leak into process-global state', 
     // The rejected submission must not have altered global state either.
     expect(adaptiveQualityPresets.getCurrentPreset().name).toBe('balanced');
   });
+
+  it('concurrent jobs with different presets each run on their own preset', async () => {
+    // The old contamination raced exactly here: two jobs in flight, the
+    // global preset flip-flopping between submits while processing read it
+    // per file. Per-request resolution must attribute each file's options to
+    // ITS job's preset, not to whichever submit ran last.
+    const [fastJob, qualityJob] = await Promise.all([
+      api.submitJob({ files: [stubFile('conc-fast.wav')], preset: 'fast' }),
+      api.submitJob({ files: [stubFile('conc-quality.wav')], preset: 'quality' }),
+    ]);
+    await api.waitForJob(fastJob.jobId, { timeoutMs: 5000 });
+    await api.waitForJob(qualityJob.jobId, { timeoutMs: 5000 });
+
+    const calls = (simplePipeline.process as jest.Mock<any>).mock.calls;
+    expect(calls.length).toBe(2);
+    for (const call of calls) {
+      const input = call[0] as { audioFile: { name: string }; options: { maxConcurrency: number } };
+      const expected = input.audioFile.name === 'conc-fast.wav'
+        ? QUALITY_PRESETS.fast
+        : QUALITY_PRESETS.quality;
+      expect(input.options.maxConcurrency).toBe(expected.parameters.maxConcurrency);
+    }
+
+    expect(adaptiveQualityPresets.getCurrentPreset().name).toBe('balanced');
+  });
+
+  it('merges request.options on the preset path without mutating the QUALITY_PRESETS definitions', async () => {
+    // The API writes the request-scoped includeVideoGeneration flag onto the
+    // options object toPipelineOptions hands out. With an explicit preset that
+    // producer reads the process-global QUALITY_PRESETS parameters — the
+    // write must land on the fresh per-call object, never on the shared
+    // definitions every future job in this process resolves against.
+    const presetsBefore = JSON.parse(JSON.stringify(QUALITY_PRESETS));
+
+    const { jobId } = await api.submitJob({
+      files: [stubFile('fast-novideo.wav')],
+      preset: 'fast',
+      options: { generateVideo: false },
+    });
+    const status = await api.waitForJob(jobId, { timeoutMs: 5000 });
+    expect(status.status).toBe('completed');
+
+    // Both axes applied: the job's preset parameters AND the request flag.
+    expect(lastPipelineOptions().includeVideoGeneration).toBe(false);
+    expect(lastPipelineOptions().maxConcurrency).toBe(QUALITY_PRESETS.fast.parameters.maxConcurrency);
+
+    // Shared definitions byte-identical to before the job.
+    expect(QUALITY_PRESETS).toEqual(presetsBefore);
+
+    // Order-independent tripwire for the same hazard: a request-scoped option
+    // key must NEVER appear on the shared parameters object. (The toEqual
+    // above only sees writes inside this leg's window — earlier legs calling
+    // toPipelineOptions(file, 'fast') could mask a write-in that happened
+    // before the snapshot was taken. The property pin has no such hole.)
+    expect(QUALITY_PRESETS.fast.parameters).not.toHaveProperty('includeVideoGeneration');
+  });
+
+  it('a preset-less job still runs on the global configuration (custom overrides apply)', async () => {
+    // The explicit-preset bypass must stay CONDITIONAL: requests that do not
+    // name a preset keep using the process-global configuration, custom
+    // overrides included. Normalizing the call site to
+    // toPipelineOptions(file, request.preset ?? 'balanced') would silently
+    // drop the overrides from every preset-less job.
+    adaptiveQualityPresets.setCustomOverrides({ maxConcurrency: 16 });
+    try {
+      const { jobId } = await api.submitJob({ files: [stubFile('global-override-job.wav')] });
+      const status = await api.waitForJob(jobId, { timeoutMs: 5000 });
+      expect(status.status).toBe('completed');
+      expect(lastPipelineOptions().maxConcurrency).toBe(16);
+    } finally {
+      adaptiveQualityPresets.clearCustomOverrides();
+    }
+    expect(adaptiveQualityPresets.getCurrentPreset().name).toBe('balanced');
+  });
 });

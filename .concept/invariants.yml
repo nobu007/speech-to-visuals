@@ -438,6 +438,10 @@ invariants:
         quote: "Validate the per-job preset WITHOUT installing it on the process-global"
       - source: "tests/unit/api/batch-preset-isolation.test.ts#L73"
         quote: "applies the job's preset to its own files without mutating the global manager"
+      - source: "tests/unit/api/batch-preset-isolation.test.ts#L116"
+        quote: "concurrent jobs with different presets each run on their own preset"
+      - source: "tests/unit/api/batch-preset-isolation.test.ts#L172"
+        quote: "a preset-less job still runs on the global configuration (custom overrides apply)"
     checks:
       - type: "test"
         target: "tests/unit/api/batch-preset-isolation.test.ts"
