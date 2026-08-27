@@ -27,22 +27,55 @@
  * pin below freezes that boundary so the census cannot silently re-widen
  * into prose false positives or re-narrow past git's shapes.
  *
- * Scope mirrors the freeze-guard convention: this repo's working tree only
- * (src/ + tests/ + specs/ + docs/). The installed @stv/core package is core
- * CI's own surface — a marker inside node_modules is not this repo's drift.
+ * Scope mirrors the freeze-guard convention: this repo's working tree only —
+ * the four source trees (src/ + tests/ + specs/ + docs/), the .github/
+ * workflows surface, and the root config files by explicit list below. The
+ * installed @stv/core package is core CI's own surface — a marker inside
+ * node_modules is not this repo's drift.
  */
 import { describe, it, expect } from '@jest/globals';
-import { readFileSync, readdirSync, statSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { REPO_ROOT } from '@tests/guards/freeze-guard';
 
-const SWEEP_ROOTS = ['src', 'tests', 'specs', 'docs'] as const;
+const SWEEP_ROOTS = ['src', 'tests', 'specs', 'docs', '.github'] as const;
+// Root config files are swept by explicit list, not by a walk: they sit at
+// the repo root outside the four trees yet are the most merge-conflicted
+// surfaces in practice (package.json especially). Their failure profiles
+// differ, and RED-witnessing them showed the layering:
+//   - .github/workflows/*.yml — genuinely silent: nothing local parses them,
+//     GitHub Actions only rejects the marker AFTER the push (the exact
+//     post-landing blind spot this guard front-lines);
+//   - jest.config.cjs — a bare marker kills the runner before ANY guard can
+//     run, but comment/template-literal-borne markers are silent carriers
+//     node accepts (RED-verified: census is their only detector);
+//   - package.json — any column-0 marker is invalid JSON, so npm/node fail
+//     loudly on their own; swept for census uniformity (one offender list
+//     naming every site) and scope honesty, not as sole detector.
+// Every entry is existence-pinned below so a rename cannot silently drop it
+// from scope. package-lock.json (16k+ generated lines) is deliberately NOT
+// here: it is a machine-regenerated artifact whose conflicts fail loudly at
+// `npm install`, never a silent carrier tsc/jest reads as config.
+const SWEEP_ROOT_FILES = [
+  'jest.config.cjs',
+  'package.json',
+  'eslint.config.js',
+  'vite.config.ts',
+  'tsconfig.json',
+  'tsconfig.app.json',
+  'tsconfig.node.json',
+  'tsconfig.test.json',
+  'tailwind.config.ts',
+  'postcss.config.js',
+  'remotion.config.ts',
+  'components.json',
+] as const;
 const SKIP_DIRS = new Set([
-  'node_modules',
-  'dist',
-  'coverage',
-  'worktrees',
-  'archive',
+  'node_modules', // installed deps — @stv/core is core CI's surface, not drift
+  'dist', // build output — regenerated, never a landing surface
+  'coverage', // generated coverage reports
+  'worktrees', // sibling worktrees of this repo (session-283/287 isolation parity)
+  'archive', // .concept/archive frozen history — retained bytes, not living code
 ]);
 const SWEEP_EXT = /\.(?:ts|tsx|js|jsx|cjs|mjs|md|ya?ml|json)$/;
 // The SEP marker's file scope (see header): code files only, prose exempt.
@@ -74,7 +107,10 @@ function walkSweepFiles(dirRel: string, acc: string[] = []): string[] {
   return acc;
 }
 
-const sweptFiles = SWEEP_ROOTS.flatMap((root) => walkSweepFiles(root));
+const sweptFiles = [
+  ...SWEEP_ROOTS.flatMap((root) => walkSweepFiles(root)),
+  ...SWEEP_ROOT_FILES,
+];
 
 /** `rel:line: content` for every conflict-marker line found (empty = clean). */
 function conflictOffenders(): string[] {
@@ -155,5 +191,22 @@ describe('git conflict-marker sweep guard (INV-TEST-008)', () => {
     expect(sweptFiles).toContain('src/export/enhanced-export-engine.ts');
     expect(sweptFiles).toContain('specs/speech-to-visuals/architecture.md');
     expect(sweptFiles).toContain('docs/architecture/QUALITY_METRICS.md');
+  });
+
+  it('root config and CI-workflow surfaces are in scope — the post-push blind spot', () => {
+    // The four trees stop at their edges: a marker landing in jest.config.cjs
+    // or .github/workflows/ci.yml sits on surfaces no compiler reads AND
+    // whose failure only shows at run time — for CI workflows, only after
+    // the push this guard front-lines. Pin that they are actually swept
+    // (list + disk existence, so a rename REDs instead of silently
+    // narrowing), and pin the one deliberate exclusion (package-lock.json,
+    // machine-regenerated) so it cannot be assumed swept either.
+    for (const file of SWEEP_ROOT_FILES) {
+      expect(existsSync(join(REPO_ROOT, file))).toBe(true);
+      expect(sweptFiles).toContain(file);
+    }
+    expect(sweptFiles).toContain('.github/workflows/ci.yml');
+    expect(sweptFiles).toContain('.github/workflows/infrastructure.yml');
+    expect(sweptFiles).not.toContain('package-lock.json');
   });
 });
