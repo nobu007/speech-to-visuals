@@ -2052,6 +2052,20 @@ describe('code-symbol descriptor classifier (local) — contract pin', () => {
 //     whenever someone happens to re-audit the prose.
 describe('jest-pattern conformance (real @jest/pattern module) — eval follow-up #7', () => {
   it('prerequisite: installed @jest/pattern is exactly the version the mirror was verified against', () => {
+    // A missing package is an environment defect, not version drift: a
+    // worktree whose node_modules was hardlink-copied mid-install (observed
+    // 2026-08-28: node_modules/@jest entirely absent while the parent repo
+    // had the full set) REDs this leg with a raw ENOENT that reads like a
+    // main breakage. Name the cause so the reader fixes the install instead
+    // of hunting for a version mismatch that is not there.
+    if (!existsSync(resolveSource('node_modules/@jest/pattern/package.json'))) {
+      throw new Error(
+        'node_modules/@jest/pattern is not installed — incomplete node_modules ' +
+          '(worktree hardlink-copy mid-install / partial npm ci), not a version drift. ' +
+          'Reinstall (npm ci, or re-copy node_modules from the parent checkout) ' +
+          'before judging this leg.',
+      );
+    }
     const pkg = JSON.parse(
       readSource('node_modules/@jest/pattern/package.json'),
     ) as { name: string; version: string };
