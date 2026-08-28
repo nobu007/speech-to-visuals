@@ -2,8 +2,13 @@
  * speech-to-visuals 型定義
  *
  * 作成日: 2026-04-27
- * 最終更新: 2026-08-06（第208回検証: Phase 116 Record<UnionType,T>完全性強化・Prometheus export・SecurityMetrics TTL・DiagramType 11種完全対応・570ファイル・543テストファイル・TypeScript/ESLintエラー0件・依存107パッケージ）
+ * 最終更新: 2026-08-27（第237回検証: stv-core コア分割（PR #7・2026-08-18）の設計正本同期 — 出典パス23箇所を @stv/core 系へ正規化・共有型の正本は @stv/core/types/*（REQ-310 単一ソース）・REQ-420）
  * 関連設計: architecture.md
+ *
+ * ※ 共有型（diagram/pipeline/api/workspace/llm/cache/quality）の実装正本は外部コアパッケージ
+ * `@stv/core`（github:nobu007/stv-core#v1.0.7）の types/* に移管済み（PR #7・2026-08-18）。
+ * 本ファイルは仕様記録（specs 正本）であり、実装の単一ソースは @stv/core 側（REQ-310/312）。
+ * 出典表記は `@stv/core/<area>/<module>` 形式に統一（design-doc-source-currency guard が現勢性を担保）。
  *
  * 信頼性レベル:
  * - 🔵 青信号: 要件定義書・設計文書・既存実装を参考にした確実な型定義
@@ -40,7 +45,7 @@ export interface LanguageDetectionResult {
 
 /**
  * 図解タイプ
- * 🔵 信頼性: 要件定義REQ-007・src/types/diagram.ts より
+ * 🔵 信頼性: 要件定義REQ-007・@stv/core/types/diagram より
  */
 export type DiagramType =
   | 'flow' | 'tree' | 'timeline' | 'matrix' | 'cycle'
@@ -48,7 +53,7 @@ export type DiagramType =
 
 /**
  * ノードデータ
- * 🔵 信頼性: src/types/diagram.ts NodeDatum・DBスキーマより
+ * 🔵 信頼性: @stv/core/types/diagram NodeDatum・DBスキーマより
  */
 export interface NodeDatum {
   id: string; // 🔵 DBスキーマより
@@ -64,7 +69,7 @@ export interface NodeDatum {
 
 /**
  * エッジデータ
- * 🔵 信頼性: src/types/diagram.ts EdgeDatum・要件定義より
+ * 🔵 信頼性: @stv/core/types/diagram EdgeDatum・要件定義より
  */
 export interface EdgeDatum {
   from: string; // 🔵 要件定義より（ノードID参照）
@@ -96,7 +101,7 @@ export interface PositionedNode extends NodeDatum {
 
 /**
  * シーングラフ（1セグメントの図解データ）
- * 🔵 信頼性: src/types/diagram.ts SceneGraph・PIPELINE_FLOW.md Stage 2 より
+ * 🔵 信頼性: @stv/core/types/diagram SceneGraph・PIPELINE_FLOW.md Stage 2 より
  */
 export interface SceneGraph {
   type: DiagramType; // 🔵 要件定義REQ-007より
@@ -115,7 +120,7 @@ export interface SceneGraph {
 
 /**
  * 処理ステータス
- * 🔵 信頼性: src/types/diagram.ts ProcessingStatus・要件定義NFR-202より
+ * 🔵 信頼性: @stv/core/types/diagram ProcessingStatus・要件定義NFR-202より
  */
 export type ProcessingStatus =
   | 'idle'
@@ -260,7 +265,7 @@ export interface BatchFile {
 
 /**
  * API レスポンス共通型
- * 🔵 信頼性: src/types/api/index.ts・既存実装パターンより
+ * 🔵 信頼性: @stv/core/types/api・既存実装パターンより
  */
 export interface ApiResponse<T> {
   success: boolean; // 🔵 成功フラグ
@@ -270,7 +275,7 @@ export interface ApiResponse<T> {
 
 /**
  * API エラー
- * 🔵 信頼性: PIPELINE_FLOW.md §7.2・src/types/api/ より
+ * 🔵 信頼性: PIPELINE_FLOW.md §7.2・@stv/core/types/api/ より
  */
 export interface ApiError {
   code: string; // 🔵 エラーコード
@@ -487,7 +492,7 @@ export interface VisualTheme {
 
 /**
  * ワークスペース
- * 🔵 信頼性: src/types/workspace.ts Workspace より
+ * 🔵 信頼性: @stv/core/types/workspace Workspace より
  */
 export interface Workspace {
   id: string; // 🔵 DBスキーマより
@@ -504,7 +509,7 @@ export interface Workspace {
 
 /**
  * ワークスペース設定
- * 🔵 信頼性: src/types/workspace.ts WorkspaceSettings より
+ * 🔵 信頼性: @stv/core/types/workspace WorkspaceSettings より
  */
 export interface WorkspaceSettings {
   allowMemberInvites: boolean; // 🔵 メンバー招待許可
@@ -521,7 +526,7 @@ export interface WorkspaceSettings {
 
 /**
  * ワークスペースメンバー
- * 🔵 信頼性: src/types/workspace.ts WorkspaceMember より
+ * 🔵 信頼性: @stv/core/types/workspace WorkspaceMember より
  */
 export interface WorkspaceMember {
   userId: string; // 🔵 ユーザーID
@@ -535,13 +540,13 @@ export interface WorkspaceMember {
 
 /**
  * ユーザーロール
- * 🔵 信頼性: src/types/workspace.ts Role より
+ * 🔵 信頼性: @stv/core/types/workspace Role より
  */
 export type Role = 'owner' | 'admin' | 'editor' | 'viewer'; // 🔵 RBACより
 
 /**
  * ワークスペースクォータ
- * 🔵 信頼性: src/types/workspace.ts WorkspaceQuota より
+ * 🔵 信頼性: @stv/core/types/workspace WorkspaceQuota より
  */
 export interface WorkspaceQuota {
   monthlyProcessingLimit: number; // 🔵 月間処理制限
@@ -555,7 +560,7 @@ export interface WorkspaceQuota {
 
 /**
  * ワークスペースメンバー詳細
- * 🔵 信頼性: src/types/workspace.ts WorkspaceMemberDetail より
+ * 🔵 信頼性: @stv/core/types/workspace WorkspaceMemberDetail より
  */
 export interface WorkspaceMemberDetail extends WorkspaceMember {
   user: {
@@ -574,7 +579,7 @@ export interface WorkspaceMemberDetail extends WorkspaceMember {
 
 /**
  * ワークスペース招待
- * 🔵 信頼性: src/types/workspace.ts WorkspaceInvitation より
+ * 🔵 信頼性: @stv/core/types/workspace WorkspaceInvitation より
  */
 export interface WorkspaceInvitation {
   id: string; // 🔵 招待ID
@@ -592,7 +597,7 @@ export interface WorkspaceInvitation {
 
 /**
  * ワークスペースアクティビティ
- * 🔵 信頼性: src/types/workspace.ts WorkspaceActivity より
+ * 🔵 信頼性: @stv/core/types/workspace WorkspaceActivity より
  */
 export interface WorkspaceActivity {
   id: string; // 🔵 アクティビティID
@@ -609,7 +614,7 @@ export interface WorkspaceActivity {
 
 /**
  * ワークスペースアクション種別
- * 🔵 信頼性: src/types/workspace.ts WorkspaceActivityAction より
+ * 🔵 信頼性: @stv/core/types/workspace WorkspaceActivityAction より
  */
 export type WorkspaceActivityAction =
   | 'workspace.created' | 'workspace.updated' | 'workspace.deleted'
@@ -620,7 +625,7 @@ export type WorkspaceActivityAction =
 
 /**
  * パーミッション定数
- * 🔵 信頼性: src/types/workspace.ts PERMISSIONS より
+ * 🔵 信頼性: @stv/core/types/workspace PERMISSIONS より
  */
 export const PERMISSIONS = {
   WORKSPACE_VIEW: 'workspace:view',
@@ -644,7 +649,7 @@ export const PERMISSIONS = {
 
 /**
  * パーミッションキー型
- * 🔵 信頼性: src/types/workspace.ts PermissionKey より
+ * 🔵 信頼性: @stv/core/types/workspace PermissionKey より
  */
 export type PermissionKey = keyof typeof PERMISSIONS; // 🔵 パーミッションキー
 
@@ -947,7 +952,7 @@ export interface ErrorGuidance {
 
 /**
  * 設定バリデーションエラー
- * 🔵 信頼性: src/config/validate.ts・要件定義REQ-038 より
+ * 🔵 信頼性: @stv/core/config/validate・要件定義REQ-038 より
  */
 export interface ConfigValidationError {
   field: string; // 🔵 フィールド名
@@ -956,7 +961,7 @@ export interface ConfigValidationError {
 
 /**
  * 設定スキーマ
- * 🔵 信頼性: src/config/schema.ts・要件定義REQ-038 より
+ * 🔵 信頼性: @stv/core/config/schema・要件定義REQ-038 より
  */
 export interface ConfigSchema {
   googleApiKey: string; // 🔵 Google API キー（必須）
@@ -1479,13 +1484,13 @@ export interface ShutdownResult {
 
 /**
  * 型ガード関数: DiagramType の実行時検証
- * 🔵 信頼性: src/types/diagram.ts isDiagramType()・要件定義REQ-051 より
+ * 🔵 信頼性: @stv/core/types/diagram isDiagramType()・要件定義REQ-051 より
  *
  * 11種類の有効な DiagramType 値を検証する:
  * flow, tree, timeline, matrix, cycle,
  * flowchart, comparison, network, conceptmap, mindmap, general
  */
-export function isDiagramType(value: unknown): value is DiagramType { // 🔵 src/types/diagram.ts より
+export function isDiagramType(value: unknown): value is DiagramType { // 🔵 @stv/core/types/diagram より
   return typeof value === 'string' && (
     value === 'flow' || value === 'tree' || value === 'timeline' ||
     value === 'matrix' || value === 'cycle' || value === 'flowchart' ||
@@ -1726,7 +1731,7 @@ export interface LLMMetrics {
 
 /**
  * コード規模監査結果（Phase 37 完了）
- * 🔵 信頼性: src/config/code-size-audit.ts・要件定義REQ-102 より
+ * 🔵 信頼性: @stv/core/config/code-size-audit・要件定義REQ-102 より
  */
 export interface CodeSizeAuditResult {
   fileCount: number; // 🔵 現在のファイル数

@@ -4655,6 +4655,7 @@ interfaces.ts には既にこれらの主要型が反映済み。
 - [spine edge 双方向 census — 自動分析記録](../spine-edge-bidirectional-census/interview-record.md)
 - [spine registry title-sync census — 自動分析記録](../spine-registry-title-sync/interview-record.md)
 - [dead-idiom batch census — 自動分析記録](../dead-idiom-batch-census/interview-record.md)
+- [stv-core design sync 自動分析記録](../stv-core-design-sync/interview-record.md)
 
 <!-- spine:children:end -->
 
@@ -4668,3 +4669,36 @@ interfaces.ts には既にこれらの主要型が反映済み。
 - [dead-idiom batch census — 自動分析記録](../dead-idiom-batch-census/interview-record.md)
 
 <!-- spine:references:end -->
+
+### A128: 第237回検証 — stv-core コア分割の設計正本同期（出典パス53件正規化・@stv/core 境界 section 新設・REQ-420 guard 固定）（2026-08-27）
+
+**背景**: stv-core コア分割（PR #7・2026-08-18・`src/{types,config,lib,utils}` → `@stv/core` v1.0.7 移管・commits a88c878f~d6651084）の同期は第218回検証（REQ-310~312）が requirements.md・acceptance-criteria.md 側のみを対象とし、**設計正本3文書（architecture.md・dataflow.md・interfaces.ts）は 2026-08-06（第208/209回検証）のまま取り残されていた**。A126 の「cross-repo phantom チェック」規約に従い steering 具象 symbol（`INV-STAT-006`・`impl/app/`・`grade_distribution.py`）を grep・find で検証し全て phantom と判定、`scripts/code-size-audit.ts` V2.9 指示は既着地 commit（bfc41ef3・3e23d0b2）への遡及的文面変更要求で実行不可能と判定した上で、META-intent（substantive・verifiable diff）を実態の drift 修正へ具体化した。
+
+**分析項目と判断**:
+
+1. **設計正本3文書の drift 実在確認** 🔵: 実測で (a) `stv/core` mention が3文書すべて 0件（requirements.md 45件・note.md 7件と同期状況が乖離）、(b) dead-path 出典 `src/(types|utils|lib|config)/` が architecture.md 22件・dataflow.md 7件・interfaces.ts 23件、(c) architecture.md ディレクトリ木に消滅済み4ディレクトリ行が残存、を確認。🔵（確実）を主張しながら実在しない path を引用する状態 = 設計書の信頼性表明そのものの空洞化。
+   - **判定**: 🔵 **同期実施**。出典62箇所を `@stv/core/<area>/<module>` 形式（requirements.md 第218回検証と同一規約）へ正規化。写像は `node_modules/@stv/core/dist/{types,utils,lib,config}` の実モジュール一覧で検証（写像不能は `actualVideoRenderer` 1件のみ → `src/pipeline/actual-video-renderer.ts` へのリポジトリ内移管と判明し実在 path へ更新）。
+2. **履歴記述と現勢出典の区別** 🔵: round 41/42/43 の単一ソース化記録に含まれる mutation 注入対象 `src/utils/guards.ts` は**当時の実在 path を引く歴史的事実**であり、raw exact-0 guard はこれを出典と区別できない。履歴の事実関係を変えず「当時 src 配下 utils/guards・現 @stv/core/utils/guards」の注記形で path 形式のみ除去し、guard regex を出典純度化。
+3. **@stv/core 境界の設計記載欠落** 🔵: 外部コアパッケージ（移管対象・依存の方向・単一ソース規則 REQ-310/312・git タグ pin REQ-311・自己拘束ラチェット）が architecture.md に存在しなかった。V2.8 改正・package.json・実測（361ファイルが import・2026-08-27）に基づく「外部コアパッケージ（@stv/core）」section を新設し、ディレクトリ木に `node_modules/@stv/core/` 行を追加。
+4. **再発防止の構造化（REQ-420）** 🔵: `tests/guards/design-doc-source-currency.test.ts` を3 leg で新設 — (1) dead-path exact-0（3文書）、(2) ディレクトリ木の `fs.readdir(src)` 導出全列挙（新規 dir 追加で RED = 導出式 pin・裸 pin 不使用）、(3) 境界 section 存在 + package.json 実値との pin 完全一致（REQ-419-005 V2.9 drift guard と同型）。MW-085 で (a) dead-path 再注入 (b) 木に消滅 dir 再注入 (c) section 削除 の各変異 RED を検証。
+
+**根拠**:
+- `grep -c 'stv/core'`・`grep -cE 'src/(types|utils|lib|config)/'` の実測（修正前: arch 22 / flow 7 / iface 23 → 修正後: 全 0・@stv/core 出典 arch 21 / flow 7 / iface 23）。
+- `ls node_modules/@stv/core/dist/{types,utils,lib,config}`（実モジュール一覧）と `package.json` exports map による写像検証。
+- `fs.readdirSync('src')` 実測: 19ディレクトリ（`__tests__` 含む）+ エントリファイル。
+- 第218回検証の同期規約（requirements.md REQ-310~312・出典表記 `@stv/core/<area>/<module>`）。
+
+**Closure Acceptance Criteria**:
+- [x] 設計正本3文書の出典パス53件（dead-path 52 + リポジトリ内移管1）を正規化（Node script・件数 assert 付き・abort 時無変更）
+- [x] architecture.md ディレクトリ木から消滅4行除去・19ディレクトリ正規化・外部コアパッケージ section 新設
+- [x] interfaces.ts header に共有型正本の @stv/core 所在と出典表記規約を明記
+- [x] REQ-420 guard（3 leg）新設・MW-093 mutation 検証
+- [x] cross-repo phantom チェック（INV-STAT-006 / impl/app / grade_distribution.py）→ repo 内 0 hit、警告継続（A126 規約の継承）
+- [x] specs/stv-core-design-sync/ feature dir 新設（requirements・TASK-0312・overview・interview-record）+ architecture.md children 登録（spine-edge census の atomic dogfood）
+
+**信頼性への影響**:
+- 🔵: 3文書の出典53箇所が実在 path を引用する状態に修復（信頼性レベルの分布は不変・根拠の現勢化）。
+- 🔵: architecture.md に外部コアパッケージ境界が初めて設計記載され、requirements.md（第218回検証）との記載整合が完成。
+- 🔵: REQ-420 guard により同種の取りこぼし（同期対象の見落とし）が CI で検出可能に。
+
+**Disposition**: DESIGN-SYNC + PHANTOM-MAINTAIN + GUARD-FIX。(1) 設計正本3文書の出典・木・境界 section を実装実態へ同期、(2) REQ-420 として design-doc-source-currency guard を固定（導出式 + pin 一致の 2 手法を併用）、(3) steering 具象指示の cross-repo phantom 判定を継続記録、(4) 本 A128 と feature dir 4 file・guard 1 file・ledger 1 行の統合更新を生成。
