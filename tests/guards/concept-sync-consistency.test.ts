@@ -2051,19 +2051,23 @@ describe('code-symbol descriptor classifier (local) — contract pin', () => {
 //     drift now REDs at the very upgrade that changes semantics, not
 //     whenever someone happens to re-audit the prose.
 //
-// Fail-loud prerequisite for the conformance legs below, and the reason its
-// diagnostic is permanently pinned. A missing package is an environment
-// defect, not version drift — a worktree whose node_modules was
-// hardlink-copied mid-install (observed 2026-08-28: node_modules/@jest
-// entirely absent while the parent repo had the full set) would RED the
-// version leg with a raw ENOENT that reads like a main breakage. The check
-// is a named helper (session-239: a check only exercised through live data
-// has no contract) so the diagnostic leg can drive BOTH branches through
-// the real fs — a probe dir that cannot exist on any checkout takes the
-// missing branch (no node:fs mock: jest.mock of builtins is a no-op under
-// this repo's ESM setup), the real @jest/pattern dir the healthy one. One
-// JEST_PACKAGE_PREFIX keeps probe and package on the same path form, so the
-// diagnostic's path pin cannot drift from what the prerequisite checks.
+// Fail-loud prerequisite for the conformance legs below.
+//
+// Prerequisite semantics — a missing package is an environment defect, not
+// version drift: observed 2026-08-28, a worktree hardlink-copied
+// mid-install had node_modules/@jest entirely absent (parent repo intact)
+// and the raw ENOENT read like a main breakage. Each message fragment
+// routes that reader — the path names WHAT is missing, "incomplete
+// node_modules" the defect, "not a version drift" the non-cause, cp -al
+// the reinstall route npm ci alone does not fix.
+//
+// Pin design — a named helper (session-239: a check only exercised through
+// live data has no contract) so the diagnostic leg can drive BOTH branches
+// through the real fs: the probe dir cannot exist on any checkout (no fs
+// mock — jest.mock of builtins is a no-op under this ESM setup), the real
+// @jest/pattern dir the healthy branch. One JEST_PACKAGE_PREFIX keeps
+// probe and package on the same path form, so the path pin cannot drift
+// from what the prerequisite checks.
 const JEST_PACKAGE_PREFIX = 'node_modules/@jest/';
 const JEST_PATTERN_DIR = `${JEST_PACKAGE_PREFIX}pattern`;
 const JEST_PROBE_DIR = `${JEST_PACKAGE_PREFIX}__missing_probe__`;
@@ -2096,14 +2100,10 @@ describe('jest-pattern conformance (real @jest/pattern module) — eval follow-u
   });
 
   it('diagnostic: the missing-package branch names the environment cause, never version drift', () => {
-    // Permanent pin of the prerequisite's message; every fragment is
-    // load-bearing — "incomplete node_modules" names the environment
-    // defect, "not a version drift" stops the reader hunting a mismatch
-    // that is not there, and the cp -al line names the worktree reinstall
-    // route npm ci alone does not fix. The path expectation DERIVES from
-    // JEST_PROBE_DIR (the same constant the helper consumed), so pin and
-    // probe cannot drift apart; the prose fragments are regex because no
-    // source derives them.
+    // Permanent pin; what each fragment MEANS lives on the helper above
+    // (single source). Leg-specific: the form split — the path expectation
+    // DERIVES from JEST_PROBE_DIR (the constant the helper consumed), the
+    // prose fragments stay regex because nothing derives them.
     expect(() => requireInstalledPackage(JEST_PROBE_DIR)).toThrow(
       `${JEST_PROBE_DIR} is not installed`,
     );
