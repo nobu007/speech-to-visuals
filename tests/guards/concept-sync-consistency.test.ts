@@ -2051,20 +2051,23 @@ describe('code-symbol descriptor classifier (local) — contract pin', () => {
 //     drift now REDs at the very upgrade that changes semantics, not
 //     whenever someone happens to re-audit the prose.
 //
-// Test-stage follow-up (run 20260828-042309 test eval): the prerequisite's
-// fail-loud diagnostic was only ever witnessed as a one-off procedure
-// (remove the package, read the message) — nothing permanent detected the
-// message degrading back to a bare ENOENT. The check is now a named helper
-// with a permanent leg that drives both branches through the REAL fs (a
-// probe dir that cannot exist on any checkout exercises the missing branch;
-// no node:fs mock — jest.mock of builtins is a no-op under ESM here) and
-// pins the diagnostic's load-bearing fragments (incomplete node_modules /
-// not a version drift / cp -al reinstall route) via toThrow.
-// Fail-loud prerequisite for the conformance describe: a missing package is
-// an environment defect, not version drift. Lives as a named helper so the
-// diagnostic leg below can drive both branches and pin the message — the
-// same session-239 lesson as every other helper in this file (a check only
-// exercised through live data has no contract).
+// Fail-loud prerequisite for the conformance legs below, and the reason its
+// diagnostic is permanently pinned. A missing package is an environment
+// defect, not version drift — a worktree whose node_modules was
+// hardlink-copied mid-install (observed 2026-08-28: node_modules/@jest
+// entirely absent while the parent repo had the full set) would RED the
+// version leg with a raw ENOENT that reads like a main breakage. The check
+// is a named helper (session-239: a check only exercised through live data
+// has no contract) so the diagnostic leg can drive BOTH branches through
+// the real fs — a probe dir that cannot exist on any checkout takes the
+// missing branch (no node:fs mock: jest.mock of builtins is a no-op under
+// this repo's ESM setup), the real @jest/pattern dir the healthy one. One
+// JEST_PACKAGE_PREFIX keeps probe and package on the same path form, so the
+// diagnostic's path pin cannot drift from what the prerequisite checks.
+const JEST_PACKAGE_PREFIX = 'node_modules/@jest/';
+const JEST_PATTERN_DIR = `${JEST_PACKAGE_PREFIX}pattern`;
+const JEST_PROBE_DIR = `${JEST_PACKAGE_PREFIX}__missing_probe__`;
+
 function requireInstalledPackage(packageDir: string): void {
   if (!existsSync(resolveSource(join(packageDir, 'package.json')))) {
     throw new Error(
@@ -2078,15 +2081,11 @@ function requireInstalledPackage(packageDir: string): void {
 
 describe('jest-pattern conformance (real @jest/pattern module) — eval follow-up #7', () => {
   it('prerequisite: installed @jest/pattern is exactly the version the mirror was verified against', () => {
-    // A missing package is an environment defect, not version drift: a
-    // worktree whose node_modules was hardlink-copied mid-install (observed
-    // 2026-08-28: node_modules/@jest entirely absent while the parent repo
-    // had the full set) REDs this leg with a raw ENOENT that reads like a
-    // main breakage. Name the cause so the reader fixes the install instead
-    // of hunting for a version mismatch that is not there.
-    requireInstalledPackage('node_modules/@jest/pattern');
+    // Fail-loud guard: see requireInstalledPackage above for why a missing
+    // package REDs with a named cause instead of a raw ENOENT.
+    requireInstalledPackage(JEST_PATTERN_DIR);
     const pkg = JSON.parse(
-      readSource('node_modules/@jest/pattern/package.json'),
+      readSource(`${JEST_PATTERN_DIR}/package.json`),
     ) as { name: string; version: string };
     // RED here means jest was upgraded: re-verify the mirror legs in the
     // checks-target describe (per-token union, 'i' flag, `./`→`^` anchor,
@@ -2097,31 +2096,26 @@ describe('jest-pattern conformance (real @jest/pattern module) — eval follow-u
   });
 
   it('diagnostic: the missing-package branch names the environment cause, never version drift', () => {
-    // Permanent pin of the prerequisite's fail-loud diagnostic. The probe
-    // dir cannot exist on any checkout, so the REAL existsSync takes the
-    // missing branch — no node:fs mock needed (and none possible: jest.mock
-    // of builtins is a no-op under this repo's ESM setup), while the real
-    // @jest/pattern dir takes the healthy branch the prerequisite relies
-    // on. Each fragment below is load-bearing: the path names WHAT is
-    // missing, "incomplete node_modules" names the environment defect, "not
-    // a version drift" stops the reader hunting a mismatch that is not
-    // there, and the reinstall line names the cp -al worktree route that
-    // npm ci alone does not fix.
-    const missing = 'node_modules/@jest/__missing_probe__';
-    expect(() => requireInstalledPackage(missing)).toThrow(
-      `${missing} is not installed`,
+    // Permanent pin of the prerequisite's message; every fragment is
+    // load-bearing — "incomplete node_modules" names the environment
+    // defect, "not a version drift" stops the reader hunting a mismatch
+    // that is not there, and the cp -al line names the worktree reinstall
+    // route npm ci alone does not fix. The path expectation DERIVES from
+    // JEST_PROBE_DIR (the same constant the helper consumed), so pin and
+    // probe cannot drift apart; the prose fragments are regex because no
+    // source derives them.
+    expect(() => requireInstalledPackage(JEST_PROBE_DIR)).toThrow(
+      `${JEST_PROBE_DIR} is not installed`,
     );
-    expect(() => requireInstalledPackage(missing)).toThrow(
+    expect(() => requireInstalledPackage(JEST_PROBE_DIR)).toThrow(
       /incomplete node_modules/,
     );
-    expect(() => requireInstalledPackage(missing)).toThrow(
+    expect(() => requireInstalledPackage(JEST_PROBE_DIR)).toThrow(
       /not a version drift/,
     );
-    expect(() => requireInstalledPackage(missing)).toThrow(/cp -al/);
+    expect(() => requireInstalledPackage(JEST_PROBE_DIR)).toThrow(/cp -al/);
     // Healthy branch: the exact package the prerequisite leg checks.
-    expect(() =>
-      requireInstalledPackage('node_modules/@jest/pattern'),
-    ).not.toThrow();
+    expect(() => requireInstalledPackage(JEST_PATTERN_DIR)).not.toThrow();
   });
 
   it('mirror selection verdicts equal the real executor over the live test-file universe', () => {
