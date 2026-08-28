@@ -2066,8 +2066,7 @@ describe('code-symbol descriptor classifier (local) — contract pin', () => {
 // through the real fs: the probe dir cannot exist on any checkout (no fs
 // mock — jest.mock of builtins is a no-op under this ESM setup), the real
 // @jest/pattern dir the healthy branch. One JEST_PACKAGE_PREFIX keeps
-// probe and package on the same path form, so the path pin cannot drift
-// from what the prerequisite checks.
+// probe and package on the same path form.
 const JEST_PACKAGE_PREFIX = 'node_modules/@jest/';
 const JEST_PATTERN_DIR = `${JEST_PACKAGE_PREFIX}pattern`;
 const JEST_PROBE_DIR = `${JEST_PACKAGE_PREFIX}__missing_probe__`;
@@ -2100,10 +2099,12 @@ describe('jest-pattern conformance (real @jest/pattern module) — eval follow-u
   });
 
   it('diagnostic: the missing-package branch names the environment cause, never version drift', () => {
-    // Permanent pin; what each fragment MEANS lives on the helper above
-    // (single source). Leg-specific: the form split — the path expectation
-    // DERIVES from JEST_PROBE_DIR (the constant the helper consumed), the
-    // prose fragments stay regex because nothing derives them.
+    // Permanent pin; what each fragment MEANS lives in the 'Prerequisite
+    // semantics' paragraph above (single source). Leg-specific: the form
+    // split — the path expectation DERIVES from JEST_PROBE_DIR (the constant
+    // the helper consumed) and so cannot drift from the package the
+    // prerequisite checks; the prose fragments stay regex — nothing derives
+    // them.
     expect(() => requireInstalledPackage(JEST_PROBE_DIR)).toThrow(
       `${JEST_PROBE_DIR} is not installed`,
     );
