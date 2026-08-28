@@ -526,10 +526,24 @@ invariants:
     statement: "claims.ndjson の全 retained line は compact JSON 1 行形式 (先頭 `{\"run_id\":\"` — key/value separator に空白を挟まない) を保つ事。run_id は常に先頭 key であり、line 先頭 prefix が ledger の byte 規約である"
     rationale: "append-only ledger は line diff で運用される為、byte 形式が 2 dialect (compact / spaced) に分裂すると appender が近傍の少数 dialect を写して分裂が拡大し、prefix を前提とする ndjson byte census の前提が崩れる。JSON.parse は両形式を同一視する為 semantic leg では検出不能 — byte 形式の pin が唯一の検出器。2026-08-28 時点で 112 line 中 11 line が spaced dialect だったものを正規化 (JSON semantic は deep-equal 確証済み) し今後の分裂を封じた"
     evidence:
-      - source: "tests/guards/concept-sync-consistency.test.ts#L1254"
+      - source: "tests/guards/concept-sync-consistency.test.ts#L1257"
         quote: "  it('claims: retained lines keep the ledger compact byte form (INV-TEST-009)', () => {"
-      - source: "tests/guards/concept-sync-consistency.test.ts#L1266"
+      - source: "tests/guards/concept-sync-consistency.test.ts#L1269"
         quote: "    const spaced = claimLines.filter((line) => !line.startsWith('{\"run_id\":\"'));"
+    checks:
+      - type: "test"
+        target: "tests/guards/concept-sync-consistency.test.ts"
+  - id: "INV-TEST-010"
+    related_terms: ["GuardHarness"]
+    status: "stable"
+    strength: "hard"
+    statement: ".concept/run_state.json と .concept/ontology_metrics.json の byte 形式は単一 dialect (canonical compact JSON 1 行 + trailing newline 1 個) を保つ事。file 全体の byte 列はその file 自身の parsed 値を JSON.stringify で再直列化した結果 + 改行 1 文字と完全一致しなければならない"
+    rationale: "run 20260827-220857 の eval が指摘した通り、両 JSON state file は相反する dialect (run_state = compact 1 行・trailing newline 無し / ontology_metrics = pretty 13 行) に分裂していた。JSON.parse は byte 盲目の為 semantic leg 群は green のまま分裂が進み得る — INV-TEST-009 が claims.ndjson に課した ONE byte dialect 原則と同じ欠陥が state file に存在した。state file は cycle 毎に別 agent 手で全書換えされる為、dialect 分裂は毎 run の diff を dialect roulette にし byte review で値変更と再整形を区別不能にする。期待 byte 列は parsed 値からの導出式 (bare pin では無い) の為定数 stale 化は構造的に起きない。2026-08-28 時点の 2 dialect を compact + trailing newline (claims.ndjson と同じ POSIX text 規約) へ正規化した"
+    evidence:
+      - source: "tests/guards/concept-sync-consistency.test.ts#L1273"
+        quote: "  it('state files: run_state/ontology_metrics keep one JSON byte dialect (INV-TEST-010)', () => {"
+      - source: "tests/guards/concept-sync-consistency.test.ts#L1293-L1296"
+        quote: "    const offenders = stateFiles"
     checks:
       - type: "test"
         target: "tests/guards/concept-sync-consistency.test.ts"
