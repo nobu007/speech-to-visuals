@@ -1,10 +1,10 @@
 # spine registry title-sync census — 自動分析記録
 
 <!-- spine:anchor:begin -->
-> **Spine anchor**: [speech-to-visuals 設計自動分析記録](../speech-to-visuals/design-interview.md)
+> **Spine anchor**: [Speech-to-Visuals システム憲法 V2.8](../../SYSTEM_CONSTITUTION.md)
 >
-> - parent: `speech-to-visuals/design-interview.md`
-> - role: `detailed`
+> - parent: `SYSTEM_CONSTITUTION.md`
+> - role: `feature_root`
 > - status: `canonical_child`
 <!-- spine:anchor:end -->
 
