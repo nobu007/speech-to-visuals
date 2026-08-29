@@ -4640,7 +4640,24 @@ interfaces.ts には既にこれらの主要型が反映済み。
 **Disposition**: CACHE-CONTRACT-EXTEND + MW-MATRIX-FORMALIZE + OVERLAY-MOUNT-CONFIRM + DISCIPLINE-WARN + PARKED-MAINTAIN + INTERVIEW-CONTINUE。(1) INV-CACHE-002 を INV-CACHE-001 からの contract 拡張として正式昇格、(2) MW-085〜090 mutation matrix を ledger 構造として位置付け、(3) CorruptionOverlay マウント + cache integrity 4 hop 連結を再確認、(4) PINNED_MIN_ENTRIES bump discipline を 🔴 警告として記録、(5) A2 / C2 parked status を 🟡 継続観察、(6) design-interview.md A127 として本エントリ追加。本 A127 は design-interview.md A127 追加 + note.md / architecture.md / dataflow.md 最終更新日更新の **4 file 統合更新**を生成。
 
 
+<!-- spine:children:begin -->
+## Spine: child documents
 
+- [Pipeline Metrics NaN Leak Fix — 自動分析記録](../pipeline-metrics-nan-leak-fix/interview-record.md)
+- [stochastic-layout-seeding 設計自動分析記録](../stochastic-layout-seeding/design-interview.md)
+- [finite-safe-aggregation 設計自動分析記録](../finite-safe-aggregation/design-interview.md)
+- [finite-safe-aggregation 自動分析記録](../finite-safe-aggregation/interview-record.md)
+- [guard-harness-fold-census 設計自動分析記録](../guard-harness-fold-census/design-interview.md)
+- [table-driven ガードハーネス抽出と fold 収束 census 自動分析記録](../guard-harness-fold-census/interview-record.md)
+- [audit-pass-first census 第5 facet — 自動分析記録](../audit-pass-first-census-facet-5/interview-record.md)
+- [boundary strictness census — 自動分析記録](../boundary-operator-census/interview-record.md)
+- [rounding-mode census — 自動分析記録](../rounding-mode-census/interview-record.md)
+- [spine edge 双方向 census — 自動分析記録](../spine-edge-bidirectional-census/interview-record.md)
+- [spine registry title-sync census — 自動分析記録](../spine-registry-title-sync/interview-record.md)
+- [dead-idiom batch census — 自動分析記録](../dead-idiom-batch-census/interview-record.md)
+- [stv-core design sync 自動分析記録](../stv-core-design-sync/interview-record.md)
+
+<!-- spine:children:end -->
 
 
 <!-- spine:references:begin -->

@@ -2,10 +2,10 @@
 
 
 <!-- spine:anchor:begin -->
-> **Spine anchor**: [Speech-to-Visuals システム憲法 V2.8](../../../SYSTEM_CONSTITUTION.md)
+> **Spine anchor**: [speech-to-visuals アーキテクチャ設計](../../speech-to-visuals/architecture.md)
 >
-> - parent: `SYSTEM_CONSTITUTION.md`
-> - role: `feature_root`
+> - parent: `speech-to-visuals/architecture.md`
+> - role: `detailed`
 > - status: `canonical_child`
 <!-- spine:anchor:end -->
 
