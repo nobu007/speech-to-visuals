@@ -351,3 +351,4 @@ worktrees/
 
 # ai-hub tool-internal state
 .ai/
+.serena/
