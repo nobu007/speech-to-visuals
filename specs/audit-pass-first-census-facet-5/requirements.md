@@ -332,9 +332,17 @@ third-party-sdk カテゴリで ALLOWED、ERADICATED 0 key。
 REQ-395 three-way guard の phrase 検査は次の verbatim 文字列を
 spec に要求する：
 
-- **stale-comment-census**: ALLOWED 23 key / ERADICATED 0 key
+- **stale-comment-census**: ALLOWED 24 key / ERADICATED 0 key
 - **type-narrow-as-any-census**: ALLOWED 0 key / ERADICATED 0 key
 - **any-annotate-census**: ALLOWED 1 key / ERADICATED 0 key
+
+**〔2026-08-29 re-pin〕** whisper-transcriber への gated real-inference
+wiring（attemptRealInference）で既存 disclosure comment が `:290` →
+`:507` へ移動し、同 branch の `placeholder emitters below.`（`:406`）
+が新規 discovery となったため 23 → 24 key（いずれも placeholder
+fallback の DISCLOSURE 軸・reason は gated inference の実態に合わせ
+更新）。上記 Phase 196 訂正段落の「実 roster は 23 key」は当時の
+実測値のまま（歴史記録）。
 
 ## 最小限の非機能要件
 

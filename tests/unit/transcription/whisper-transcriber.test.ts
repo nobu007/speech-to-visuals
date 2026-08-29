@@ -118,7 +118,22 @@ describe('REQ-178: WhisperTranscriber', () => {
     it('should throw TranscriptionError for non-blob string path in browser', async () => {
       const transcriber = new WhisperTranscriber();
 
-      await expect(transcriber.transcribe('/path/to/file.wav')).rejects.toThrow('String file paths not supported');
+      // The browser guard is `typeof window !== 'undefined'` — plain paths
+      // are legal on the server route (fs read), so the test must actually
+      // simulate the browser global to pin the browser-only error.
+      const globalScope = globalThis as { window?: unknown };
+      const hadWindow = 'window' in globalScope;
+      const previousWindow = (globalScope as { window?: unknown }).window;
+      globalScope.window = {};
+      try {
+        await expect(transcriber.transcribe('/path/to/file.wav')).rejects.toThrow('String file paths not supported');
+      } finally {
+        if (hadWindow) {
+          (globalScope as { window?: unknown }).window = previousWindow;
+        } else {
+          delete globalScope.window;
+        }
+      }
     });
 
     it('should throw TranscriptionError for corrupt audio (too small)', async () => {

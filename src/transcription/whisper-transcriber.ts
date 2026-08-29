@@ -35,6 +35,133 @@ export interface WhisperConfig {
  */
 export const PLACEHOLDER_SEGMENT_CONFIDENCE = 0.95;
 
+// ---------------------------------------------------------------------------
+// Real whisper.cpp inference wiring (README「音声認識の現状」)
+//
+// The server path used to be a placeholder emitter: initializeNodeWhisper()
+// probed `import('whisper-node')` once and discarded the result, and no code
+// ever called the model. The probe was worse than useless — whisper-node's
+// module load chdirs the whole process (shell.ts `cd` into lib/whisper.cpp)
+// and, when the compiled `main` binary is missing, runs a synchronous `make`
+// and then `process.exit(1)` (see tests/__mocks__/whisper-node.ts). The
+// wiring below loads the backend LAZILY, strictly behind a compiled-binary +
+// ggml-model existence gate, so a process without a whisper install never
+// touches the package at all.
+// ---------------------------------------------------------------------------
+
+/** One row of whisper-node's parsed output ("HH:MM:SS.mmm" timestamps + text). */
+export interface RawWhisperRow {
+  start: string;
+  end: string;
+  speech: string;
+}
+
+/** Callable shape of whisper-node's default export (whisper-node.d.ts keeps it `any`). */
+export type WhisperBackend = (
+  filePath: string,
+  options?: {
+    modelPath?: string;
+    whisperOptions?: { language?: string; word_timestamps?: boolean };
+  }
+) => Promise<RawWhisperRow[] | null | undefined>;
+
+/** Compiled whisper.cpp `main` + ggml model — both must exist before the backend loads. */
+export interface WhisperInferencePaths {
+  binaryPath: string;
+  modelPath: string;
+}
+
+/** Runtime injection: tests fake the backend + paths; production uses the fs probe + lazy import. */
+export interface WhisperRuntime {
+  backend?: WhisperBackend;
+  /** Injected paths are trusted as-is (no existence check). `null` force-disables inference. */
+  inferencePaths?: WhisperInferencePaths | null;
+}
+
+/**
+ * Parse a whisper.cpp timestamp ("HH:MM:SS.mmm"; the hours part is optional)
+ * into milliseconds. Returns null for anything else — callers drop the row
+ * rather than emit a segment with a fabricated time.
+ */
+export function parseWhisperTimestampToMs(timestamp: string): number | null {
+  if (typeof timestamp !== 'string') return null;
+  const match = /^(?:(\d+):)?(\d{1,2}):(\d{1,2}(?:\.\d{1,3})?)$/.exec(timestamp.trim());
+  if (!match) return null;
+  const hours = match[1] ? parseInt(match[1], 10) : 0;
+  const minutes = parseInt(match[2], 10);
+  const seconds = parseFloat(match[3]);
+  const ms = (hours * 3600 + minutes * 60 + seconds) * 1000;
+  return Number.isFinite(ms) ? Math.round(ms) : null;
+}
+
+/**
+ * Convert whisper-node rows into TranscriptionSegments. Returns null unless at
+ * least one usable row survives: whisper-node swallows its own errors and
+ * resolves `undefined`, and an empty/garbage array is indistinguishable from a
+ * failed run — both must fall through to the disclosed placeholder, never be
+ * reported as a (zero-segment) real transcription.
+ *
+ * Surviving segments carry NO confidence: whisper.cpp's default output has
+ * none, so `confidence` stays undefined ("unmeasured") instead of being
+ * stamped with a dressed-up number.
+ */
+export function convertWhisperRows(rows: RawWhisperRow[] | null | undefined): TranscriptionSegment[] | null {
+  if (!Array.isArray(rows)) return null;
+  const segments: TranscriptionSegment[] = [];
+  for (const row of rows) {
+    const text = typeof row?.speech === 'string' ? row.speech.trim() : '';
+    if (!text) continue;
+    const start = parseWhisperTimestampToMs(row.start);
+    const end = parseWhisperTimestampToMs(row.end);
+    if (start === null || end === null || end <= start) continue;
+    segments.push({ id: segments.length, start, end, text });
+  }
+  return segments.length > 0 ? segments : null;
+}
+
+/**
+ * Walk up from `startDir` to the first ancestor containing a whisper-node
+ * whisper.cpp checkout. Walking (instead of trusting cwd) matters because
+ * whisper-node chdirs the process at module load — the same defense
+ * actual-video-renderer.ts mounts for its project-root lookup.
+ */
+function findWhisperCppDir(startDir: string, exists: (p: string) => boolean): string | null {
+  let current = startDir;
+  for (;;) {
+    const candidate = `${current}/node_modules/whisper-node/lib/whisper.cpp`;
+    if (exists(candidate)) return candidate;
+    const parent = current.slice(0, current.lastIndexOf('/'));
+    if (!parent || parent === current) return null;
+    current = parent;
+  }
+}
+
+/**
+ * Resolve the binary + model pair for real inference, or null when either is
+ * missing. Pure over injected `deps` — Node callers pass fs.existsSync /
+ * process.cwd() / process.env; tests pass fakes.
+ *
+ * Model resolution order: STV_WHISPER_MODEL env (explicit .bin file, e.g.
+ * fetched via `npx whisper-node download` or @remotion/install-whisper-cpp)
+ * → whisper-node's own `models/ggml-<model>.bin` layout.
+ */
+export function resolveWhisperInferencePaths(
+  model: WhisperConfig['model'],
+  deps: {
+    exists: (p: string) => boolean;
+    startDir: string;
+    env?: { STV_WHISPER_MODEL?: string };
+  }
+): WhisperInferencePaths | null {
+  const cppDir = findWhisperCppDir(deps.startDir, deps.exists);
+  if (!cppDir) return null;
+  const binaryPath = `${cppDir}/main`;
+  const envModel = deps.env?.STV_WHISPER_MODEL;
+  const modelPath = envModel && deps.exists(envModel) ? envModel : `${cppDir}/models/ggml-${model}.bin`;
+  if (!deps.exists(binaryPath) || !deps.exists(modelPath)) return null;
+  return { binaryPath, modelPath };
+}
+
 /**
  * Extract file extension from a File object name or path string
  */
@@ -56,10 +183,11 @@ function getAudioFormat(input: File | ArrayBuffer | string): string | null {
  */
 export class WhisperTranscriber {
   private config: WhisperConfig;
+  private runtime: WhisperRuntime;
   private isWhisperReady: boolean = false;
   private iterationCount: number = 0;
 
-  constructor(config: Partial<WhisperConfig> = {}) {
+  constructor(config: Partial<WhisperConfig> = {}, runtime: WhisperRuntime = {}) {
     this.config = {
       model: 'base',
       language: 'auto',
@@ -68,8 +196,14 @@ export class WhisperTranscriber {
       enableTimestamps: true,
       ...config
     };
+    this.runtime = runtime;
 
-    this.initializeWhisper();
+    // No eager whisper-node probe here. The old constructor kicked off an
+    // (un-awaited) `import('whisper-node')` whose module load chdirs the
+    // process and falls back to a synchronous `make` + `process.exit(1)`
+    // when the compiled binary is absent — a boot-time landmine for the API
+    // server. The backend is now loaded lazily inside attemptRealInference(),
+    // strictly behind the binary+model existence gate.
   }
 
   /**
@@ -85,43 +219,111 @@ export class WhisperTranscriber {
   }
 
   /**
-   * Initialize Whisper.cpp with progressive enhancement
+   * Server-path real whisper.cpp inference. Returns the converted segments
+   * only when whisper actually produced them; every other outcome (browser
+   * environment, gate closed, module unavailable, whisper failure, empty
+   * output) returns null and the caller falls through to the disclosed
+   * placeholder emitters.
    */
-  private async initializeWhisper(): Promise<void> {
+  private async attemptRealInference(audioInput: File | ArrayBuffer | string): Promise<TranscriptionSegment[] | null> {
+    if (typeof window !== 'undefined') return null; // browser: the Web Speech engine owns transcription
+    const paths = await this.resolveInferencePaths();
+    if (!paths) return null;
+    const backend = await this.loadBackend();
+    if (!backend) return null;
+    const staged = await this.stageAudioForWhisper(audioInput);
     try {
+      const whisperOptions =
+        this.config.language && this.config.language !== 'auto'
+          ? { language: this.config.language }
+          : undefined;
+      const rows = await backend(staged.path, { modelPath: paths.modelPath, whisperOptions });
+      return convertWhisperRows(rows);
+    } catch (error) {
+      logger.warn('[WhisperTranscriber] whisper.cpp inference failed, using disclosed placeholder:', error);
+      return null;
+    } finally {
+      await staged.cleanup();
+    }
+  }
 
-      // Check if we're in browser environment
-      if (typeof window !== 'undefined') {
-        // Browser environment - use WebAssembly Whisper
-        await this.initializeBrowserWhisper();
-      } else {
-        // Node.js environment - use native Whisper
-        await this.initializeNodeWhisper();
-      }
+  /**
+   * Resolve the inference gate. Injected paths (tests) are trusted as-is;
+   * production probes the filesystem from cwd.
+   */
+  private async resolveInferencePaths(): Promise<WhisperInferencePaths | null> {
+    if (this.runtime.inferencePaths !== undefined) return this.runtime.inferencePaths;
+    const fs = await import('fs');
+    return resolveWhisperInferencePaths(this.config.model, {
+      exists: (p) => fs.existsSync(p),
+      startDir: process.cwd(),
+      env: process.env,
+    });
+  }
 
+  /**
+   * Load the whisper-node callable. Lazy + cwd-restoring: the package chdirs
+   * the process at module load, and under jest it is mapped to an empty stub
+   * with no default export — which resolves to null here, keeping the gate
+   * closed in test processes.
+   */
+  private async loadBackend(): Promise<WhisperBackend | null> {
+    if (this.runtime.backend !== undefined) return this.runtime.backend;
+    const cwd = process.cwd();
+    try {
+      const mod = (await import('whisper-node')) as { default?: unknown };
+      if (typeof mod.default !== 'function') return null;
       this.isWhisperReady = true;
-
-    } catch (error) {
-      logger.warn('[WhisperTranscriber] Initialization failed, using fallback:', error);
-      this.isWhisperReady = false;
+      return mod.default as WhisperBackend;
+    } catch {
+      return null;
+    } finally {
+      if (process.cwd() !== cwd) process.chdir(cwd);
     }
   }
 
   /**
-   * Browser Whisper initialization (WebAssembly)
+   * Stage the audio where whisper.cpp can read it. whisper-node takes a real
+   * file path, so File/ArrayBuffer inputs are written to a temp file (removed
+   * after inference); a plain path string is read in place and never deleted.
    */
-  private async initializeBrowserWhisper(): Promise<void> {
+  private async stageAudioForWhisper(
+    audioInput: File | ArrayBuffer | string
+  ): Promise<{ path: string; cleanup: () => Promise<void> }> {
+    if (typeof audioInput === 'string') {
+      if (!audioInput.startsWith('blob:')) {
+        return { path: audioInput, cleanup: async () => {} };
+      }
+      const response = await fetch(audioInput);
+      return this.writeTempAudio(Buffer.from(await response.arrayBuffer()), 'wav');
+    }
+    const buffer =
+      audioInput instanceof File
+        ? Buffer.from(await audioInput.arrayBuffer())
+        : Buffer.from(audioInput);
+    // Preserve the original extension: whisper.cpp reads WAV natively and
+    // fails on its own for anything it cannot decode — that failure must be
+    // distinguishable from a wrong-format staging artifact.
+    const ext = audioInput instanceof File ? (audioInput.name.split('.').pop() ?? 'wav') : 'wav';
+    return this.writeTempAudio(buffer, ext);
   }
 
-  /**
-   * Node.js Whisper initialization
-   */
-  private async initializeNodeWhisper(): Promise<void> {
-    try {
-      await import('whisper-node').catch(() => null);
-    } catch (error) {
-      logger.warn('[WhisperTranscriber] Node.js Whisper setup failed:', error);
-    }
+  private async writeTempAudio(buffer: Buffer, ext: string): Promise<{ path: string; cleanup: () => Promise<void> }> {
+    const fs = await import('fs');
+    const os = await import('os');
+    const crypto = await import('crypto');
+    const path = `${os.tmpdir()}/stv-whisper-${process.pid}-${crypto.randomUUID()}.${ext}`;
+    fs.writeFileSync(path, buffer);
+    return {
+      path,
+      cleanup: async () => {
+        try {
+          fs.rmSync(path);
+        } catch {
+          // best-effort temp cleanup
+        }
+      },
+    };
   }
 
   /**
@@ -197,29 +399,31 @@ export class WhisperTranscriber {
     // Step 1: Validate input (format, size, corruption)
     this.validateAudioInput(audioInput);
 
-    // Step 2: Preprocess input to ArrayBuffer
-    const processedAudio = await this.preprocessAudio(audioInput);
+    // Step 2: Run REAL whisper.cpp inference when the server environment has
+    // a compiled binary + model (README「音声認識の現状」). attemptRealInference
+    // returns null unless whisper actually produced segments — gate closed,
+    // module missing, whisper failure and empty output all fall through to the
+    // placeholder emitters below.
+    const inferred = await this.attemptRealInference(audioInput);
+    const inferenceRan = inferred !== null;
 
-    // Step 2b: Check for corruption
-    this.checkCorruption(processedAudio);
-
-    // Step 3: Run transcription with best available method
     let segments: TranscriptionSegment[];
-
-    // Neither emitter below runs ASR inference (README「音声認識の現状」):
-    // runRealWhisperTranscription emits fixed sentences via
-    // generateHighQualityTranscript() and runEnhancedFallback a hardcoded
-    // English block. `inferenceRan` marks the slot where a real backend will
-    // set true; until then the result must disclose `placeholder: true` so the
-    // pipeline's priority routing cannot mistake the fabricated success for a
-    // measured transcription (which kept the browser Web Speech fallback
-    // unreachable).
-    const inferenceRan = false;
-
-    if (this.isWhisperReady) {
-      segments = await this.runRealWhisperTranscription(processedAudio);
+    if (inferred !== null) {
+      segments = inferred;
     } else {
-      segments = await this.runEnhancedFallback(processedAudio);
+      // Step 2b: Preprocess input to ArrayBuffer + corruption check
+      const processedAudio = await this.preprocessAudio(audioInput);
+      this.checkCorruption(processedAudio);
+
+      // Neither emitter below runs ASR inference: runRealWhisperTranscription
+      // emits fixed sentences via generateHighQualityTranscript() and
+      // runEnhancedFallback a hardcoded English block. The result must
+      // disclose `placeholder: true` so the pipeline's priority routing
+      // cannot mistake the fabricated success for a measured transcription
+      // (which kept the browser Web Speech fallback unreachable).
+      segments = this.isWhisperReady
+        ? await this.runRealWhisperTranscription(processedAudio)
+        : await this.runEnhancedFallback(processedAudio);
     }
 
     // Step 4: Post-process and validate results
@@ -263,6 +467,17 @@ export class WhisperTranscriber {
       if (audioInput.startsWith('blob:')) {
         const response = await fetch(audioInput);
         return await response.arrayBuffer();
+      } else if (typeof window === 'undefined') {
+        // Server route: a plain filesystem path (batch pipeline, accuracy
+        // harness). The pipeline validates readability before calling; in
+        // Node the bytes come off disk. The browser bundle has no fs, so the
+        // error below stays browser-only.
+        const fs = await import('fs');
+        const buffer = fs.readFileSync(audioInput);
+        return buffer.buffer.slice(
+          buffer.byteOffset,
+          buffer.byteOffset + buffer.byteLength
+        ) as ArrayBuffer;
       } else {
         throw new TranscriptionError('String file paths not supported in browser environment');
       }
@@ -272,7 +487,9 @@ export class WhisperTranscriber {
   }
 
   /**
-   * Real Whisper transcription implementation
+   * Placeholder emitter used when real inference was attempted (backend
+   * loaded) but whisper produced nothing — fixed sentences, no ASR behind
+   * them, disclosed via `placeholder: true`.
    */
   private async runRealWhisperTranscription(audioBuffer: ArrayBuffer): Promise<TranscriptionSegment[]> {
 
@@ -373,7 +590,15 @@ export class WhisperTranscriber {
       // anyway — the plain `??` is the same expression minus the dead
       // assertion. sanitizeFinite(v, 0.8) ≡ Number.isFinite(v) ? v : 0.8.
       id: segment.id ?? index,
-      confidence: Math.max(sanitizeFinite(segment.confidence, 0.8), 0.8),
+      // Real whisper.cpp segments carry NO confidence (its default output has
+      // none) — undefined stays undefined ("unmeasured": Caption.confidence
+      // renders it as null, metrics count it as 0) instead of being stamped
+      // with a dressed-up 0.8. Placeholder emitters set
+      // PLACEHOLDER_SEGMENT_CONFIDENCE explicitly and pass the floor unchanged.
+      confidence:
+        segment.confidence === undefined
+          ? undefined
+          : Math.max(sanitizeFinite(segment.confidence, 0.8), 0.8),
       text: segment.text.trim().replace(/\s+/g, ' ')
     })).filter(segment =>
       segment.text.length > 0 &&
