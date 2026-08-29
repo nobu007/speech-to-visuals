@@ -1131,14 +1131,12 @@ const ALLOWED: Record<string, string> = {
     'REPORT-ONLY — telemetry payload field for error correlation; no behavior branches on the string.',
   'src/transcription/browser-transcriber.ts:257':
     'REPORT-ONLY — getBrowserCompatibility() diagnostics; the capability verdict is the feature detection (`isRecognitionSupported`), not the UA parse; a UA BRANCH is an unrostered RED.',
-  // [swallowed-rejection] the Node whisper path's dynamic-import
-  // availability probe — whether whisper-node LOADS is the whole question;
-  // a failed import resolves null and the null is deliberately discarded
-  // (README: the server route only probes loadability, it never runs
-  // inference). Every other .catch-to-void is a silent rejection swallow
-  // and an unrostered RED.
-  'src/transcription/whisper-transcriber.ts:121':
-    'PROBE-DELIBERATE — await import("whisper-node").catch(() => null) is the README-documented loadability probe (no inference runs on this route); the null is discarded by design; any other .catch(() => {})/null/undefined swallow is an unrostered RED.',
+  // [swallowed-rejection] ERADICATED 2026-08-29: the kind's last site was
+  // whisper-transcriber.ts's eager `await import("whisper-node").catch(()
+  // => null)` loadability probe, removed when real inference wiring replaced
+  // it (loadBackend() uses try/catch + cwd restore behind the binary+model
+  // existence gate). Zero live sites is the pin now; the kind stays in the
+  // registry so any NEW .catch-to-void swallow is an unrostered RED.
   // [console-nondebug-sink] the logger's own transports — the sibling rows
   // of the console.debug LOGGER-IMPL entry at :20 in the same file
   // (@stv/core-owned): info/warn/error ARE the level-gated sinks. A
@@ -1247,7 +1245,9 @@ describe('dead-idiom batch census (REQ-410)', () => {
     expect(sites.filter((s) => s.kind === 'tolocalestring-bare').length).toBeGreaterThanOrEqual(1);
     expect(sites.filter((s) => s.kind === 'blocking-dialog').length).toBeGreaterThanOrEqual(1);
     expect(sites.filter((s) => s.kind === 'useragent-sniffing').length).toBeGreaterThanOrEqual(3);
-    expect(sites.filter((s) => s.kind === 'swallowed-rejection').length).toBeGreaterThanOrEqual(1);
+    // No swallowed-rejection floor: the kind's last site (whisper's eager
+    // import probe) was eradicated 2026-08-29 by the real-inference wiring —
+    // exact-0 is the pin now, same convention as the other exact-0 kinds.
     expect(sites.filter((s) => s.kind === 'console-nondebug-sink').length).toBeGreaterThanOrEqual(3);
     expect(sites.filter((s) => s.kind === 'dead-ua-platform').length).toBeGreaterThanOrEqual(1);
     expect(sites.filter((s) => s.kind === 'localedatestring-bare').length).toBeGreaterThanOrEqual(4);

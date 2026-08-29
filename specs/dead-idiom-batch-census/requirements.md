@@ -919,6 +919,23 @@ REQ-419-002 相当）。
 **When**: 3 独立 mutation（`src/analysis/untrusted-json-core.ts` 末尾への `url.parse(rawUrl)` 注入 / 同位置への `console.time('sweep10r')` 注入 / 同位置への `children.map((c) => c)` 注入）を適用する
 **Then**: 3 mutation とも各 1 failed completeness RED（`:126 [node-url-parse]` / `[console-devtools-sink]` / `[children-map-direct]` 帰着）・revert で 8/8 GREEN 復元・`git status --short src/` 0 file（src 変更ゼロ recovery — PR 側の計測は陳腐化 base 対応のため回収時に現行 tree へ再実証）
 
+### REQ-419-008: swallowed-rejection kind の site 消滅 — real-inference wiring による eradication（2026-08-29）
+
+**Given**: whisper-transcriber が gated real-inference wiring
+（`attemptRealInference` + binary/model 存在 gate 内の `loadBackend()`）
+へ置き換わり、eager だった `await import("whisper-node").catch(() => null)`
+loadability probe（`src/transcription/whisper-transcriber.ts:121`）—
+swallowed-rejection kind の最後の live site — がコードごと消滅
+**When**: dead-idiom batch census を実行する
+**Then**: 8 test GREEN（ALLOWED **28 → 27 key** / ERADICATED 13 key の
+three-way 句一致・kind registry 155 entry 不変 — kind 自体は registry に
+残り再導入は unrostered RED・authority 側の kind floor を exact-0 pin へ
+移行）
+
+**テストケース**:
+
+- [x] **TC-419-08**: ALLOWED 27 key / ERADICATED 13 key の three-way 句一致（whisper `:121` row の引取・stale key 0・`swallowed-rejection` floor 文言の撤去）🔵
+
 ## 最小限の非機能要件
 
 - **性能**: 追加検証は既存 walk の行 scan のみ（file 再読みなし・guard 実行 < 1s）
