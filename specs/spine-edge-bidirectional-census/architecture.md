@@ -9,7 +9,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-08-27
-**最終更新**: 2026-08-27（kairo-design session A127 — interface / verification 節を architecture.md へ昇格。REQ-402 で確定した 7 violation kind に REQ-406（Phase 209）で追加された 2 kind を含む 8 kind 体制を整理し、`auditSpineEdges` の 4 段階 pass の検証プロトコルを明文化）
+**最終更新**: 2026-08-29（Acceptance criteria 節を追加 — requirements.md 検証済み判定の移転）。2026-08-27（kairo-design session A127 — interface / verification 節を architecture.md へ昇格。REQ-402 で確定した 7 violation kind に REQ-406（Phase 209）で追加された 2 kind を含む 8 kind 体制を整理し、`auditSpineEdges` の 4 段階 pass の検証プロトコルを明文化）
 **関連要件定義**: [requirements.md](requirements.md)
 **分析記録**: [interview-record.md](interview-record.md)
 
@@ -295,3 +295,16 @@ tests/
 - 🔴 赤信号: 0件
 
 **品質評価**: 高品質（実装は `tests/guards/spine-edge-contract.ts` 341 行・`tests/guards/spine-edge-census.test.ts` 417 行として実在、8 violation kind・4 pass 構成・2 層検証プロトコルが requirements.md REQ-402 / TC-402 / MW-066 と直接対応）
+
+## Acceptance criteria
+
+判定の正本は [requirements.md](requirements.md)「基本的な受け入れ基準」。本節は
+architecture.md 側に criteria セクションが存在せず brief state が `NEW (0/0)` と
+表示されていた状態を、検証済みの実態へ同期させるものであり、requirements.md の
+判定を移転するのみ（新規の主張を含まない）。各判定の裏付け:
+
+- [x] **TC-402-01**: real-tree exact sweep — `npx jest spine-edge-census` が
+  violations exact-0 + 在庫 floor pin で GREEN（2026-08-29 時点の実行で 31/31 GREEN を確認）
+- [x] **TC-402-02**: c818286f~1 事故 shape（children block を持たない doc への parent 宣言）の合成 fixture が `PARENT_UNREGISTERED` を検出
+- [x] **TC-402-03**: TASK file exempt / root doc exempt / children・references 両登録受容（note→note wiring）の境界 test
+- [x] **TC-402-04**: 8 violation kind（Phase 209 の title-sync 2 kind を含む）の合成 fixture 検出 — 検出能力は MW-066（`../speech-to-visuals/mutation-witness-ledger.md`: Phase 201/202 の 3 独立 mutation + Phase 210 の 3 mutation、各 RED 実測）が担保
