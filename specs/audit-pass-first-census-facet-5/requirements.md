@@ -1,10 +1,10 @@
 # audit-pass-first census 第5 facet（stale-comment・type-narrow-as-any・any 漏出）要件定義書（軽量版）
 
 <!-- spine:anchor:begin -->
-> **Spine anchor**: [speech-to-visuals アーキテクチャ設計](../speech-to-visuals/architecture.md)
+> **Spine anchor**: [Speech-to-Visuals システム憲法 V2.8](../../SYSTEM_CONSTITUTION.md)
 >
-> - parent: `speech-to-visuals/architecture.md`
-> - role: `detailed`
+> - parent: `SYSTEM_CONSTITUTION.md`
+> - role: `feature_root`
 > - status: `canonical_child`
 <!-- spine:anchor:end -->
 
