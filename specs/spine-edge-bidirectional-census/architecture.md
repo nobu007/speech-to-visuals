@@ -9,7 +9,7 @@
 <!-- spine:anchor:end -->
 
 **作成日**: 2026-08-27
-**最終更新**: 2026-08-27（kairo-design session A127 — interface / verification 節を architecture.md へ昇格。REQ-402 で確定した 7 violation kind に REQ-406（Phase 209）で追加された 2 kind を含む 8 kind 体制を整理し、`auditSpineEdges` の 4 段階 pass の検証プロトコルを明文化）
+**最終更新**: 2026-09-02（hub spine-feature pass — Acceptance criteria 節を新設。実装済み guard の verified reality を 2026-09-02 実測値〈31/31 green・在庫 383/374/130/130・violations 0〉とともに正文化。前回 2026-08-27: kairo-design session A127 — interface / verification 節を architecture.md へ昇格。REQ-402 で確定した 7 violation kind に REQ-406（Phase 209）で追加された 2 kind を含む 8 kind 体制を整理し、`auditSpineEdges` の 4 段階 pass の検証プロトコルを明文化）
 **関連要件定義**: [requirements.md](requirements.md)
 **分析記録**: [interview-record.md](interview-record.md)
 
@@ -277,6 +277,17 @@ tests/
 
 - 純関数 module（書き込みなし・副作用なし）。specs/ tree を readFileSync のみ。テスト helper は合成 fixture（`{rel, content}`）で実 tree に触れない unit test が可能（CI 環境差分の影響なし）。
 
+## Acceptance criteria（完了条件）
+
+**信頼性**: 🔵 *2026-09-02 hub spine-feature 実施時に全項目を実測検証（各 bullet に command と観測値を記載）*
+
+- [x] `auditSpineEdges` が 4 pass 構成で 8 violation kind を違反化し、real tree（specs/** 全 .md）に対して violations **exact-0** を返す — 実測 (2026-09-02): `tsx` で `auditSpineEdges(specs 全 .md)` を直接呼び出し `filesChecked 383` / `anchorEdges 374` / `registryEntries 130` / `titleChecked 130` / `violations 0`
+- [x] 2 層検証（real-tree exact sweep + 合成 fixture unit test）が `tests/guards/spine-edge-census.test.ts` として green — 実測 (2026-09-02): `NODE_OPTIONS='--experimental-vm-modules --max-old-space-size=4096' npx jest --config jest.config.cjs spine-edge-census` が **31/31 passed**（floor pin 333/324/100/112 は現 tree の 383/374/130/130 で充足）
+- [x] anchor 解析が REQ-388 に委譲され単一実装（invariant-split 無し）— `tests/guards/spine-edge-contract.ts:58` の `import { isTaskFile, parseAnchorBlocks } from './spine-anchor-contract'` のみで再実装なし
+- [x] MW-066 として 3 独立 mutation（事故再現 re-parent / children 登録行削除 / phantom 対象追加）の RED 実測が `../speech-to-visuals/mutation-witness-ledger.md` に 5 列 template 行（claim / target / mutation / command / observed）として記録済み（Phase 202・TASK-0286 実施、observed 行に各 `Tests: N failed` 実測値あり）
+- [x] atomic dogfood: 本 spec 一式の anchor parent 宣言と parent 側登録（`speech-to-visuals/architecture.md` children への本 doc 登録を含む）が edge 双方向で過不足なし — census violations 0 が機械証明（`PARENT_UNREGISTERED` / `CHILD_BACK_ANCHOR_MISSING` / `REGISTRY_TITLE_DRIFT` すべて 0）
+- [x] 兄弟 gate との同居: `npm run spine:validate`（specs mirror contract 0 violations・manifest は gitignore 正常 skip）および `tsx scripts/sync-spine-anchor-roles.ts --check`（383 file / 374 anchor block / 0 violations）が本 doc を含む tree で green — 実測 (2026-09-02)
+
 ## 関連文書
 
 - **要件定義**: [requirements.md](requirements.md)（REQ-402-001〜007）
@@ -290,7 +301,7 @@ tests/
 
 ## 信頼性レベルサマリー
 
-- 🔵 青信号: 18件（システム概要 / 4 pass 構成 / parser 層 / resolver 層 / audit 層 / test 層 / exported types / exported constants / exempt 規則 / データフロー / 2 層検証 / 境界 test / mutation 検証 / 保守性 / 信頼性 / 性能制約 / 互換性制約 / セキュリティ制約）
+- 🔵 青信号: 19件（システム概要 / 4 pass 構成 / parser 層 / resolver 層 / audit 層 / test 層 / exported types / exported constants / exempt 規則 / データフロー / 2 層検証 / 境界 test / mutation 検証 / 保守性 / 信頼性 / 性能制約 / 互換性制約 / セキュリティ制約 / Acceptance criteria）
 - 🟡 黄信号: 1件（性能・経験値より）
 - 🔴 赤信号: 0件
 
