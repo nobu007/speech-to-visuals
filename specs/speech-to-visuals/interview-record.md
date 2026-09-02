@@ -4655,6 +4655,27 @@ Phase 1-13 全13フェーズ完了（93/93タスク）。ソースファイル�
 
 ---
 
+### A156: Phase 194 — 図解タイプ検出精度の実測化（D-3 harness）と D-4/D-5 残課題の要件化（2026-09-03 第237回検証）
+
+- **判断**（出典ゼロ数値の発見 → 実測による置換 → 残る測定課題の要件化 → phantom feedback の裁決）:
+
+1. **QUALITY_METRICS §3.2「92%」は測定痕跡ゼロ**: AI Hub steering の anti-pattern「数値変更には実測 artifact が必須」に照らし、§3.2 Diagram Type Accuracy の Current 92% を支える測定器・dataset・run 記録が repo 内に一切存在しないことを確認。また §3.1 Transcription Accuracy の「~85%」も同様に出典なし（D-2 harness 導入済みなのに実測を待たず数値が残っていた — PR #96 の README「音声認識の現状」記述とも不整合）。→ §3.2 は D-3 harness で実測した **84.9%（28/33）** に置換、§3.1 は「未測定 — 実測待ち」に訂正（placeholder 経路は測定ではない）。数値の下方修正になったが、出典のない高値より出典付きの実測値を正典とする判断。
+2. **D-3 の設計**: dataset（33 case・正典 11 タイプ × 3・各タイプ ja/en）は human ground truth で detector 出力をラベルにしない。rule engine が "idea" keyword で mindmap を選ぶ general-en-1 など既知 miss を note 付きで残し、hard case 除外による水増しを構造的に防止。harness は production 経路（`DiagramDetector.detect(null, segments)`）を直接走査 — mock した detector を測っても生産の合意率にならないため。metric core は pure・決定論的（timestamp なし・confusion sort 全順序固定）で、空 run は throw（D-2 の fail-loud 契約と同一）。**実測 baseline は test に exact pin**（28/33・confusion 5 cell・2 回走査で summary 完全一致の決定論 witness 同梱）し、detector 変更が無 review の数値 drift を生む経路を遮断。
+3. **D-4/D-5 は要件化のみで次サイクルへ**: real-audio E2E regression（WER/RTF/総処理時間の JSON 報告・placeholder run は失敗扱い・WER は D-2 pure core に単一ソース化）を REQ-422、評価用音声コーパス（`public/audio/` = D-2 harness `--corpus` 既定・参照文字起こし同伴・ライセンス開示・コーパス空の WER 記録禁止）を REQ-423 として 🔵 提案ベースで要件化。TC-406/407 は `- [ ]` のままで born-DONE にしない。
+4. **REQ-480 は phantom と裁決**: make-run feedback が挙げた REQ-480 は `grep -rn 'REQ-480' specs/ src/ tests/ scripts/ docs/` で 0 件（memory の phantom-feedback trap パターン — 高水準の META-intent「未配線 UI の検出」は real だが番号実体なし）。実体のない REQ 番号を復元せず、本 Phase の要件化対象から除外。
+5. **open-handle trap の再実証**: detector import graph（gemini-analyzer → llm-service）は Node event loop を keep-alive するため、harness CLI は明示 `process.exit(0)` で終了（D-2 harness と同一 idiom・script 末尾に comment で根拠明記）。純粋 core の unit test は deferred import で graph を避けているため影響なし。
+6. **既知の放置 drift の申告**: `## 信頼性レベル分布`（🔵325件）と AC-10 末尾（🔵361件）は本 Phase 以前から乖離したまま（REQ-378〜395 追加時に双方未更新）。per-REQ 信頼性の機械再集計手段がなく pin もされていないため本 Phase では触れず、乖離の申告のみ（REQ-421〜423 の 🔵 3 件追加で実態はさらに +3）。集計の正典化は別 REQ すべき課題。
+
+- **根拠**: D-3 実装一式（`src/analysis/eval/diagram-type-eval-dataset.ts`・`scripts/measure-diagram-detection-accuracy.ts`・`tests/scripts/measure-diagram-detection-accuracy.test.ts`）・harness 実測 run（cases 33 / correct 28 / agreement 84.85%・confusions 5 cell・per-type recall 付き）・決定論確認（2 run の report が generatedAt 以外 byte-identical）・`NODE_OPTIONS='--experimental-vm-modules --max-old-space-size=4096' npx jest --config jest.config.cjs tests/scripts/measure-diagram-detection-accuracy.test.ts` 13/13 GREEN・tsc `-p tsconfig.app.json` / `-p tsconfig.test.json` 両 0・D-1/D-2 出典 PR #96（merged）。
+
+- **信頼性への影響**:
+
+- REQ-421 追加（🔵・実装 + 実測 baseline pin + 同一 PR 証拠引用）。REQ-422 / REQ-423 追加（🔵・提案ベース未実施）。
+- QUALITY_METRICS §3.2 が出典付き実測値に置換（92% → 84.9%）・§3.1 が未測定を正直に宣言。§8.5 新設（測定器と baseline-pin ratchet の記載）。
+- 残課題（引継ぎ）: D-4 実装（REQ-422・TC-406-01〜03）・D-5 コーパス整備（REQ-423・TC-407-01〜02）・信頼性レベル分布の正典化（上記 6.）。
+
+---
+
 ## 関連文書
 
 - **要件定義書**: [requirements.md](requirements.md)
