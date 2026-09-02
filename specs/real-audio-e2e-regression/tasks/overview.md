@@ -63,7 +63,7 @@ D-1（gated real whisper.cpp 推論）・D-2（WER/CER harness）・D-3（図解
 
 ### タスク一覧
 
-- [ ] [TASK-0314: WAV header 由来音声長導出 helper（readWavDurationMs / parseWavHeader)](TASK-0314.md) - 4h (TDD) 🔵
+- [x] [TASK-0314: WAV header 由来音声長導出 helper（readWavDurationMs / parseWavHeader)](TASK-0314.md) - 4h (TDD) 🔵 ✓ 2026-09-03 完了（14 tests GREEN・jfk.wav 交叉検証 11,000ms）
 - [ ] [TASK-0315: 実音声評価コーパス整備（D-5・public/audio + CORPUS.md + 契約 test）](TASK-0315.md) - 6h (TDD) 🔵（ja 録音のみ maintainer input）
 
 ### 依存関係
