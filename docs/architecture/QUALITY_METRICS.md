@@ -54,7 +54,7 @@ This document defines the quantitative and qualitative metrics used to evaluate 
 
 | Metric | Target | Measurement Method | Current |
 |--------|--------|-------------------|---------|
-| Transcription Accuracy | >85% | WER (Word Error Rate) | ~85% |
+| Transcription Accuracy | >85% | WER (Word Error Rate) | 未測定 — `scripts/measure-transcription-accuracy.ts` の実測待ち（placeholder 経路は測定ではない。D-5 コーパス整備が前提。README「音声認識の現状」参照） |
 | Processing Speed | <2x real-time | Time(process) / Time(audio) | 2.0x |
 | Language Detection Accuracy | >90% | Manual validation | 95% |
 | SRT Format Validity | 100% | Parser validation | 100% |
@@ -70,7 +70,7 @@ This document defines the quantitative and qualitative metrics used to evaluate 
 | **Entity Extraction F1 Score** | >80% | Precision & Recall vs ground truth | 85% |
 | **Relationship Accuracy** | >85% | Edge correctness vs expected | 90% |
 | **Edge Completeness** | >80% | Edges found / Expected edges | 88% |
-| **Diagram Type Accuracy** | >90% | Correct type selection | 92% |
+| **Diagram Type Accuracy** | >90% | rule-based `detect()` vs ground-truth eval set — `npx tsx scripts/measure-diagram-detection-accuracy.ts` | 84.9% (28/33, eval v1 2026-09-03 実測。旧「92%」は測定痕跡なしのため実測値で置換) |
 | **Processing Time** | <15s | End-to-end analysis time | 5-15s |
 | **Cache Hit Rate** | >30% | Hits / (Hits + Misses) | 0%* |
 | **Fallback Rate** | <10% | Rule-based fallback triggers | 5% |
@@ -323,6 +323,14 @@ npm run test:phase44   # end-to-end validation
 **Output**: Phase-specific success criteria validation
 
 > Note: the `test:phase43` and `test:phase33` scripts were **removed** on 2026-08-18 — their target files (`scripts/test-phase43.ts`, `scripts/test-phase33.ts`) never existed in the tree.
+
+---
+
+### 8.5 Diagram Type Detection Accuracy
+```bash
+npx tsx scripts/measure-diagram-detection-accuracy.ts [--output report.json]
+```
+**Output**: JSON trace (per-case rows, per-type recall, confusion set) of the rule-based `DiagramDetector.detect()` path against the committed ground-truth dataset `src/analysis/eval/diagram-type-eval-dataset.ts`（§3.2 Diagram Type Accuracy の測定器。合意率は tests/scripts/measure-diagram-detection-accuracy.test.ts が baseline pin として ratchet）
 
 ---
 
