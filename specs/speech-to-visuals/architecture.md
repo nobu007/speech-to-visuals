@@ -1025,6 +1025,7 @@ make-run steering feedback「371 → next-target delta is auditable without re-r
 - [real-audio-e2e-regression タスク概要](../real-audio-e2e-regression/tasks/overview.md)
 - [streaming-real-asr-inference アーキテクチャ設計](../streaming-real-asr-inference/architecture.md)
 - [streaming-real-asr-inference データフロー設計](../streaming-real-asr-inference/dataflow.md)
+- [streaming-real-asr-inference タスク概要](../streaming-real-asr-inference/tasks/overview.md)
 
 <!-- spine:children:end -->
 
@@ -1035,5 +1036,6 @@ make-run steering feedback「371 → next-target delta is auditable without re-r
 - [speech-to-visuals API エンドポイント仕様](api-endpoints.md)
 - [guard-harness-fold-census コンテキストノート](../guard-harness-fold-census/note.md)
 - [real-audio-e2e-regression コンテキストノート](../real-audio-e2e-regression/note.md)
+- [streaming-real-asr-inference コンテキストノート](../streaming-real-asr-inference/note.md)
 
 <!-- spine:references:end -->
