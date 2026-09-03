@@ -1020,6 +1020,8 @@ make-run steering feedback「371 → next-target delta is auditable without re-r
 - [spine-edge-bidirectional-census アーキテクチャ設計](../spine-edge-bidirectional-census/architecture.md)
 - [stv-core-design-sync タスク概要](../stv-core-design-sync/tasks/overview.md)
 - [stv-core design sync（設計正本の出典パス現勢性）要件定義書（軽量版）](../stv-core-design-sync/requirements.md)
+- [streaming-real-asr-inference アーキテクチャ設計](../streaming-real-asr-inference/architecture.md)
+- [streaming-real-asr-inference データフロー設計](../streaming-real-asr-inference/dataflow.md)
 
 <!-- spine:children:end -->
 
