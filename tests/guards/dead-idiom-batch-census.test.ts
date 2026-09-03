@@ -1091,9 +1091,9 @@ const ALLOWED: Record<string, string> = {
   // variable (the DOM-lib convention — `declare var SpeechRecognition`).
   // Type-only, zero runtime emit; a runtime `var` anywhere else on the
   // surface is an unrostered RED.
-  'src/transcription/browser-transcriber.ts:497':
+  'src/transcription/browser-transcriber.ts:456':
     'AMBIENT-SYNTAX — inside declare global: `var SpeechRecognition: {…}` is the canonical TS spelling of a global ambient constructor var (type-only, no runtime emit).',
-  'src/transcription/browser-transcriber.ts:502':
+  'src/transcription/browser-transcriber.ts:461':
     'AMBIENT-SYNTAX — webkit-prefixed constructor var in the same declare-global block (type-only, no runtime emit).',
   // [console-debug-log] the core logger's own debug sink — the level gate
   // (`currentLogLevel <= LogLevel.DEBUG`, monitoring.logLevel-driven) is the
@@ -1129,7 +1129,7 @@ const ALLOWED: Record<string, string> = {
     'REPORT-ONLY — getBrowserInfo() fills a telemetry context object (userAgent/language/platform fields); no behavior branches on the string.',
   'src/monitoring/production-error-handler.ts:461':
     'REPORT-ONLY — telemetry payload field for error correlation; no behavior branches on the string.',
-  'src/transcription/browser-transcriber.ts:257':
+  'src/transcription/browser-transcriber.ts:258':
     'REPORT-ONLY — getBrowserCompatibility() diagnostics; the capability verdict is the feature detection (`isRecognitionSupported`), not the UA parse; a UA BRANCH is an unrostered RED.',
   // [swallowed-rejection] ERADICATED 2026-08-29: the kind's last site was
   // whisper-transcriber.ts's eager `await import("whisper-node").catch(()

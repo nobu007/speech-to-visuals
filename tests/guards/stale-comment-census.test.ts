@@ -187,8 +187,8 @@ const ALLOWED: Record<string, string> = {
     '`legacy code returned met when any key supplied a checkable value` — historical confession whose fix is the new met-when-zero-and-only-zero logic on the same lines.',
   'src/quality/quality-gate.ts:644':
     '`legacy ?? 0 manufactured a 0ms offset` — WHY-comment for the change to null on missing input; the fix is in this file.',
-  'src/transcription/browser-transcriber.ts:273':
-    '`File-based transcription API (legacy)` — descriptive of a deliberately-kept entry point; the body delegates to the modern browser path.',
+  'src/transcription/browser-transcriber.ts:274':
+    '`File-based transcription API (legacy)` — descriptive of a deliberately-kept entry point; the body delegates to the shared web-speech file engine (TASK-0318).',
   'src/visualization/strategy-edges.ts:277':
     '`legacy point-array anchors` — descriptive of the upstream contract that the local helper still accepts; the legacy form is intentionally supported.',
   'src/visualization/strategies/FlowchartLayoutStrategy.ts:97':

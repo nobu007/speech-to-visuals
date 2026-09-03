@@ -212,6 +212,9 @@ describe('score-ladder census (REQ-393)', () => {
       ['src/transcription/transcriber.ts', /confidence\s*\?\?\s*0\.9/],
       ['src/transcription/whisper-transcriber.ts', /confidence\s*\?\?\s*0\.9/],
       ['src/transcription/browser-transcriber.ts', /confidence\s*\?\?\s*0\.9/],
+      // The Web Speech final-confidence mechanism moved to the shared file
+      // engine (TASK-0318) — the eradicated `?? 0.9` shape follows it.
+      ['src/transcription/web-speech-file-transcription.ts', /confidence\s*\?\?\s*0\.9/],
       ['src/transcription/streaming-transcriber.ts', /confidence\s*>\s*0\s*\?\s*confidence\s*:\s*0\.8/],
       ['src/pipeline/video-generator.ts', /scene\.confidence\s*\?\?\s*0\.8/],
     ];
