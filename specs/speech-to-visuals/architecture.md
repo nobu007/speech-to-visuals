@@ -1023,6 +1023,8 @@ make-run steering feedback「371 → next-target delta is auditable without re-r
 - [real-audio-e2e-regression アーキテクチャ設計](../real-audio-e2e-regression/architecture.md)
 - [real-audio-e2e-regression データフロー図](../real-audio-e2e-regression/dataflow.md)
 - [real-audio-e2e-regression タスク概要](../real-audio-e2e-regression/tasks/overview.md)
+- [streaming-real-asr-inference アーキテクチャ設計](../streaming-real-asr-inference/architecture.md)
+- [streaming-real-asr-inference データフロー設計](../streaming-real-asr-inference/dataflow.md)
 
 <!-- spine:children:end -->
 
