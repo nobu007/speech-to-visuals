@@ -82,7 +82,7 @@ TASK-0318 → TASK-0319（browser 分岐の委譲先）
 
 ### タスク一覧
 
-- [ ] [TASK-0319: transcribeStream routing 改修 — 環境別 3 分岐 + simulate chunk loop 廃止 + Node 構築可能化](TASK-0319.md) - 10h (TDD) 🔵
+- [x] [TASK-0319: transcribeStream routing 改修 — 環境別 3 分岐 + simulate chunk loop 廃止 + Node 構築可能化](TASK-0319.md) - 10h (TDD) 🔵 ✅ 2026-09-05 完了
 - [ ] [TASK-0320: confidence 未測定 semantics — minConfidence filter と StreamingQualityMonitor の実測限定](TASK-0320.md) - 4h (TDD) 🔵
 
 ### 依存関係

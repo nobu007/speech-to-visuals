@@ -6,6 +6,8 @@
 
 import { TranscriptionSegment, TranscriptionResult, TranscriptionConfig, TranscriptionError } from './types';
 import { detectTranscriptionLanguage } from './language-detection';
+import { transcribeFileWithWebSpeech } from './web-speech-file-transcription';
+import { whisperTranscriber } from './whisper-transcriber';
 import { logger } from '@stv/core/utils/logger';
 import { sanitizeFinite } from '@stv/core/utils/guards';
 import {
@@ -107,8 +109,10 @@ export class StreamingTranscriber {
       });
     }
 
-    // Initialize Web Speech API if available
-    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+    // Initialize Web Speech API if available. typeof-guard keeps the class
+    // constructible in Node (TASK-0319 SD6), where transcribeStream routes
+    // to the whisper engine instead of this live-mic instance.
+    if (typeof window !== 'undefined' && ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       this.recognition = new SpeechRecognition();
       this.setupRecognition();
@@ -141,8 +145,17 @@ export class StreamingTranscriber {
   }
 
   /**
-   * Start streaming transcription from audio file
-   * Processes audio in chunks with real-time feedback
+   * Start streaming transcription from audio file (TASK-0319 / REQ-424).
+   *
+   * Environment routing (specs/streaming-real-asr-inference/dataflow.md):
+   *   経路1 browser + File + Web Speech constructors → the shared file engine
+   *          (transcribeFileWithWebSpeech, TASK-0318) with real per-final
+   *          onSegment/onProgress events only — no synthetic stagger (SD3)
+   *   経路2 Node → whisperTranscriber.transcribe delegation; a disclosed
+   *          placeholder run (whisper gate closed) falls through to 経路3
+   *   経路3 no ASR ran → disclosed placeholder: fixed sentences over the
+   *          chunk plan with PLACEHOLDER_CHUNK_CONFIDENCE and
+   *          result.placeholder === true (TC-408-03)
    */
   async transcribeStream(
     audioFile: string | File,
@@ -151,106 +164,288 @@ export class StreamingTranscriber {
   ): Promise<TranscriptionResult> {
     const startTime = performance.now();
 
-    try {
-
-      // Load audio for duration calculation
-      const audioDuration = await this.getAudioDuration(audioFile);
-
-      // Process audio in chunks
-      const chunks = this.createAudioChunks(audioDuration);
-      const allSegments: TranscriptionSegment[] = [];
-
-      for (let i = 0; i < chunks.length; i++) {
-        const chunk = chunks[i];
-
+    // Duration is probed at most once per run and shared by the routes that
+    // need it (経路1's progress denominator, 経路3's chunk-count disclosure).
+    // A probe failure never blocks routing — 経路3 just discloses an empty
+    // segment plan (dataflow.md error flow: no ASR ran, so the honest result
+    // is a disclosed placeholder, never a rejected transcription).
+    let probedDurationSec: number | null = null;
+    const probeDuration = async (): Promise<number> => {
+      if (probedDurationSec === null) {
         try {
+          probedDurationSec = await this.getAudioDuration(audioFile);
+        } catch (error) {
+          logger.warn('[StreamingTranscriber] Audio duration probe failed, disclosing empty placeholder plan:', error);
+          probedDurationSec = 0;
+        }
+      }
+      return probedDurationSec;
+    };
 
-          // Process chunk (simulate for now)
-          const chunkSegments = await this.processAudioChunk(chunk, audioFile);
+    // 経路1: browser + File + Web Speech constructors → shared file engine
+    if (
+      typeof window !== 'undefined' &&
+      typeof File !== 'undefined' &&
+      audioFile instanceof File &&
+      this.isFileEngineAvailable()
+    ) {
+      const engineResult = await this.transcribeStreamViaWebSpeech(
+        audioFile,
+        onProgress,
+        onSegment,
+        probeDuration,
+        startTime,
+      );
+      if (engineResult !== null) {
+        return engineResult;
+      }
+      // Engine errored with zero finals → 経路3 fallback below
+    }
 
-          // Add segments with confidence filtering
-          // minConfidence can legitimately be 0 (accept all); use ?? so only
-          // undefined falls back to the 0.7 default, not an explicit 0.
-          // `?? NaN` on the segment side for the same reason: an undefined or
-          // NaN confidence must stay BELOW the threshold (`undefined >= x` was
-          // always false); a 0 fallback would flip the minConfidence: 0 case
-          // from filtered to accepted.
-          const validSegments = chunkSegments.filter(
-            segment => (segment.confidence ?? Number.NaN) >= (this.config.minConfidence ?? 0.7)
-          );
+    // 経路2: Node → whisperTranscriber delegation
+    if (typeof window === 'undefined') {
+      try {
+        const whisperResult = await whisperTranscriber.transcribe(audioFile);
+        if (whisperResult.placeholder !== true) {
+          return this.buildDelegatedResult(whisperResult, onProgress, startTime);
+        }
+        // Whisper gate closed (its own disclosed placeholder) — streaming must
+        // not adopt whisper's fixed sentences; fall through to 経路3
+      } catch (error) {
+        // whisper throw (e.g. undecodable input / missing file) is a
+        // gate-closed outcome here, not a rejected transcription — fall
+        // through to the disclosed placeholder (dataflow.md error flow).
+        logger.warn('[StreamingTranscriber] Whisper transcription failed, using disclosed placeholder:', error);
+      }
+    }
 
-          // Collect segments BEFORE quality monitoring so that a quality
-          // monitor failure cannot destroy transcription results
-          allSegments.push(...validSegments);
+    // 経路3: disclosed placeholder
+    return this.buildPlaceholderResult(audioFile, onProgress, onSegment, probeDuration, startTime);
+  }
 
-          // REQ-091: Record per-chunk quality with StreamingQualityMonitor
-          if (this.qualityMonitor) {
-            const chunkAvgConfidence = chunkSegments.length > 0
-              ? chunkSegments.reduce((s, seg) => s + sanitizeFinite(seg.confidence), 0) / chunkSegments.length
-              : 0;
-            this.qualityMonitor.evaluateChunk(i, chunkAvgConfidence);
+  /**
+   * Web Speech file engine reachable? The engine resolves the constructors
+   * from globalThis itself; this check only decides ROUTING (経路1 vs 経路3).
+   */
+  private isFileEngineAvailable(): boolean {
+    const globals = globalThis as Record<string, unknown>;
+    return Boolean(globals.SpeechRecognition || globals.webkitSpeechRecognition);
+  }
+
+  /**
+   * 経路1: delegate to the shared Web Speech file engine (TASK-0318) and
+   * forward its real final-result events — one onSegment + one onProgress
+   * PER final result, no synthetic completion stagger (SD3).
+   *
+   * Returns null when the run errored with zero finals (engine onerror never
+   * throws by contract) or the engine itself rejected — both are 経路3
+   * fallbacks, not rejected transcriptions.
+   */
+  private async transcribeStreamViaWebSpeech(
+    audioFile: File,
+    onProgress: StreamingProgressCallback | undefined,
+    onSegment: SegmentCallback | undefined,
+    probeDuration: () => Promise<number>,
+    startTime: number
+  ): Promise<TranscriptionResult | null> {
+    const totalDurationMs = (await probeDuration()) * 1000;
+    const segments: TranscriptionSegment[] = [];
+    let errored = false;
+
+    try {
+      const finalSegments = await transcribeFileWithWebSpeech(audioFile, {
+        onFinalSegment: (segment) => {
+          segments.push(segment);
+          if (onSegment) {
+            try {
+              onSegment(segment);
+            } catch (cbError) {
+              logger.warn('[StreamingTranscriber] onSegment callback error:', cbError);
+            }
           }
-
-          // Real-time progress callback (individually guarded so a
-          // throwing callback cannot block onSegment for the same chunk)
           if (onProgress) {
             try {
               const progress: StreamingProgress = {
-                processedDuration: chunk.end * 1000,
-                totalDuration: audioDuration * 1000,
-                currentSegment: validSegments[validSegments.length - 1] || null,
-                segmentCount: allSegments.length,
-                averageConfidence: this.calculateAverageConfidence(allSegments)
+                processedDuration: segment.end,
+                totalDuration: totalDurationMs,
+                currentSegment: segment,
+                segmentCount: segments.length,
+                averageConfidence: this.calculateAverageConfidence(segments),
               };
               onProgress(progress);
             } catch (cbError) {
               logger.warn('[StreamingTranscriber] onProgress callback error:', cbError);
             }
           }
+        },
+        onError: () => {
+          errored = true;
+        },
+      });
+      // The engine's return value is the authoritative utterance list (a
+      // caller may omit hooks); adopt it for the result.
+      segments.length = 0;
+      segments.push(...finalSegments);
+      if (errored && segments.length === 0) return null;
+    } catch (error) {
+      logger.warn('[StreamingTranscriber] Web Speech file engine failed, using disclosed placeholder:', error);
+      return null;
+    }
 
-          // Real-time segment callback (per-segment guard ensures one
-          // failing callback does not skip remaining segments)
-          if (onSegment && validSegments.length > 0) {
-            for (const segment of validSegments) {
-              try {
-                onSegment(segment);
-              } catch (cbError) {
-                logger.warn('[StreamingTranscriber] onSegment callback error:', cbError);
-              }
+    // Engine utterances are adopted AS-IS: adjacent utterances are distinct
+    // real results, not duplicates to merge away (merge stays a 経路3 tool).
+    const result: TranscriptionResult = {
+      segments,
+      text: segments.map(s => s.text).join(' '),
+      duration: totalDurationMs,
+      // Content-derived (round 22): delegates to the shared detector like
+      // the other TranscriptionResult producers.
+      language: detectTranscriptionLanguage(segments),
+      processingTime: performance.now() - startTime,
+      success: true,
+      placeholder: false,
+      qualitySummary: this.qualityMonitor?.getSummary(),
+    };
+    return result;
+  }
+
+  /**
+   * 経路2 result: adopt the delegated transcription's segments as-is and
+   * emit exactly ONE completion onProgress — single-shot inference had no
+   * incremental events to forward.
+   */
+  private buildDelegatedResult(
+    delegated: TranscriptionResult,
+    onProgress: StreamingProgressCallback | undefined,
+    startTime: number
+  ): TranscriptionResult {
+    const segments = delegated.segments;
+    if (onProgress) {
+      try {
+        const progress: StreamingProgress = {
+          processedDuration: delegated.duration,
+          totalDuration: delegated.duration,
+          currentSegment: segments[segments.length - 1] ?? null,
+          segmentCount: segments.length,
+          averageConfidence: this.calculateAverageConfidence(segments),
+        };
+        onProgress(progress);
+      } catch (cbError) {
+        logger.warn('[StreamingTranscriber] onProgress callback error:', cbError);
+      }
+    }
+    return {
+      segments,
+      text: segments.map(s => s.text).join(' '),
+      duration: delegated.duration,
+      language: delegated.language,
+      processingTime: performance.now() - startTime,
+      success: true,
+      placeholder: false,
+      qualitySummary: this.qualityMonitor?.getSummary(),
+    };
+  }
+
+  /**
+   * 経路3 result: the disclosed placeholder. No ASR ran, so the run reports
+   * fixed sentences over the chunk plan with PLACEHOLDER_CHUNK_CONFIDENCE
+   * and placeholder: true — never a bare success dressed up as a
+   * measurement (TC-408-03).
+   */
+  private async buildPlaceholderResult(
+    audioFile: string | File,
+    onProgress: StreamingProgressCallback | undefined,
+    onSegment: SegmentCallback | undefined,
+    probeDuration: () => Promise<number>,
+    startTime: number
+  ): Promise<TranscriptionResult> {
+    const audioDuration = await probeDuration();
+    const chunks = this.createAudioChunks(audioDuration);
+    const allSegments: TranscriptionSegment[] = [];
+
+    for (let i = 0; i < chunks.length; i++) {
+      const chunk = chunks[i];
+
+      try {
+
+        const chunkSegments = await this.processAudioChunk(chunk, audioFile);
+
+        // Add segments with confidence filtering
+        // minConfidence can legitimately be 0 (accept all); use ?? so only
+        // undefined falls back to the 0.7 default, not an explicit 0.
+        // `?? NaN` on the segment side for the same reason: an undefined or
+        // NaN confidence must stay BELOW the threshold (`undefined >= x` was
+        // always false); a 0 fallback would flip the minConfidence: 0 case
+        // from filtered to accepted.
+        const validSegments = chunkSegments.filter(
+          segment => (segment.confidence ?? Number.NaN) >= (this.config.minConfidence ?? 0.7)
+        );
+
+        // Collect segments BEFORE quality monitoring so that a quality
+        // monitor failure cannot destroy transcription results
+        allSegments.push(...validSegments);
+
+        // REQ-091: Record per-chunk quality with StreamingQualityMonitor
+        if (this.qualityMonitor) {
+          const chunkAvgConfidence = chunkSegments.length > 0
+            ? chunkSegments.reduce((s, seg) => s + sanitizeFinite(seg.confidence), 0) / chunkSegments.length
+            : 0;
+          this.qualityMonitor.evaluateChunk(i, chunkAvgConfidence);
+        }
+
+        // Real-time segment callback (per-segment guard ensures one
+        // failing callback does not skip remaining segments)
+        if (onSegment && validSegments.length > 0) {
+          for (const segment of validSegments) {
+            try {
+              onSegment(segment);
+            } catch (cbError) {
+              logger.warn('[StreamingTranscriber] onSegment callback error:', cbError);
             }
           }
-
-          // Small delay to prevent overwhelming
-          await new Promise(resolve => setTimeout(resolve, 100));
-
-        } catch (chunkError) {
-          logger.warn(`[StreamingTranscriber] Chunk ${i + 1} processing failed, continuing:`, chunkError);
-          // Continue with next chunk instead of failing completely
         }
+
+      } catch (chunkError) {
+        logger.warn(`[StreamingTranscriber] Chunk ${i + 1} processing failed, continuing:`, chunkError);
+        // Continue with next chunk instead of failing completely
       }
-
-      // Merge overlapping segments
-      const mergedSegments = this.mergeOverlappingSegments(allSegments);
-
-      const result: TranscriptionResult = {
-        segments: mergedSegments,
-        text: mergedSegments.map(s => s.text).join(' '),
-        duration: audioDuration * 1000,
-        // Content-derived (round 22): was a hardcoded 'ja', which labeled this
-        // path's own English chunk-mock output as Japanese. Delegates to the
-        // shared detector like the other TranscriptionResult producers.
-        language: detectTranscriptionLanguage(mergedSegments),
-        processingTime: performance.now() - startTime,
-        success: true,
-        qualitySummary: this.qualityMonitor?.getSummary(),
-      };
-
-      return result;
-
-    } catch (error) {
-      logger.error('[StreamingTranscriber] Streaming transcription failed:', error);
-      throw new TranscriptionError(`Streaming transcription failed: ${error instanceof Error ? error.message : String(error)}`);
     }
+
+    // Merge overlapping segments
+    const mergedSegments = this.mergeOverlappingSegments(allSegments);
+
+    // One completion progress event for the whole placeholder plan (no
+    // per-chunk stagger — the chunks were never really processed)
+    if (onProgress) {
+      try {
+        const progress: StreamingProgress = {
+          processedDuration: audioDuration * 1000,
+          totalDuration: audioDuration * 1000,
+          currentSegment: mergedSegments[mergedSegments.length - 1] ?? null,
+          segmentCount: mergedSegments.length,
+          averageConfidence: this.calculateAverageConfidence(mergedSegments),
+        };
+        onProgress(progress);
+      } catch (cbError) {
+        logger.warn('[StreamingTranscriber] onProgress callback error:', cbError);
+      }
+    }
+
+    const result: TranscriptionResult = {
+      segments: mergedSegments,
+      text: mergedSegments.map(s => s.text).join(' '),
+      duration: audioDuration * 1000,
+      // Content-derived (round 22): was a hardcoded 'ja', which labeled this
+      // path's own English chunk-mock output as Japanese. Delegates to the
+      // shared detector like the other TranscriptionResult producers.
+      language: detectTranscriptionLanguage(mergedSegments),
+      processingTime: performance.now() - startTime,
+      success: true,
+      placeholder: true,
+      qualitySummary: this.qualityMonitor?.getSummary(),
+    };
+
+    return result;
   }
 
   /**
@@ -412,18 +607,19 @@ export class StreamingTranscriber {
   }
 
   /**
-   * Process individual audio chunk
-   * Simulates chunk processing - would integrate with actual audio processing
+   * Process individual audio chunk (経路3 disclosed-placeholder emitter)
+   *
+   * Fixed placeholder sentences sized by the chunk plan — no ASR behind
+   * them. Every segment carries the disclosed PLACEHOLDER_CHUNK_CONFIDENCE
+   * and the enclosing run reports placeholder: true (TASK-0319).
    */
   private async processAudioChunk(
     chunk: { start: number; end: number },
     audioFile: string | File
   ): Promise<TranscriptionSegment[]> {
-    // Simulate processing time based on chunk duration
     const chunkDuration = chunk.end - chunk.start;
-    await new Promise(resolve => setTimeout(resolve, chunkDuration * 100)); // 10x realtime simulation
 
-    // Generate mock segments for the chunk
+    // Generate placeholder segments for the chunk
     const segmentCount = Math.max(1, Math.floor(chunkDuration / 2)); // One segment per 2 seconds
     const segments: TranscriptionSegment[] = [];
 
@@ -629,9 +825,15 @@ export const validateStreamingSupport = (): {
   audioContext: boolean;
   recommendation: string;
 } => {
-  const webSpeechAPI = 'webkitSpeechRecognition' in window || 'SpeechRecognition' in window;
-  const mediaDevices = 'mediaDevices' in navigator && 'getUserMedia' in navigator.mediaDevices;
-  const audioContext = 'AudioContext' in window || 'webkitAudioContext' in window;
+  // typeof-guards keep the probe Node-safe (TASK-0319 SD6): outside a browser
+  // every capability is false and the recommendation says so.
+  const hasWindow = typeof window !== 'undefined';
+  const webSpeechAPI = hasWindow && ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window);
+  const mediaDevices =
+    typeof navigator !== 'undefined' &&
+    'mediaDevices' in navigator &&
+    'getUserMedia' in navigator.mediaDevices;
+  const audioContext = hasWindow && ('AudioContext' in window || 'webkitAudioContext' in window);
 
   let recommendation = '';
   if (!webSpeechAPI) {
