@@ -147,11 +147,17 @@ describe('StreamingTranscriber', () => {
       expect(result.success).toBe(true);
     }, 30000);
 
-    it('should throw on audio load failure', async () => {
+    it('should resolve with a disclosed placeholder when audio load fails (TASK-0319)', async () => {
       (global as unknown as { Audio: jest.Mock }).Audio = jest.fn(createMockAudio(true)) as jest.Mock;
 
+      // jsdom has no SpeechRecognition and window is defined → 経路3. A
+      // duration-probe failure no longer rejects: no ASR ran, so the honest
+      // outcome is a disclosed placeholder with an empty segment plan.
       const transcriber = new StreamingTranscriber();
-      await expect(transcriber.transcribeStream('bad-file.wav')).rejects.toThrow();
+      const result = await transcriber.transcribeStream('bad-file.wav');
+      expect(result.success).toBe(true);
+      expect(result.placeholder).toBe(true);
+      expect(result.segments).toEqual([]);
     }, 30000);
 
     it('should handle chunk processing errors gracefully', async () => {

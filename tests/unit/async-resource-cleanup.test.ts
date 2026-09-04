@@ -92,7 +92,13 @@ describe('ISS-A: StreamingTranscriber Object URL cleanup', () => {
     const transcriber = new StreamingTranscriber();
     const file = new File(['data'], 'bad.wav', { type: 'audio/wav' });
 
-    await expect(transcriber.transcribeStream(file)).rejects.toThrow();
+    // TASK-0319: a duration-probe failure no longer rejects — jsdom has no
+    // SpeechRecognition so this stays 経路3, and the run discloses an empty
+    // placeholder plan instead of throwing. The Object URL is still created
+    // and revoked exactly once (the leak ISS-A pinned).
+    const result = await transcriber.transcribeStream(file);
+    expect(result.success).toBe(true);
+    expect(result.placeholder).toBe(true);
 
     expect(createObjectURLSpy).toHaveBeenCalledTimes(1);
     expect(revokeSpy).toHaveBeenCalledTimes(1);
