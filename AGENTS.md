@@ -130,6 +130,26 @@ describe('ModuleName', () => {
 - 構造ガード: `tests/guards/source-anchor-cwd-discipline.test.ts` が全テストファイルを走査し、
   cwd 相対アンカーの新規追加を自動 FAIL する（例外は行末 `// cwd-anchor-exempt:` で宣言）。
 
+#### src/**/__tests__ のテストコードは型検査ゼロ（compile-error 検出前提は禁止）
+
+`src/**/__tests__/**`（と `src/**/*.test.ts(x)`）は **tsc の app/test 両 config から exclude されている**
+（`tsconfig.app.json` の `exclude`。`tsconfig.test.json` は override なしでこれを継承）。
+さらに jest の ts-jest 変換は `isolatedModules`（transpile-only）で動くため、
+jest 実行でも型検査は行われない。よって **test file 内の純 type error は CI では一切落ちない**
+（2026-09-05 TASK-0319 補強 run で、型 error 挿入 probe を入れても suite が落ちない事を実測確認）。
+
+- 帰結: 型の drift（例: module の hooks interface rename）を検出したい場合は
+  **behavioral leg で検証する**こと — mock が旧名を呼んで no-op 化した結果、期待した
+  event/error が来なくなり該当 leg が RED する形（streaming-transcriber.test.ts の
+  engine onError 0-finals leg が実例）。
+- 禁止: 「test から production module の型を import すれば compile error で drift を
+  検出できる」という前提でテストを設計すること。type import の価値はあくまで
+  **hook 名・型 shape の単一ソース化**（ローカル再宣言の drift 防止）であり、
+  検出器ではない。
+- `tests/**` 配下は tsc test config の include 対象なので型検査される。型検査が要る
+  helper は `tests/` 側に置くか、`npm run type-check` と `npm run type-check:tests`
+  （両 config）が通る範囲で書く。
+
 ## 3. 実装前の必須確認
 
 ```bash

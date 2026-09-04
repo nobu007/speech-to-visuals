@@ -12,7 +12,7 @@
 // relative-specifier unstable_mockModule resolves against the CALLING file,
 // and the bridged global attributes the call to the setup file instead.
 import { jest } from '@jest/globals';
-import type { TranscriptionSegment } from '../types';
+import type { TranscriptionSegment, TranscriptionResult } from '../types';
 // Type-only import from the engine module (NOT a local restatement): the
 // mockImplementation hooks below are annotated with the engine's own
 // interface, so the hook names here have a single source instead of a
@@ -597,6 +597,22 @@ describe('StreamingTranscriber', () => {
   //          PLACEHOLDER_CHUNK_CONFIDENCE, result.placeholder === true)
   // ------------------------------------------------
   describe('transcribeStream routing (TASK-0319)', () => {
+    // Disclosure-content pin (TC-408-03 leg form), single definition: a
+    // placeholder outcome is honest only if every segment is a streaming-side
+    // fixed sentence carrying the disclosed PLACEHOLDER_CHUNK_CONFIDENCE —
+    // a bare "segments exist" claim could hide a non-placeholder fake run.
+    // The three placeholder legs below share this helper instead of
+    // restating the for-loop, so the fixed-sentence prefix and the
+    // confidence source have exactly one home in this file (breaking the
+    // fixed sentence in src/ turns all three legs RED — mutation-verified).
+    const assertPlaceholderDisclosure = (result: TranscriptionResult) => {
+      expect(result.segments!.length).toBeGreaterThan(0);
+      for (const segment of result.segments!) {
+        expect(segment.confidence).toBe(StreamingTranscriberModule.PLACEHOLDER_CHUNK_CONFIDENCE);
+        expect(segment.text).toContain('Processed segment');
+      }
+    };
+
     it('browser File run delegates to the shared Web Speech engine and forwards per-final events (TC-408-01 a)', async () => {
       await loadModule();
       mockAudioInstance.duration = 10;
@@ -604,7 +620,7 @@ describe('StreamingTranscriber', () => {
       const seg1: TranscriptionSegment = { id: 0, start: 0, end: 2100, text: 'first utterance', confidence: 0.9 };
       const seg2: TranscriptionSegment = { id: 1, start: 2100, end: 4200, text: 'second utterance', confidence: 0.85 };
       mockTranscribeFileWithWebSpeech.mockImplementation(
-        async (_file: File, hooks?: { onFinalSegment?: (segment: TranscriptionSegment) => void }) => {
+        async (_file: File, hooks?: WebSpeechFileHooks) => {
           hooks?.onFinalSegment?.(seg1);
           hooks?.onFinalSegment?.(seg2);
           return [seg1, seg2];
@@ -721,11 +737,7 @@ describe('StreamingTranscriber', () => {
       expect(result.success).toBe(true);
       // Streaming-side fixed sentences (NOT whisper's), all carrying the
       // disclosed PLACEHOLDER_CHUNK_CONFIDENCE
-      expect(result.segments!.length).toBeGreaterThan(0);
-      for (const segment of result.segments!) {
-        expect(segment.confidence).toBe(StreamingTranscriberModule.PLACEHOLDER_CHUNK_CONFIDENCE);
-        expect(segment.text).toContain('Processed segment');
-      }
+      assertPlaceholderDisclosure(result);
       expect(result.segments!.every((s) => s.text !== 'whisper-side fixed sentence')).toBe(true);
     });
 
@@ -752,16 +764,10 @@ describe('StreamingTranscriber', () => {
       expect(mockWhisperTranscribe).toHaveBeenCalledTimes(1);
       expect(result.placeholder).toBe(true);
       expect(result.success).toBe(true);
-      // Same disclosure-content pin as the TC-408-03 leg above, so THIS
-      // describe verifies the fallback content on its own: streaming-side
-      // fixed sentences, every segment carrying the disclosed
-      // PLACEHOLDER_CHUNK_CONFIDENCE — never a bare "some segments" claim
-      // that could hide a non-placeholder fake run.
-      expect(result.segments!.length).toBeGreaterThan(0);
-      for (const segment of result.segments!) {
-        expect(segment.confidence).toBe(StreamingTranscriberModule.PLACEHOLDER_CHUNK_CONFIDENCE);
-        expect(segment.text).toContain('Processed segment');
-      }
+      // Same disclosure-content pin as the TC-408-03 leg above (helper), so
+      // THIS describe verifies the fallback content on its own — never a
+      // bare "some segments" claim that could hide a non-placeholder fake run.
+      assertPlaceholderDisclosure(result);
     });
 
     it('browser run without Web Speech constructors routes to the disclosure placeholder (TC-408-01 c)', async () => {
@@ -783,7 +789,8 @@ describe('StreamingTranscriber', () => {
       const result = await promise;
 
       expect(result.placeholder).toBe(true);
-      expect(result.segments!.length).toBeGreaterThan(0);
+      // Same disclosure-content pin as every other placeholder leg here
+      assertPlaceholderDisclosure(result);
       expect(mockTranscribeFileWithWebSpeech).not.toHaveBeenCalled();
     });
 
@@ -807,6 +814,8 @@ describe('StreamingTranscriber', () => {
       // rejected transcription (dataflow.md error flow)
       expect(result.placeholder).toBe(true);
       expect(result.success).toBe(true);
+      // Same disclosure-content pin as every other placeholder leg here
+      assertPlaceholderDisclosure(result);
     });
 
     // Engine-contract legs: the TASK-0318 engine never throws its error
@@ -817,6 +826,11 @@ describe('StreamingTranscriber', () => {
     // file) — single-sourced hook names. If the engine renames a hook at
     // runtime, the mock's `hooks?.onError?.(...)` no-ops, the 0-finals leg
     // below stops seeing the error, and it goes RED (verified by mutation).
+    // Note the typed mock now accepts every engine hook (onend etc.), but a
+    // clean-onend `[]` and an onError-then-`[]` resolve identically at the
+    // boundary — that indistinguishability is exactly why the engine carries
+    // onError at all, and why the 0-finals leg fires it explicitly instead
+    // of relying on an empty return.
 
     it('engine onError with zero finals falls back to the disclosure placeholder', async () => {
       await loadModule();
@@ -844,14 +858,10 @@ describe('StreamingTranscriber', () => {
       expect(mockTranscribeFileWithWebSpeech).toHaveBeenCalledTimes(1);
       expect(result.placeholder).toBe(true);
       expect(result.success).toBe(true);
-      // Disclosure-content pin (TC-408-03 leg form): the placeholder legs in
-      // this describe stand alone — fixed sentence + disclosed confidence,
-      // not just "segments exist"
-      expect(result.segments!.length).toBeGreaterThan(0);
-      for (const segment of result.segments!) {
-        expect(segment.confidence).toBe(StreamingTranscriberModule.PLACEHOLDER_CHUNK_CONFIDENCE);
-        expect(segment.text).toContain('Processed segment');
-      }
+      // Disclosure-content pin (TC-408-03 leg form, helper): the placeholder
+      // legs in this describe stand alone — fixed sentence + disclosed
+      // confidence, not just "segments exist"
+      assertPlaceholderDisclosure(result);
     });
 
     it('engine onError after partial finals keeps the measured run (placeholder stays false)', async () => {
