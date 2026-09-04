@@ -149,6 +149,10 @@ jest 実行でも型検査は行われない。よって **test file 内の純 t
 - `tests/**` 配下は tsc test config の include 対象なので型検査される。型検査が要る
   helper は `tests/` 側に置くか、`npm run type-check` と `npm run type-check:tests`
   （両 config）が通る範囲で書く。
+- 構造ガード: `tests/guards/tsconfig-src-tests-exclude-pinned.test.ts` が本規約の前提
+  （両 config の exclude・test config の継承・isolatedModules transpile-only・jest
+  transform の wiring）を tsconfig / jest.config の実値から pin する — 前提を変える
+  場合は同 commit で本規約文も更新すること。
 
 ## 3. 実装前の必須確認
 

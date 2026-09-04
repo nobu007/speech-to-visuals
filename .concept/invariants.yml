@@ -188,7 +188,7 @@ invariants:
     statement: "リファクタは verbatim 移動が原則（配線のみ書き換え）。コード移動後は readSource している guard のアンカーを新征程へ再指向する。挙動保存の証明は『ガード以外のテストを一つも直さず全部通る』こと"
     rationale: "guard の fail が移動漏れを自動検出する文化。証明可能なリファクタを担保する。"
     evidence:
-      - source: "AGENTS.md#L256-L263"
+      - source: "AGENTS.md#L260-L267"
         quote: "リファクタは verbatim 移動が原則。配線 (DI/callback) のみ書き換える。…「ガード以外のテストを一つも直さずに全部通る」ことが挙動保存の証明。"
     checks:
       - type: "test"
@@ -200,7 +200,7 @@ invariants:
     statement: "push 前に npm run verify:all（CI 同構成の fail-fast フルゲート）を通し、main 反映は PR + all-checks-pass を経由する（gh pr merge --auto --merge --delete-branch）"
     rationale: "無人ループの持続性: CI 往復の削減と required check 集約（all-checks-pass のみ）。"
     evidence:
-      - source: "AGENTS.md#L215-L226"
+      - source: "AGENTS.md#L219-L230"
         quote: "npm run verify:all # CI と同一構成のローカルゲート (push 前に必ず) … branch protection: `all-checks-pass` のみ required status check に指定済み"
     checks:
       - type: "command"

@@ -601,10 +601,13 @@ describe('StreamingTranscriber', () => {
     // placeholder outcome is honest only if every segment is a streaming-side
     // fixed sentence carrying the disclosed PLACEHOLDER_CHUNK_CONFIDENCE —
     // a bare "segments exist" claim could hide a non-placeholder fake run.
-    // The three placeholder legs below share this helper instead of
+    // The five placeholder legs below share this helper instead of
     // restating the for-loop, so the fixed-sentence prefix and the
     // confidence source have exactly one home in this file (breaking the
-    // fixed sentence in src/ turns all three legs RED — mutation-verified).
+    // fixed sentence in src/ turns all five legs RED — mutation-verified).
+    // If this ever outgrows this describe block, extract it under tests/
+    // (type-checked include) — src/**/__tests__ files are never
+    // type-checked (AGENTS.md テスト規約).
     const assertPlaceholderDisclosure = (result: TranscriptionResult) => {
       expect(result.segments!.length).toBeGreaterThan(0);
       for (const segment of result.segments!) {
