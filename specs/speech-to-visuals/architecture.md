@@ -1020,6 +1020,9 @@ make-run steering feedback「371 → next-target delta is auditable without re-r
 - [spine-edge-bidirectional-census アーキテクチャ設計](../spine-edge-bidirectional-census/architecture.md)
 - [stv-core-design-sync タスク概要](../stv-core-design-sync/tasks/overview.md)
 - [stv-core design sync（設計正本の出典パス現勢性）要件定義書（軽量版）](../stv-core-design-sync/requirements.md)
+- [real-audio-e2e-regression アーキテクチャ設計](../real-audio-e2e-regression/architecture.md)
+- [real-audio-e2e-regression データフロー図](../real-audio-e2e-regression/dataflow.md)
+- [real-audio-e2e-regression タスク概要](../real-audio-e2e-regression/tasks/overview.md)
 
 <!-- spine:children:end -->
 
@@ -1029,5 +1032,6 @@ make-run steering feedback「371 → next-target delta is auditable without re-r
 
 - [speech-to-visuals API エンドポイント仕様](api-endpoints.md)
 - [guard-harness-fold-census コンテキストノート](../guard-harness-fold-census/note.md)
+- [real-audio-e2e-regression コンテキストノート](../real-audio-e2e-regression/note.md)
 
 <!-- spine:references:end -->

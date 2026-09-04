@@ -4656,6 +4656,7 @@ interfaces.ts には既にこれらの主要型が反映済み。
 - [spine registry title-sync census — 自動分析記録](../spine-registry-title-sync/interview-record.md)
 - [dead-idiom batch census — 自動分析記録](../dead-idiom-batch-census/interview-record.md)
 - [stv-core design sync 自動分析記録](../stv-core-design-sync/interview-record.md)
+- [real-audio-e2e-regression 設計自動分析記録](../real-audio-e2e-regression/design-interview.md)
 
 <!-- spine:children:end -->
 
