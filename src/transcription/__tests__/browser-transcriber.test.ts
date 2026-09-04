@@ -5,6 +5,12 @@
  * Covers: start/stop, interim results, browser compatibility, error handling, pause/resume.
  */
 
+import { readFileSync } from 'fs';
+import { fileURLToPath } from 'url';
+import { join } from 'path';
+
+const REPO_ROOT = fileURLToPath(new URL('../../../', import.meta.url));
+
 // ---------- Mock setup for Web Speech API ----------
 
 type MockSpeechRecognitionInstance = {
@@ -1409,6 +1415,29 @@ describe('BrowserTranscriber', () => {
 
       // Empty transcript ignored, falls back to mock segments
       expect(result.segments.length).toBeGreaterThan(0);
+    });
+  });
+
+  // ------------------------------------------------
+  // Test Case 15.5: shared file engine delegation witness (TASK-0318)
+  // ------------------------------------------------
+  describe('engine 委譲 witness テスト (TASK-0318)', () => {
+    it('transcribeWithWebSpeechAPI delegates to web-speech-file-transcription (single source)', async () => {
+      // Source-anchored via import.meta.url — a cwd-relative read flakes
+      // when jest workers start elsewhere. The Web Speech File mechanism
+      // (Object URL + Audio playback + recognition handlers) must live ONLY
+      // in the engine; a second copy here is the duplicate-formula class.
+      const source = readFileSync(
+        join(REPO_ROOT, 'src/transcription/browser-transcriber.ts'),
+        'utf8',
+      );
+
+      expect(source).toMatch(/from '\.\/web-speech-file-transcription'/);
+      expect(source).not.toMatch(/createObjectURL/);
+      expect(source).not.toMatch(/revokeObjectURL/);
+      // FINAL_NO_CONFIDENCE_STANDIN's definition stays HERE (census pin);
+      // the engine imports it rather than redefining the constant.
+      expect(source).toMatch(/export const FINAL_NO_CONFIDENCE_STANDIN = 0\.5;/);
     });
   });
 

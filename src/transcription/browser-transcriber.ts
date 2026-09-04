@@ -1,4 +1,5 @@
 import { TranscriptionResult, TranscriptionSegment, TranscriptionError as TranscriptionErrorClass } from './types';
+import { transcribeFileWithWebSpeech } from './web-speech-file-transcription';
 import { logger } from '@stv/core/utils/logger';
 
 /**
@@ -319,75 +320,33 @@ export class BrowserTranscriber {
   }
 
   /**
-   * Transcribe using Web Speech API
+   * Transcribe using Web Speech API — delegated to the shared file engine
+   * (web-speech-file-transcription.ts, TASK-0318): the Object URL / Audio
+   * playback / recognition-handler mechanism lives ONLY there, so the
+   * StreamingTranscriber browser route consumes the same single source.
+   *
+   * The engine never throws on recognition errors — it resolves with the
+   * final results collected so far and reports the error through
+   * hooks.onError. This legacy surface keeps its pre-engine outcome by
+   * re-throwing, so transcribeAudioFile still reports success:false with
+   * mock segments on a failed run. The empty-result mock fallback also
+   * stays HERE: the engine resolves [] and leaves the decision to the
+   * caller (engine contract: empty is empty).
    */
   private async transcribeWithWebSpeechAPI(audioFile: File): Promise<TranscriptionSegment[]> {
-    return new Promise((resolve, reject) => {
-      if (!this.recognition) {
-        reject(new TranscriptionErrorClass('Speech recognition not available'));
-        return;
+    let recognitionError: string | null = null;
+    const segments = await transcribeFileWithWebSpeech(audioFile, {
+      onError: (error) => {
+        logger.error('[BrowserTranscriber] Speech recognition error:', error);
+        recognitionError = error;
       }
-
-      const segments: TranscriptionSegment[] = [];
-      let currentSegmentStart = 0;
-
-      // Create audio element to play the file
-      const audio = new Audio();
-      const audioUrl = URL.createObjectURL(audioFile);
-      audio.src = audioUrl;
-
-      this.recognition.onstart = () => {
-        audio.play();
-      };
-
-      this.recognition.onresult = (event) => {
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          const result = event.results[i];
-
-          if (result.isFinal) {
-            const text = result[0]?.transcript?.trim() ?? '';
-            // Web Speech confidence is [0,1]; 0 is a legit "very uncertain"
-            // final result. Use ?? so only undefined falls back — `||` would
-            // invert a real 0 into the stand-in, backwards. REQ-393: the
-            // stand-in for a MISSING final confidence is the disclosed
-            // neutral 0.5 (same convention as interim chunks), not 0.9 — an
-            // absent measurement must not claim near-certainty.
-            const confidence = result[0]?.confidence ?? FINAL_NO_CONFIDENCE_STANDIN;
-            const currentTime = audio.currentTime * 1000; // Convert to ms
-
-            if (text) {
-              segments.push({
-                start: currentSegmentStart,
-                end: currentTime,
-                text,
-                confidence
-              });
-
-              currentSegmentStart = currentTime;
-            }
-          }
-        }
-      };
-
-      this.recognition.onerror = (event) => {
-        logger.error('[BrowserTranscriber] Speech recognition error:', event.error);
-        URL.revokeObjectURL(audioUrl);
-        reject(new TranscriptionErrorClass(`Speech recognition error: ${event.error}`));
-      };
-
-      this.recognition.onend = () => {
-        URL.revokeObjectURL(audioUrl);
-
-        if (segments.length === 0) {
-          resolve(this.getEnhancedMockSegments());
-        } else {
-          resolve(segments);
-        }
-      };
-
-      // Start recognition
-      this.recognition.start();
     });
+
+    if (recognitionError !== null) {
+      throw new TranscriptionErrorClass(`Speech recognition error: ${recognitionError}`);
+    }
+
+    return segments.length > 0 ? segments : this.getEnhancedMockSegments();
   }
 
   /**
