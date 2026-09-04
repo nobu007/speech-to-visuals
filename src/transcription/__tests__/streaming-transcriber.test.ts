@@ -718,6 +718,32 @@ describe('StreamingTranscriber', () => {
       expect(result.segments!.every((s) => s.text !== 'whisper-side fixed sentence')).toBe(true);
     });
 
+    it('Node run falls through to the disclosure placeholder when whisper throws (dataflow error flow)', async () => {
+      await loadModule();
+      delete (globalThis as Record<string, unknown>).window;
+
+      // An inference exception (undecodable input / missing file) is a
+      // gate-closed outcome, not a rejected transcription — the same
+      // fail-closed shape as the whisper-side placeholder disclosure above.
+      mockWhisperTranscribe.mockRejectedValue(new Error('undecodable audio'));
+
+      mockAudioInstance.duration = 4;
+      const transcriber = new StreamingTranscriberModule.StreamingTranscriber({
+        chunkSizeMs: 4000,
+        overlapMs: 0,
+        minConfidence: 0,
+      });
+
+      const promise = transcriber.transcribeStream('/srv/bad.wav');
+      fireAudioMetadata(mockAudioInstance);
+      const result = await promise;
+
+      expect(mockWhisperTranscribe).toHaveBeenCalledTimes(1);
+      expect(result.placeholder).toBe(true);
+      expect(result.success).toBe(true);
+      expect(result.segments!.length).toBeGreaterThan(0);
+    });
+
     it('browser run without Web Speech constructors routes to the disclosure placeholder (TC-408-01 c)', async () => {
       await loadModule();
       // window stays (browser) but the recognition constructors are absent
@@ -761,6 +787,156 @@ describe('StreamingTranscriber', () => {
       // rejected transcription (dataflow.md error flow)
       expect(result.placeholder).toBe(true);
       expect(result.success).toBe(true);
+    });
+
+    // Engine-contract legs: the TASK-0318 engine never throws its error
+    // state — it reports through hooks.onError and resolves (see
+    // WebSpeechFileHooks, web-speech-file-transcription.ts:31-40). These
+    // legs pin how transcribeStream turns each error shape into an outcome.
+    type EngineHooks = {
+      onFinalSegment?: (segment: TranscriptionSegment) => void;
+      onError?: (error: string) => void;
+    };
+
+    it('engine onError with zero finals falls back to the disclosure placeholder', async () => {
+      await loadModule();
+      mockTranscribeFileWithWebSpeech.mockImplementation(
+        async (_file: File, hooks?: EngineHooks) => {
+          hooks?.onError?.('no-speech');
+          return [];
+        },
+      );
+
+      mockAudioInstance.duration = 4;
+      const transcriber = new StreamingTranscriberModule.StreamingTranscriber({
+        chunkSizeMs: 4000,
+        overlapMs: 0,
+        minConfidence: 0,
+      });
+      const file = new File(['audio'], 'audio.wav', { type: 'audio/wav' });
+
+      const promise = transcriber.transcribeStream(file);
+      fireAudioMetadata(mockAudioInstance);
+      const result = await promise;
+
+      // 0-final error run: no ASR utterance exists, so the honest outcome is
+      // the disclosed placeholder (dataflow.md error flow)
+      expect(mockTranscribeFileWithWebSpeech).toHaveBeenCalledTimes(1);
+      expect(result.placeholder).toBe(true);
+      expect(result.success).toBe(true);
+      expect(result.segments!.length).toBeGreaterThan(0);
+    });
+
+    it('engine onError after partial finals keeps the measured run (placeholder stays false)', async () => {
+      await loadModule();
+      const seg1: TranscriptionSegment = { id: 0, start: 0, end: 2100, text: 'before the drop', confidence: 0.9 };
+      mockTranscribeFileWithWebSpeech.mockImplementation(
+        async (_file: File, hooks?: EngineHooks) => {
+          hooks?.onFinalSegment?.(seg1);
+          hooks?.onError?.('network');
+          return [seg1];
+        },
+      );
+
+      mockAudioInstance.duration = 4;
+      const transcriber = new StreamingTranscriberModule.StreamingTranscriber();
+      const file = new File(['audio'], 'audio.wav', { type: 'audio/wav' });
+
+      const promise = transcriber.transcribeStream(file);
+      fireAudioMetadata(mockAudioInstance);
+      const result = await promise;
+
+      // Real utterances WERE measured before the error — the run stays a
+      // real run; error-with-finals must not masquerade as gate-closed
+      expect(result.placeholder).toBe(false);
+      expect(result.success).toBe(true);
+      expect(result.segments).toEqual([seg1]);
+    });
+
+    it('a duration-probe failure does not block the engine run (probe failure = warn + 0)', async () => {
+      await loadModule();
+      const seg1: TranscriptionSegment = { id: 0, start: 0, end: 1500, text: 'only utterance', confidence: 0.9 };
+      mockTranscribeFileWithWebSpeech.mockImplementation(
+        async (_file: File, hooks?: EngineHooks) => {
+          hooks?.onFinalSegment?.(seg1);
+          return [seg1];
+        },
+      );
+
+      const transcriber = new StreamingTranscriberModule.StreamingTranscriber();
+      const file = new File(['audio'], 'audio.wav', { type: 'audio/wav' });
+      const onProgress = jest.fn();
+
+      const promise = transcriber.transcribeStream(file, onProgress);
+      fireAudioError(mockAudioInstance);
+      const result = await promise;
+
+      // The probe feeds progress denominators only; its failure never blocks
+      // routing (streaming-transcriber.ts:169-171) — the engine still runs
+      // and the run is real, with the unknown duration disclosed as 0
+      expect(mockTranscribeFileWithWebSpeech).toHaveBeenCalledTimes(1);
+      expect(result.placeholder).toBe(false);
+      expect(result.duration).toBe(0);
+      expect(onProgress).toHaveBeenCalledTimes(1);
+      expect(onProgress.mock.calls[0][0].totalDuration).toBe(0);
+    });
+
+    it('a throwing onSegment callback does not break the engine run (per-final guard)', async () => {
+      await loadModule();
+      const seg1: TranscriptionSegment = { id: 0, start: 0, end: 2100, text: 'first utterance', confidence: 0.9 };
+      const seg2: TranscriptionSegment = { id: 1, start: 2100, end: 4200, text: 'second utterance', confidence: 0.85 };
+      mockTranscribeFileWithWebSpeech.mockImplementation(
+        async (_file: File, hooks?: EngineHooks) => {
+          hooks?.onFinalSegment?.(seg1);
+          hooks?.onFinalSegment?.(seg2);
+          return [seg1, seg2];
+        },
+      );
+
+      const transcriber = new StreamingTranscriberModule.StreamingTranscriber();
+      const file = new File(['audio'], 'audio.wav', { type: 'audio/wav' });
+      const onProgress = jest.fn();
+      const onSegment = jest.fn().mockImplementationOnce(() => {
+        throw new Error('UI render boom');
+      });
+
+      const promise = transcriber.transcribeStream(file, onProgress, onSegment);
+      fireAudioMetadata(mockAudioInstance);
+      const result = await promise;
+
+      // One failing consumer callback is logged and swallowed: the second
+      // final still forwards and the result keeps every engine utterance
+      expect(onSegment).toHaveBeenCalledTimes(2);
+      expect(onProgress).toHaveBeenCalledTimes(2);
+      expect(result.placeholder).toBe(false);
+      expect(result.segments).toEqual([seg1, seg2]);
+    });
+
+    it('probes audio duration at most once per run (経路1→経路3 fallback reuses the memoized probe)', async () => {
+      await loadModule();
+      mockTranscribeFileWithWebSpeech.mockRejectedValue(new Error('engine gone at call time'));
+      mockAudioInstance.duration = 4;
+
+      const transcriber = new StreamingTranscriberModule.StreamingTranscriber({
+        chunkSizeMs: 4000,
+        overlapMs: 0,
+        minConfidence: 0,
+      });
+      const file = new File(['audio'], 'audio.wav', { type: 'audio/wav' });
+
+      // Plain jest.fn() history survives restoreAllMocks (see the
+      // beforeEach note) — start this leg's probe count at zero explicitly.
+      MockAudio.mockClear();
+
+      const promise = transcriber.transcribeStream(file);
+      fireAudioMetadata(mockAudioInstance);
+      const result = await promise;
+
+      expect(result.placeholder).toBe(true);
+      // 経路1 already probed; the 経路3 fallback must REUSE that probe
+      // instead of constructing a second Audio element ("at most once per
+      // run", streaming-transcriber.ts:167-171)
+      expect(MockAudio).toHaveBeenCalledTimes(1);
     });
 
     it('Node: constructor and validateStreamingSupport work without window (SD6)', async () => {
