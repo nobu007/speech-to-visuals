@@ -13,6 +13,17 @@
 // and the bridged global attributes the call to the setup file instead.
 import { jest } from '@jest/globals';
 import type { TranscriptionSegment } from '../types';
+// Type-only import from the engine module (NOT a local restatement): the
+// mockImplementation hooks below are annotated with the engine's own
+// interface, so the hook names here have a single source instead of a
+// drifting local copy. `import type` is erased at runtime — it does not
+// bypass the unstable_mockModule wiring below. NOTE: drift detection in CI
+// stays BEHAVIORAL, not compile-time — this file lives under
+// src/**/__tests__/**, which both tsc configs exclude, and ts-jest runs
+// transpile-only (isolatedModules), so a renamed engine hook is caught by
+// the onError/partial-final legs going RED when the hook stops firing,
+// not by the compiler.
+import type { WebSpeechFileHooks } from '../web-speech-file-transcription';
 import { fireAudioMetadata, fireAudioError } from './audio-mock-helpers';
 
 // TASK-0319 routing legs mock the two delegation targets so the ROUTING is
@@ -741,7 +752,16 @@ describe('StreamingTranscriber', () => {
       expect(mockWhisperTranscribe).toHaveBeenCalledTimes(1);
       expect(result.placeholder).toBe(true);
       expect(result.success).toBe(true);
+      // Same disclosure-content pin as the TC-408-03 leg above, so THIS
+      // describe verifies the fallback content on its own: streaming-side
+      // fixed sentences, every segment carrying the disclosed
+      // PLACEHOLDER_CHUNK_CONFIDENCE — never a bare "some segments" claim
+      // that could hide a non-placeholder fake run.
       expect(result.segments!.length).toBeGreaterThan(0);
+      for (const segment of result.segments!) {
+        expect(segment.confidence).toBe(StreamingTranscriberModule.PLACEHOLDER_CHUNK_CONFIDENCE);
+        expect(segment.text).toContain('Processed segment');
+      }
     });
 
     it('browser run without Web Speech constructors routes to the disclosure placeholder (TC-408-01 c)', async () => {
@@ -793,15 +813,15 @@ describe('StreamingTranscriber', () => {
     // state — it reports through hooks.onError and resolves (see
     // WebSpeechFileHooks, web-speech-file-transcription.ts:31-40). These
     // legs pin how transcribeStream turns each error shape into an outcome.
-    type EngineHooks = {
-      onFinalSegment?: (segment: TranscriptionSegment) => void;
-      onError?: (error: string) => void;
-    };
+    // The hooks type is the engine's own WebSpeechFileHooks import (top of
+    // file) — single-sourced hook names. If the engine renames a hook at
+    // runtime, the mock's `hooks?.onError?.(...)` no-ops, the 0-finals leg
+    // below stops seeing the error, and it goes RED (verified by mutation).
 
     it('engine onError with zero finals falls back to the disclosure placeholder', async () => {
       await loadModule();
       mockTranscribeFileWithWebSpeech.mockImplementation(
-        async (_file: File, hooks?: EngineHooks) => {
+        async (_file: File, hooks?: WebSpeechFileHooks) => {
           hooks?.onError?.('no-speech');
           return [];
         },
@@ -824,14 +844,21 @@ describe('StreamingTranscriber', () => {
       expect(mockTranscribeFileWithWebSpeech).toHaveBeenCalledTimes(1);
       expect(result.placeholder).toBe(true);
       expect(result.success).toBe(true);
+      // Disclosure-content pin (TC-408-03 leg form): the placeholder legs in
+      // this describe stand alone — fixed sentence + disclosed confidence,
+      // not just "segments exist"
       expect(result.segments!.length).toBeGreaterThan(0);
+      for (const segment of result.segments!) {
+        expect(segment.confidence).toBe(StreamingTranscriberModule.PLACEHOLDER_CHUNK_CONFIDENCE);
+        expect(segment.text).toContain('Processed segment');
+      }
     });
 
     it('engine onError after partial finals keeps the measured run (placeholder stays false)', async () => {
       await loadModule();
       const seg1: TranscriptionSegment = { id: 0, start: 0, end: 2100, text: 'before the drop', confidence: 0.9 };
       mockTranscribeFileWithWebSpeech.mockImplementation(
-        async (_file: File, hooks?: EngineHooks) => {
+        async (_file: File, hooks?: WebSpeechFileHooks) => {
           hooks?.onFinalSegment?.(seg1);
           hooks?.onError?.('network');
           return [seg1];
@@ -857,7 +884,7 @@ describe('StreamingTranscriber', () => {
       await loadModule();
       const seg1: TranscriptionSegment = { id: 0, start: 0, end: 1500, text: 'only utterance', confidence: 0.9 };
       mockTranscribeFileWithWebSpeech.mockImplementation(
-        async (_file: File, hooks?: EngineHooks) => {
+        async (_file: File, hooks?: WebSpeechFileHooks) => {
           hooks?.onFinalSegment?.(seg1);
           return [seg1];
         },
@@ -886,7 +913,7 @@ describe('StreamingTranscriber', () => {
       const seg1: TranscriptionSegment = { id: 0, start: 0, end: 2100, text: 'first utterance', confidence: 0.9 };
       const seg2: TranscriptionSegment = { id: 1, start: 2100, end: 4200, text: 'second utterance', confidence: 0.85 };
       mockTranscribeFileWithWebSpeech.mockImplementation(
-        async (_file: File, hooks?: EngineHooks) => {
+        async (_file: File, hooks?: WebSpeechFileHooks) => {
           hooks?.onFinalSegment?.(seg1);
           hooks?.onFinalSegment?.(seg2);
           return [seg1, seg2];
