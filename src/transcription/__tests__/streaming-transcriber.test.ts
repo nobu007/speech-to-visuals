@@ -995,6 +995,232 @@ describe('StreamingTranscriber', () => {
     });
   });
 
+  // TASK-0320 / TC-408-04 (AC-D6-4): "unmeasured" (confidence === undefined,
+  // whisper.cpp rows) and a LOW MEASUREMENT (numeric below threshold) are
+  // distinct. The minConfidence filter must pass unmeasured segments and
+  // compare only numeric values, and StreamingQualityMonitor.evaluateChunk
+  // must run on measured chunks only — 経路2 (whisper, all-unmeasured) and
+  // 経路3 (disclosed placeholder) never feed it, so their summaries report
+  // zero evaluated chunks instead of a fabricated 0-reject count.
+  describe('transcribeStream confidence semantics (TASK-0320 / TC-408-04)', () => {
+    // The real (unmocked) session monitor is the observation point here —
+    // only the routing targets (engine / whisper) are mocked at module level.
+    const spyEvaluateChunk = (transcriber: InstanceType<typeof StreamingTranscriberModule.StreamingTranscriber>) => {
+      const monitor = transcriber.getQualityMonitor();
+      if (!monitor) throw new Error('quality monitor not initialized');
+      return jest.spyOn(monitor, 'evaluateChunk');
+    };
+
+    const assertZeroEvaluatedSummary = (transcriber: InstanceType<typeof StreamingTranscriberModule.StreamingTranscriber>) => {
+      const summary = transcriber.getQualitySummary();
+      if (!summary) throw new Error('quality summary missing');
+      // 「評価対象 chunk なし」shape: no fabricated 0-rejects, no accepted
+      expect(summary.totalChunks).toBe(0);
+      expect(summary.acceptedChunks).toBe(0);
+      expect(summary.rejectedChunks).toBe(0);
+    };
+
+    it('経路2: unmeasured (undefined) segments pass the minConfidence filter while a low measurement is rejected', async () => {
+      await loadModule();
+      delete (globalThis as Record<string, unknown>).window;
+
+      // Mixed delegation output: whisper.cpp's no-confidence contract makes
+      // undefined the common case; a numeric below threshold is a real LOW
+      // READING that the filter must still reject.
+      const unmeasured = { id: 0, start: 0, end: 4000, text: 'whisper row (no confidence)' };
+      const low = { id: 1, start: 4000, end: 6000, text: 'low measurement', confidence: 0.3 };
+      const good = { id: 2, start: 6000, end: 9000, text: 'good measurement', confidence: 0.9 };
+      mockWhisperTranscribe.mockResolvedValue({
+        segments: [unmeasured, low, good],
+        text: 'mixed',
+        language: 'en',
+        duration: 9000,
+        success: true,
+        placeholder: false,
+      });
+
+      const transcriber = new StreamingTranscriberModule.StreamingTranscriber({ minConfidence: 0.7 });
+      const result = await transcriber.transcribeStream('/srv/audio.wav');
+
+      expect(result.placeholder).toBe(false);
+      // Unmeasured ≠ low: undefined passes, 0.3 is rejected, 0.9 passes
+      expect(result.segments).toEqual([unmeasured, good]);
+    });
+
+    it('経路2: evaluateChunk is never called and the summary reports zero evaluated chunks', async () => {
+      await loadModule();
+      delete (globalThis as Record<string, unknown>).window;
+
+      mockWhisperTranscribe.mockResolvedValue({
+        segments: [
+          { id: 0, start: 0, end: 4000, text: 'measured one' },
+          { id: 1, start: 4000, end: 9000, text: 'measured two' },
+        ],
+        text: 'measured one measured two',
+        language: 'en',
+        duration: 9000,
+        success: true,
+        placeholder: false,
+      });
+
+      const transcriber = new StreamingTranscriberModule.StreamingTranscriber();
+      const evaluateSpy = spyEvaluateChunk(transcriber);
+      const result = await transcriber.transcribeStream('/srv/audio.wav');
+
+      expect(evaluateSpy).not.toHaveBeenCalled();
+      assertZeroEvaluatedSummary(transcriber);
+      // The result still carries the zero-count summary shape
+      expect(result.qualitySummary?.totalChunks).toBe(0);
+      expect(result.qualitySummary?.rejectedChunks).toBe(0);
+    });
+
+    it('経路1: evaluateChunk runs once per numeric-confidence final utterance (utterance = chunk)', async () => {
+      await loadModule();
+      mockAudioInstance.duration = 10;
+
+      const seg1: TranscriptionSegment = { id: 0, start: 0, end: 2100, text: 'first utterance', confidence: 0.9 };
+      const seg2: TranscriptionSegment = { id: 1, start: 2100, end: 4200, text: 'second utterance', confidence: 0.85 };
+      mockTranscribeFileWithWebSpeech.mockImplementation(
+        async (_file: File, hooks?: WebSpeechFileHooks) => {
+          hooks?.onFinalSegment?.(seg1);
+          hooks?.onFinalSegment?.(seg2);
+          return [seg1, seg2];
+        },
+      );
+
+      const transcriber = new StreamingTranscriberModule.StreamingTranscriber();
+      const evaluateSpy = spyEvaluateChunk(transcriber);
+      const file = new File(['audio'], 'audio.wav', { type: 'audio/wav' });
+
+      const promise = transcriber.transcribeStream(file);
+      fireAudioMetadata(mockAudioInstance);
+      const result = await promise;
+
+      // Measured utterances only, progressive (during the run), in order —
+      // index = utterance ordinal, value = the utterance's own confidence
+      expect(evaluateSpy).toHaveBeenCalledTimes(2);
+      expect(evaluateSpy).toHaveBeenNthCalledWith(1, 0, 0.9);
+      expect(evaluateSpy).toHaveBeenNthCalledWith(2, 1, 0.85);
+
+      const summary = transcriber.getQualitySummary();
+      expect(summary?.totalChunks).toBe(2);
+      expect(result.qualitySummary?.totalChunks).toBe(2);
+    });
+
+    it('経路1: a low numeric measurement is filtered from the result but still recorded by the monitor', async () => {
+      await loadModule();
+      mockAudioInstance.duration = 10;
+
+      const good: TranscriptionSegment = { id: 0, start: 0, end: 2100, text: 'clear utterance', confidence: 0.95 };
+      const low: TranscriptionSegment = { id: 1, start: 2100, end: 4200, text: 'mumbled utterance', confidence: 0.3 };
+      mockTranscribeFileWithWebSpeech.mockImplementation(
+        async (_file: File, hooks?: WebSpeechFileHooks) => {
+          hooks?.onFinalSegment?.(good);
+          hooks?.onFinalSegment?.(low);
+          return [good, low];
+        },
+      );
+
+      const transcriber = new StreamingTranscriberModule.StreamingTranscriber({ minConfidence: 0.7 });
+      const evaluateSpy = spyEvaluateChunk(transcriber);
+      const file = new File(['audio'], 'audio.wav', { type: 'audio/wav' });
+
+      const promise = transcriber.transcribeStream(file);
+      fireAudioMetadata(mockAudioInstance);
+      const result = await promise;
+
+      // Filter shapes the OUTPUT (numeric-only comparison); the monitor still
+      // records both real readings — a rejected measurement is a measurement
+      expect(result.segments).toEqual([good]);
+      expect(evaluateSpy).toHaveBeenCalledTimes(2);
+      expect(transcriber.getQualitySummary()?.rejectedChunks).toBe(1);
+    });
+
+    it('経路1: a throwing evaluateChunk never destroys the measured run (monitor failure ≠ lost transcription)', async () => {
+      await loadModule();
+      mockAudioInstance.duration = 10;
+
+      const seg1: TranscriptionSegment = { id: 0, start: 0, end: 2100, text: 'first utterance', confidence: 0.9 };
+      const seg2: TranscriptionSegment = { id: 1, start: 2100, end: 4200, text: 'second utterance', confidence: 0.85 };
+      mockTranscribeFileWithWebSpeech.mockImplementation(
+        async (_file: File, hooks?: WebSpeechFileHooks) => {
+          hooks?.onFinalSegment?.(seg1);
+          hooks?.onFinalSegment?.(seg2);
+          return [seg1, seg2];
+        },
+      );
+
+      const transcriber = new StreamingTranscriberModule.StreamingTranscriber();
+      const monitor = transcriber.getQualityMonitor();
+      if (!monitor) throw new Error('quality monitor not initialized');
+      const throwing = jest.spyOn(monitor, 'evaluateChunk').mockImplementation(() => {
+        throw new Error('Simulated quality monitor failure');
+      });
+
+      const file = new File(['audio'], 'audio.wav', { type: 'audio/wav' });
+      const promise = transcriber.transcribeStream(file);
+      fireAudioMetadata(mockAudioInstance);
+      const result = await promise;
+
+      // Segments survive the monitor failure; the run completes
+      expect(throwing).toHaveBeenCalled();
+      expect(result.success).toBe(true);
+      expect(result.placeholder).toBe(false);
+      expect(result.segments).toEqual([seg1, seg2]);
+    });
+
+    it('経路3: evaluateChunk is never called and the summary reports zero evaluated chunks', async () => {
+      await loadModule();
+      // window stays (browser) but the recognition constructors are absent → 経路3
+      delete (globalThis as Record<string, unknown>).SpeechRecognition;
+      delete (globalThis as Record<string, unknown>).webkitSpeechRecognition;
+
+      mockAudioInstance.duration = 4;
+      const transcriber = new StreamingTranscriberModule.StreamingTranscriber({
+        chunkSizeMs: 4000,
+        overlapMs: 0,
+        minConfidence: 0,
+      });
+      const evaluateSpy = spyEvaluateChunk(transcriber);
+
+      const file = new File(['audio'], 'audio.wav', { type: 'audio/wav' });
+      const promise = transcriber.transcribeStream(file);
+      fireAudioMetadata(mockAudioInstance);
+      const result = await promise;
+
+      // A placeholder run is not a measurement: nothing may be evaluated and
+      // the summary must show the zero-count shape (no fabricated 0-rejects)
+      expect(result.placeholder).toBe(true);
+      expect(evaluateSpy).not.toHaveBeenCalled();
+      assertZeroEvaluatedSummary(transcriber);
+      expect(result.qualitySummary?.totalChunks).toBe(0);
+      expect(result.qualitySummary?.rejectedChunks).toBe(0);
+    });
+
+    it('経路3: the disclosed placeholder confidence (0.75) stays a NUMBER under the filter — compared, not exempt (REQ-391 f)', async () => {
+      await loadModule();
+      delete (globalThis as Record<string, unknown>).SpeechRecognition;
+      delete (globalThis as Record<string, unknown>).webkitSpeechRecognition;
+
+      mockAudioInstance.duration = 4;
+      // 0.9 threshold: every disclosed 0.75 placeholder segment is a numeric
+      // below it and is filtered — placeholder segments get no exemption
+      const transcriber = new StreamingTranscriberModule.StreamingTranscriber({
+        chunkSizeMs: 4000,
+        overlapMs: 0,
+        minConfidence: 0.9,
+      });
+
+      const file = new File(['audio'], 'audio.wav', { type: 'audio/wav' });
+      const promise = transcriber.transcribeStream(file);
+      fireAudioMetadata(mockAudioInstance);
+      const result = await promise;
+
+      expect(result.placeholder).toBe(true);
+      expect(result.segments).toEqual([]);
+    });
+  });
+
   // ------------------------------------------------
   // startLiveTranscription tests
   // ------------------------------------------------
@@ -2576,20 +2802,31 @@ describe('StreamingTranscriber', () => {
       expect(result.segments!.length).toBeGreaterThan(0);
     });
 
-    // --- Quality monitor error resilience within the chunk loop ---
+    // --- Quality monitor error resilience (TASK-0320: evaluation now runs
+    // per measured utterance on the 経路1 engine route — 経路3 no longer
+    // evaluates anything, so these legs drive the engine route) ---
 
-    it('qualityMonitor.evaluateChunk() throwing on one chunk does not crash the session', async () => {
+    it('qualityMonitor.evaluateChunk() throwing on one utterance does not crash the session', async () => {
       await loadModule();
       mockAudioInstance.duration = 10;
 
+      const finals: TranscriptionSegment[] = [0, 1, 2, 3].map(i => ({
+        id: i, start: i * 2000, end: (i + 1) * 2000,
+        text: `utterance ${i + 1}`, confidence: 0.8,
+      }));
+      mockTranscribeFileWithWebSpeech.mockImplementation(
+        async (_file: File, hooks?: WebSpeechFileHooks) => {
+          for (const segment of finals) hooks?.onFinalSegment?.(segment);
+          return finals;
+        },
+      );
+
       const transcriber = new StreamingTranscriberModule.StreamingTranscriber({
-        chunkSizeMs: 3000,
-        overlapMs: 0,
         minConfidence: 0,
       });
 
       // Make evaluateChunk throw on the second call — this exercises the
-      // try/catch around the chunk processing interval (lines 153–196)
+      // per-utterance try/catch in the onFinalSegment forwarding
       const qualityMonitor = transcriber.getQualityMonitor();
       expect(qualityMonitor).not.toBeNull();
       const origEval = qualityMonitor!.evaluateChunk.bind(qualityMonitor);
@@ -2602,18 +2839,19 @@ describe('StreamingTranscriber', () => {
         },
       );
 
-      const promise = transcriber.transcribeStream('/audio.mp3');
+      const file = new File(['audio'], 'audio.wav', { type: 'audio/wav' });
+      const promise = transcriber.transcribeStream(file);
 
       fireAudioMetadata(mockAudioInstance);
 
       const result = await promise;
 
-      // Session completed despite evaluateChunk throwing on chunk 2
+      // Session completed despite evaluateChunk throwing on utterance 2
       expect(result.success).toBe(true);
-      // evaluateChunk was called for every chunk — the throw was caught and
-      // the loop continued to the next iteration
+      // evaluateChunk was called for every utterance — the throw was caught
+      // and the remaining utterances were still evaluated
       expect(evalCallCount).toBeGreaterThanOrEqual(3);
-      // Segments from all processed chunks are present
+      // Segments from all finals are present
       expect(result.segments!.length).toBeGreaterThan(0);
       // Quality summary is still available
       expect(result.qualitySummary).toBeDefined();
@@ -2650,43 +2888,53 @@ describe('StreamingTranscriber', () => {
       expect(result.qualitySummary).toBeDefined();
     });
 
-    it('quality summary reflects only successfully-evaluated chunks after partial evaluateChunk failures', async () => {
+    it('quality summary reflects only successfully-evaluated utterances after partial evaluateChunk failures', async () => {
       await loadModule();
       mockAudioInstance.duration = 10;
 
+      const finals: TranscriptionSegment[] = [0, 1, 2, 3].map(i => ({
+        id: i, start: i * 2000, end: (i + 1) * 2000,
+        text: `utterance ${i + 1}`, confidence: 0.8,
+      }));
+      mockTranscribeFileWithWebSpeech.mockImplementation(
+        async (_file: File, hooks?: WebSpeechFileHooks) => {
+          for (const segment of finals) hooks?.onFinalSegment?.(segment);
+          return finals;
+        },
+      );
+
       const transcriber = new StreamingTranscriberModule.StreamingTranscriber({
-        chunkSizeMs: 3000,
-        overlapMs: 0,
         minConfidence: 0,
       });
 
-      // evaluateChunk throws on chunk index 1 only
+      // evaluateChunk throws on utterance index 1 only
       const qualityMonitor = transcriber.getQualityMonitor();
       const origEval = qualityMonitor!.evaluateChunk.bind(qualityMonitor);
       let evalCallCount = 0;
       qualityMonitor!.evaluateChunk = jest.fn().mockImplementation(
         (idx: number, conf: number) => {
           evalCallCount++;
-          if (evalCallCount === 2) throw new Error('evaluateChunk boom on chunk 1');
+          if (evalCallCount === 2) throw new Error('evaluateChunk boom on utterance 1');
           return origEval(idx, conf);
         },
       );
 
-      const promise = transcriber.transcribeStream('/audio.mp3');
+      const file = new File(['audio'], 'audio.wav', { type: 'audio/wav' });
+      const promise = transcriber.transcribeStream(file);
 
       fireAudioMetadata(mockAudioInstance);
 
       const result = await promise;
 
       expect(result.success).toBe(true);
-      // 10s audio / 3s chunks = ~4 chunks; evaluateChunk called 4 times
-      // (the throw was caught, loop continued)
+      // 4 finals → evaluateChunk called 4 times (the throw was caught, the
+      // remaining utterances were still evaluated)
       expect(evalCallCount).toBeGreaterThanOrEqual(3);
-      // Quality summary recorded 3 chunks (4 minus the 1 that threw before
-      // storing the record)
+      // Quality summary recorded 3 utterances (4 minus the 1 that threw
+      // before storing the record)
       const summary = result.qualitySummary!;
       expect(summary.totalChunks).toBe(evalCallCount - 1);
-      // The remaining chunks' quality data is valid
+      // The remaining utterances' quality data is valid
       expect(summary.averageConfidence).toBeGreaterThan(0);
     });
 

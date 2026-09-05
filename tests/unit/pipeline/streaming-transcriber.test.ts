@@ -235,22 +235,26 @@ describe('StreamingTranscriber', () => {
       expect(lastCall.segmentCount).toBeGreaterThan(0);
     }, 30000);
 
-    it('should survive quality monitor evaluateChunk throwing and still return all segments', async () => {
+    it('never evaluates chunks on the placeholder route and reports a zero-count summary (TASK-0320 / TC-408-04)', async () => {
       const transcriber = new StreamingTranscriber({ chunkSizeMs: 3000, minConfidence: 0 });
       const monitor = transcriber.getQualityMonitor();
       expect(monitor).not.toBeNull();
-      // Override evaluateChunk to throw on every call
-      (monitor as unknown as { evaluateChunk: jest.Mock }).evaluateChunk = jest.fn(() => {
-        throw new Error('Simulated quality monitor failure');
-      });
 
       const result = await transcriber.transcribeStream('test-audio.wav');
 
-      // Segments were collected BEFORE quality monitoring, so they survive
+      // jsdom: no SpeechRecognition → 経路3 disclosed placeholder. A
+      // placeholder run is not a measurement — evaluateChunk must never be
+      // called (the pre-TASK-0320 wiring fed it the disclosed 0.75 chunks
+      // and fabricated reject counts). Resilience still holds the other way:
+      // the segments are returned regardless of the monitor.
       expect(result.success).toBe(true);
+      expect(result.placeholder).toBe(true);
       expect(result.segments.length).toBeGreaterThan(0);
-      // The throwing evaluateChunk was called at least once (loop didn't break)
-      expect((monitor as unknown as { evaluateChunk: jest.Mock }).evaluateChunk).toHaveBeenCalled();
+      const summary = transcriber.getQualitySummary();
+      expect(summary).not.toBeNull();
+      expect(summary?.totalChunks).toBe(0);
+      expect(summary?.acceptedChunks).toBe(0);
+      expect(summary?.rejectedChunks).toBe(0);
     }, 30000);
 
     it('should return a positive processingTime in the result', async () => {
