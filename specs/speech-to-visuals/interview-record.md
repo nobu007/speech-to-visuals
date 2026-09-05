@@ -4676,6 +4676,28 @@ Phase 1-13 全13フェーズ完了（93/93タスク）。ソースファイル�
 
 ---
 
+### A157: Phase 196 — 生産 UI の到達可能性 — 未配線コンポーネントの裁決とビデオプレビューの要件化（2026-09-05 第238回検証）
+
+- **判断**（未配線 UI 全走査 → 個別事実確認 → wire-or-retire の要件化）:
+
+1. **make-run feedback の META-intent を本 Phase で実行**: feedback が再度挙げた REQ-480 に要件定義の実体は存在しない（repo 全 grep の hit は A156 / TASK-0313 の phantom 裁決記録と本 Phase での言及のみ — A156 判定 4 を再確認）。ただし高水準の意図「コンポーネントだけ存在して未マウント」な残件の src/components 一掃は real であり、前 Phase は phantom 番号の裁決のみで未実施だった。本 Phase は到達可能性全走査（entry chain `index.html` → `src/main.tsx` → `src/App.tsx`・React.lazy / component barrel なし・非 test import の追跡）で実体を確定した。
+2. **到達不能 6 件 + transitively unreachable 1 件を確認（2026-09-05 時点）**: VideoPreview（test-only・4 test file）・PipelineProgress（orphan・非 test import 零）・StageIndicator（唯一 consumer が orphan の PipelineProgress）・EnhancedFileUploader（orphan・drag-and-drop は mounted 側 AudioUploader.tsx:37/:55 が実装済みで機能重複）・PerformanceMetricsVisualization（orphan・AdminAnalyticsDashboard が同等表示を inline）・InteractiveResultViewer（guard test のみ）+ `ui/slider.tsx`（到達不能 pair のみが import）。主要な事実は本 file 編集前に直接検証済み（AudioUploader の drag-and-drop 実装・VideoRenderer.tsx:10 の未使用 Player import・AdminAnalyticsDashboard.tsx:78-86 の PMV 言及が comment のみ）。
+3. **VideoPreview が最重要 gap**: SYSTEM_CONSTITUTION.md ホワイトリスト「進捗表示・ビデオプレビュー・エラー表示」の中、ビデオプレビューの実体実装（SpeechToVisualsVideo の Remotion Player wrapper・seekbar・解像度切替・再生速度）が一度も生産 mount されず、reachable 側 VideoRenderer は Player を import したまま未使用（`@typescript-eslint/no-unused-vars: "off"` で潜在）— 憲法が約束する in-app preview が存在しない。REQ-426 として結線を要件化。
+4. **残り 5 件は wire-or-retire の個別裁決として要件化（REQ-425）**: 要件段階で wire/retire を固定すると設計検討（mount point・ProcessingStatus との役割分担・AdminAnalyticsDashboard との重複解消）を先取りするため、裁決の実行は (a) 全 production component が到達可能 or 削除済み (b) test-only 存置禁止 (c) 重複機能の単一ソース化 (d) 到達性回帰 test、の観測可能条件で縛り、個別 verdict は設計段階（kairo-design）で確定する。ただし証拠に基づく予備判定は本 entry に記録: EnhancedFileUploader は retire 濃厚（機能重複確定）・VideoPreview は wire 確定（REQ-426）・PipelineProgress / StageIndicator / PerformanceMetricsVisualization / InteractiveResultViewer は設計で裁決。
+5. **D-4〜D-6 chain との独立性を確認**: 到達不可能 UI の残件は TASK-0315〜0321（D-4/D-5/D-6 実装）とファイル・関心が重複しない。StreamingProcessor（TASK-0321 の UI 開示対象）は本走査で REACHABLE 確定済みであり、両 task chain は並行可能。
+6. **user-stories.md を更新しない（Phase 194/195 と同一判断）**: 本 Phase は既存 UI の実体化であり新規 user-facing 機能の story 追加に相当しない。AC-1〜AC-5 の「全74ストーリー」pin を崩す価値なし。ビデオプレビューの user 価値は REQ-426 の (a)〜(d) に展開済み。
+
+- **根拠**: 到達可能性全走査（非 test import 追跡・barrel/React.lazy 不在確認・Remotion Root.tsx の composition 登録確認）+ 個別検証（AudioUploader.tsx:37/:55 drag-and-drop・VideoRenderer.tsx:10 のみに hit する `Player` grep・AdminAnalyticsDashboard.tsx:78-86・eslint.config.js:26 の no-unused-vars off）+ 維持コスト実績（VideoPreview MM:SS guard 5c373b72・InteractiveResultViewer async-setState 3e4f3823・PerformanceMetricsVisualization quality-score 整合 691b77b2・TASK-0076 mobile 対応 b6234c36 が全て到達不能 code に投下済み）。
+
+- **信頼性への影響**:
+
+- REQ-425 / REQ-426 追加（🔵・提案ベース未実施・TC-409-01〜02 / TC-410-01〜02 は `- [ ]` のまま）。
+- A156 判定 4 の phantom 裁決を再確認しつつ、META-intent を実行する Phase を具現化 — feedback の指摘形（番号）と実体（未配線残件）を分離した。
+- 既知の放置 drift を申告（A156 判定 6 と同一）: `## 信頼性レベル分布`（🔵325件）と AC-10 末尾（🔵361件）は本 Phase でも未更新（REQ-425〜426 の 🔵 2 件追加で実態はさらに +2・正典化は別 REQ 課題のまま）。
+- 残課題（引継ぎ）: Phase 196 の設計（kairo-design — 個別 wire/retire verdict の確定・mount point・到達性 test の設計）と実装 TASK 分割（次回採番 TASK-0322〜）。
+
+---
+
 ## 関連文書
 
 - **要件定義書**: [requirements.md](requirements.md)
