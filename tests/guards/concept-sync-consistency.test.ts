@@ -2192,9 +2192,11 @@ describe('jest-pattern conformance (real @jest/pattern module) — eval follow-u
     // makes the entry machine-readable: `ci-run:` scheme + this repo's
     // actions/runs path + numeric run id + the `(PR #N checks 全 SUCCESS`
     // binding parenthetical. The trigger is any precondition CONTAINING
-    // `actions/runs` — a GitHub Actions URL in any form (prefixed, bare,
-    // markdown-linked) must be in the full form, while prose-only conditions
-    // (no URL) stay free-form by design. The closure's phase sequencing
+    // `actions/runs` OR self-prefixed `ci-run:` — an actions URL in any form
+    // (prefixed, bare, markdown-linked) must be full-form, and the prefix
+    // alone is a promise: a `ci-run:` entry with no URL behind it REDs too
+    // (pre-fix it rode the census unchecked). Prose-only conditions (no URL,
+    // no prefix) stay free-form by design. The closure's phase sequencing
     // (claim first lands with `preconditions:[]`; the URL is appended after
     // checks green) is why the census pins the entries that HAVE a URL
     // instead of demanding one from every recovery-tagged claim: dropping an
@@ -2214,7 +2216,8 @@ describe('jest-pattern conformance (real @jest/pattern module) — eval follow-u
         ciRunClaimRunIds.push(claim.run_id);
       }
       for (const entry of preconditions) {
-        if (!entry.includes('actions/runs')) continue;
+        if (!entry.includes('actions/runs') && !entry.startsWith('ci-run:'))
+          continue;
         if (!CI_RUN_FORM.test(entry)) {
           malformed.push(`${claim.source}: ${entry.slice(0, 60)}…`);
         }
