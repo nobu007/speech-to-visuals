@@ -251,11 +251,28 @@ export class StreamingTranscriber {
     const totalDurationMs = (await probeDuration()) * 1000;
     const segments: TranscriptionSegment[] = [];
     let errored = false;
+    // Utterance ordinal for the quality monitor: on this route a final
+    // utterance IS the chunk unit (dataflow.md 品質 monitor への流入).
+    let utteranceIndex = 0;
 
     try {
       const finalSegments = await transcribeFileWithWebSpeech(audioFile, {
         onFinalSegment: (segment) => {
           segments.push(segment);
+          // REQ-091 / TASK-0320: evaluate MEASURED readings only. The engine
+          // emits 実測 confidence or the disclosed FINAL_NO_CONFIDENCE_STANDIN
+          // (always numeric); the typeof guard states that contract at the
+          // gate instead of trusting the producer. A monitor failure must
+          // never destroy transcription results — segments are collected
+          // above, the evaluation is best-effort.
+          if (this.qualityMonitor && typeof segment.confidence === 'number') {
+            try {
+              this.qualityMonitor.evaluateChunk(utteranceIndex, segment.confidence);
+            } catch (monitorError) {
+              logger.warn('[StreamingTranscriber] Quality monitor evaluation failed, continuing:', monitorError);
+            }
+          }
+          utteranceIndex++;
           if (onSegment) {
             try {
               onSegment(segment);
@@ -294,9 +311,13 @@ export class StreamingTranscriber {
 
     // Engine utterances are adopted AS-IS: adjacent utterances are distinct
     // real results, not duplicates to merge away (merge stays a 経路3 tool).
+    // Only the minConfidence filter (numeric readings compared, TASK-0320)
+    // can drop an utterance from the RESULT — the monitor above already
+    // recorded every measured reading either way.
+    const validSegments = this.filterSegmentsByConfidence(segments);
     const result: TranscriptionResult = {
-      segments,
-      text: segments.map(s => s.text).join(' '),
+      segments: validSegments,
+      text: validSegments.map(s => s.text).join(' '),
       duration: totalDurationMs,
       // Content-derived (round 22): delegates to the shared detector like
       // the other TranscriptionResult producers.
@@ -310,16 +331,20 @@ export class StreamingTranscriber {
   }
 
   /**
-   * 経路2 result: adopt the delegated transcription's segments as-is and
-   * emit exactly ONE completion onProgress — single-shot inference had no
-   * incremental events to forward.
+   * 経路2 result: adopt the delegated transcription's segments (through the
+   * shared minConfidence filter — whisper rows are unmeasured `undefined` and
+   * pass by the TASK-0320 semantics) and emit exactly ONE completion
+   * onProgress — single-shot inference had no incremental events to forward.
+   * The quality monitor is NOT fed on this route: single-shot inference has
+   * no chunk progression, so `getQualitySummary()` reports zero evaluated
+   * chunks (dataflow.md 品質 monitor への流入・経路2).
    */
   private buildDelegatedResult(
     delegated: TranscriptionResult,
     onProgress: StreamingProgressCallback | undefined,
     startTime: number
   ): TranscriptionResult {
-    const segments = delegated.segments;
+    const segments = this.filterSegmentsByConfidence(delegated.segments);
     if (onProgress) {
       try {
         const progress: StreamingProgress = {
@@ -370,28 +395,19 @@ export class StreamingTranscriber {
 
         const chunkSegments = await this.processAudioChunk(chunk, audioFile);
 
-        // Add segments with confidence filtering
-        // minConfidence can legitimately be 0 (accept all); use ?? so only
-        // undefined falls back to the 0.7 default, not an explicit 0.
-        // `?? NaN` on the segment side for the same reason: an undefined or
-        // NaN confidence must stay BELOW the threshold (`undefined >= x` was
-        // always false); a 0 fallback would flip the minConfidence: 0 case
-        // from filtered to accepted.
-        const validSegments = chunkSegments.filter(
-          segment => (segment.confidence ?? Number.NaN) >= (this.config.minConfidence ?? 0.7)
-        );
+        // Shared minConfidence filter (TASK-0320): placeholder segments
+        // always carry the numeric PLACEHOLDER_CHUNK_CONFIDENCE, so they are
+        // compared like any reading (REQ-391 (f)) — only genuinely unmeasured
+        // segments (none on this route) would pass unconditionally.
+        const validSegments = this.filterSegmentsByConfidence(chunkSegments);
 
-        // Collect segments BEFORE quality monitoring so that a quality
-        // monitor failure cannot destroy transcription results
         allSegments.push(...validSegments);
 
-        // REQ-091: Record per-chunk quality with StreamingQualityMonitor
-        if (this.qualityMonitor) {
-          const chunkAvgConfidence = chunkSegments.length > 0
-            ? chunkSegments.reduce((s, seg) => s + sanitizeFinite(seg.confidence), 0) / chunkSegments.length
-            : 0;
-          this.qualityMonitor.evaluateChunk(i, chunkAvgConfidence);
-        }
+        // No quality monitoring here (TASK-0320 / AC-D6-4): a placeholder run
+        // is not a measurement. Feeding the disclosed 0.75 chunks to
+        // evaluateChunk fabricated accept/reject counts for chunks that were
+        // never really processed — `getQualitySummary()` must report zero
+        // evaluated chunks on this route.
 
         // Real-time segment callback (per-segment guard ensures one
         // failing callback does not skip remaining segments)
@@ -680,6 +696,25 @@ export class StreamingTranscriber {
         audio.src = objectUrl;
       }
     });
+  }
+
+  /**
+   * minConfidence filter over routed segments (TASK-0320 / TC-408-04).
+   *
+   * "Unmeasured" (`confidence === undefined` — whisper.cpp rows carry no
+   * confidence) is DISTINCT from a low measurement and passes: the former
+   * `(confidence ?? Number.NaN) >= threshold` rejected every unmeasured
+   * segment, wiping out the real whisper route's results entirely. Only a
+   * numeric confidence is compared to the threshold. The disclosed
+   * placeholder segments always carry the numeric PLACEHOLDER_CHUNK_CONFIDENCE,
+   * so they keep the numeric comparison (REQ-391 (f)).
+   */
+  private filterSegmentsByConfidence(segments: TranscriptionSegment[]): TranscriptionSegment[] {
+    // minConfidence can legitimately be 0 (accept all); use ?? so only
+    // undefined falls back to the 0.7 default, not an explicit 0.
+    return segments.filter(
+      segment => segment.confidence === undefined || segment.confidence >= (this.config.minConfidence ?? 0.7)
+    );
   }
 
   /**

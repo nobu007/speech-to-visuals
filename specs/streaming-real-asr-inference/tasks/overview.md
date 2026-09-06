@@ -44,7 +44,7 @@ D-1〜D-3 は main 済み（e5853217 / dda5c055）・D-4/D-5 は specs/real-audi
 ## 全体進捗
 
 - [x] Phase 1: 基盤（Web Speech file engine 単一ソース化）— TASK-0318 完了 (2026-09-04)
-- [ ] Phase 2: 経路実質化（routing 3 分岐 + confidence semantics）
+- [x] Phase 2: 経路実質化（routing 3 分岐 + confidence semantics）— TASK-0319 完了 (2026-09-05)・TASK-0320 完了 (2026-09-06)
 - [ ] Phase 3: UI 開示（placeholder notice + 偽 stats 抑制）
 
 ## マイルストーン
@@ -83,7 +83,7 @@ TASK-0318 → TASK-0319（browser 分岐の委譲先）
 ### タスク一覧
 
 - [x] [TASK-0319: transcribeStream routing 改修 — 環境別 3 分岐 + simulate chunk loop 廃止 + Node 構築可能化](TASK-0319.md) - 10h (TDD) 🔵 ✅ 2026-09-05 完了
-- [ ] [TASK-0320: confidence 未測定 semantics — minConfidence filter と StreamingQualityMonitor の実測限定](TASK-0320.md) - 4h (TDD) 🔵
+- [x] [TASK-0320: confidence 未測定 semantics — minConfidence filter と StreamingQualityMonitor の実測限定](TASK-0320.md) - 4h (TDD) 🔵 ✅ 2026-09-06 完了
 
 ### 依存関係
 
