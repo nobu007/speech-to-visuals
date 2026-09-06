@@ -2221,6 +2221,7 @@ describe('jest-pattern conformance (real @jest/pattern module) — eval follow-u
       '2026-09-07T02:00:00Z', // PR #114 — baseline iter3 (定型の初出)
       '2026-09-07T03:00:00Z', // PR #117 — phase-300 reland
       '2026-09-07T04:00:00Z', // PR #119 — core-split boundary reland (8838e3dd)
+      '2026-09-07T06:00:00Z', // PR #123 — TASK-0322 post-merge baseline
     ]);
   });
 });
