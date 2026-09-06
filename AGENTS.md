@@ -230,6 +230,12 @@ git checkout main && git pull
   protection 側の更新は不要。enforce_admins は off (緊急時の直接 push を塞がない)。
 - CI 失敗時: `gh pr checks` → 最初に赤いジョブのログ (`gh run view <id> --log-failed`)
   から直接修正。ローカルで verify:all を通してから push すれば往復はほぼ消える。
+- 2-phase closure の URL 追記回 (claim の preconditions へ `ci-run:` URL を書く回) は
+  `tests/guards/concept-sync-consistency.test.ts` の census・binding 両 pin を
+  同一 commit で dual bump すること。run_state.json / ontology_metrics.json の
+  last_run_id・claims_retained_lines 同期も同 commit で完了させる
+  (片方だけ bump すると残った leg が RED する — 契約は guard が強制するが、
+  bump 忘れ自体はこの定型で人的ミスとして防止する)。
 
 ## 検証コマンドの使い分け
 
