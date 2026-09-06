@@ -3,6 +3,7 @@ import { AudioUploader } from '@/components/AudioUploader';
 import { ProcessingStatus } from '@/components/ProcessingStatus';
 import { DiagramPreview } from '@/components/DiagramPreview';
 import { VideoRenderer } from '@/components/VideoRenderer';
+import { VideoPreview } from '@/components/VideoPreview';
 import { PipelineInterface } from '@/components/pipeline-interface';
 import { StreamingProcessor } from '@/components/StreamingProcessor';
 import { ProcessingStatus as StatusType, ProcessingResult } from '@stv/core/types/diagram';
@@ -48,9 +49,11 @@ const Index = () => {
       setProgress(30);
       setCurrentStep('音声を文字起こし中...');
 
-      // Call transcription function
+      // Call transcription function. `import.meta.env` only exists under the
+      // Vite runtime (jest's vm-module ESM leaves it undefined) — optional
+      // chaining keeps the URL construction from throwing outside Vite.
       const transcriptResponse = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/transcribe-audio`,
+        `${import.meta.env?.VITE_SUPABASE_URL}/functions/v1/transcribe-audio`,
         {
           method: 'POST',
           headers: {
@@ -79,7 +82,7 @@ const Index = () => {
 
       // Call scene generation function
       const scenesResponse = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-scenes`,
+        `${import.meta.env?.VITE_SUPABASE_URL}/functions/v1/generate-scenes`,
         {
           method: 'POST',
           headers: {
@@ -230,6 +233,10 @@ const Index = () => {
                   scenes={result.scenes}
                   onRender={handleRender}
                   isRendering={false}
+                />
+                <VideoPreview
+                  scenes={result.scenes}
+                  audioUrl={result.audioUrl}
                 />
                 <VideoRenderer
                   scenes={result.scenes}
