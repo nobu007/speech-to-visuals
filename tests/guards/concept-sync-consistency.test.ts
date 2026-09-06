@@ -2172,4 +2172,55 @@ describe('jest-pattern conformance (real @jest/pattern module) — eval follow-u
     }
     expect(evaluateNpmTestPatterns('"concept[- ]sync"').ok).toBe(true);
   });
+
+  it('claims: ci-run preconditions stay machine-readable — scheme, run id, and PR binding are one grammar (2-phase closure evidence)', () => {
+    // Test-stage follow-up (run 20260906-174248-544001): the 2-phase closure
+    // 定型 (established by baseline iter3, PR #114) records a merged PR's CI
+    // run URL in the claim's `preconditions` so the evidence is re-verifiable
+    // without parsing prose — applied to the PR #117 reland claim and then
+    // the PR #119 core-split reland claim (commit 8838e3dd, this run's
+    // implement stage). That append had no pinned contract: nothing REDs if a
+    // future appender drops the `ci-run:` scheme, links the URL bare, or
+    // points at another repo — every semantic leg above stays green because
+    // JSON.parse is shape-blind to string content. The grammar pins what
+    // makes the entry machine-readable: `ci-run:` scheme + this repo's
+    // actions/runs path + numeric run id + the `(PR #N checks 全 SUCCESS`
+    // binding parenthetical. The trigger is any precondition CONTAINING
+    // `actions/runs` — a GitHub Actions URL in any form (prefixed, bare,
+    // markdown-linked) must be in the full form, while prose-only conditions
+    // (no URL) stay free-form by design. The closure's phase sequencing
+    // (claim first lands with `preconditions:[]`; the URL is appended after
+    // checks green) is why the census pins the entries that HAVE a URL
+    // instead of demanding one from every recovery-tagged claim: dropping an
+    // already-recorded URL is evidence loss (census REDs), and appending a
+    // new one REDs until the pin is consciously bumped. RED-verified by
+    // mutation: stripping the `ci-run:` prefix trips the grammar leg;
+    // reverting 8838e3dd's preconditions back to `[]` trips the census.
+    const CI_RUN_FORM =
+      /^ci-run:https:\/\/github\.com\/nobu007\/speech-to-visuals\/actions\/runs\/\d+ \(PR #\d+ checks 全 SUCCESS/;
+    const ciRunClaimRunIds: string[] = [];
+    const malformed: string[] = [];
+    for (const line of claimLines) {
+      const claim = JSON.parse(line) as Claim & {
+        run_id: string;
+        preconditions?: string[];
+      };
+      const preconditions = claim.preconditions ?? [];
+      if (preconditions.some((entry) => entry.startsWith('ci-run:'))) {
+        ciRunClaimRunIds.push(claim.run_id);
+      }
+      for (const entry of preconditions) {
+        if (!entry.includes('actions/runs')) continue;
+        if (!CI_RUN_FORM.test(entry)) {
+          malformed.push(`${claim.source}: ${entry.slice(0, 60)}…`);
+        }
+      }
+    }
+    expect(malformed).toEqual([]);
+    expect(ciRunClaimRunIds).toEqual([
+      '2026-09-07T02:00:00Z', // PR #114 — baseline iter3 (定型の初出)
+      '2026-09-07T03:00:00Z', // PR #117 — phase-300 reland
+      '2026-09-07T04:00:00Z', // PR #119 — core-split boundary reland (8838e3dd)
+    ]);
+  });
 });
