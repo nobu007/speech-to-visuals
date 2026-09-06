@@ -4718,6 +4718,24 @@ Phase 1-13 全13フェーズ完了（93/93タスク）。ソースファイル�
 
 ---
 
+### A159: Phase 301 — 品質集計の placeholder 減点要件化（REQ-430 / TC-423・AX-3 / steering D-3）（2026-09-07 第240回検証）
+
+1. **要件対象の選定**: make-run feedback のゼロコミット判定（前 iteration は worktree 到着時点で tree 完全 clean・substantive commit 無し）を受け、steering prioritized deliverables の残未実装項目から選定。D-1（gated real whisper 推論・PR #96/#127）・D-2（WER harness・PR #96）・D-5（RecoveryStrategyChain 接続・PR #131）は main 済み。directive 本文の T-001「D-1 実装」は停滞系譜 stale 指示（到着時点で実装済み）として破棄し、残る **D-3 [fix/A]「品質集計に placeholder 減点を導入」**（= D-5 設計が A5/A6 で「AX-3 接続点」として明示した後段 feature）を要件化対象とした。feedback の TASK-0394〜0397 / validators.py / audit_doc_concept_claims は本 repo（TypeScript）に grep ゼロヒットの cross-repo phantom として処理（HIGH-LEVEL direction のみ採用）。
+2. **実装検証（gap が実在することの確認）**: (a) `getRecoveryOutcome()`（transcriber.ts:266）は src 全域 grep で消費者ゼロ — TASK-0325 が AX-3 接続点として設計・実装した getter が未接続 (b) 正典 estimator `estimateTranscriptionAccuracy`（quality-estimators.ts）は success + scenes のみの構造 proxy（成功 + scenes ≥1 → 固定 0.90）で disclosed placeholder 終端を区別しない (c) 0.90 は learner improvement threshold 0.85 / real-time monitor blocker threshold 0.85 を常に上回り、ASR 全滅 run の gate が green 通過 — quality-estimators.ts header 自身が permanently-green gate class と警告する現行残件・REQ-364/368 が monitor 側で閉じた同種の pipeline 側穴 (d) 3 経路（main-pipeline.ts:398・simple-pipeline.ts:612・framework-integrated-pipeline.ts:342 委譲）が同一 estimator を消費 — 減点の単一ソース適用が可能 (e) real-time-performance-monitor は REQ-368 設計決定で estimator proxy を意図的に消費しないため減点対象外（二重適用なし）。
+3. **REQ 分割（REQ-430 単一・TC-423-01〜04）**: 減点の中核（(a) getRecoveryOutcome 単一ソース消費・(b) estimator 単一ソースで 3 経路適用・(c) fail-closed 閾値 0.85 未満 + named constant・(d) 非 placeholder run 不影響・(e) TranscriptionResult 形状不変〔SD5/A5 継承〕・(f) mutation witness）を単一 REQ に統合 — steering D-3 は単一 deliverable であり分割の根拠なし（Phase 300 が 3 REQ なのは §3.1〜§3.5 項目別処置という対象構造による）。全て提案ベース `- [ ]`（born-DONE 禁止・0.6）。
+4. **採番**: REQ-430 / TC-423 は D-5 設計（design-interview A6・TASK-0325）が「fallback-recovery line の正典採番は requirements phase の残課題」として予約した番号をそのまま使用 — D-5 接続自体は TASK-0325 で実装・test pin 済みのため回顧要件化（born-DONE）に当たり、同 reservation は同 line の未実装後段（AX-3 / D-3）への充当で閉じる。Phase 301・REQ-431・TC-424 は specs / src / tests / scripts / docs 全域 grep で空きを確認済み。
+5. **user-stories.md を更新しない（Phase 194/195/196/300 と同一判断）**: 本 Phase は品質集計の正直性（内部信号の fail-closed 化）であり新規 user-facing 機能の story 追加に相当しない。AC-1〜AC-5 の「全74ストーリー」pin を崩す価値なし。
+
+- **根拠**: steering D-3 [fix/A]（AI_HUB_DEVELOPMENT_DIRECTION prioritized deliverables）+ D-5 設計正本（specs/asr-fallback-recovery-order/ architecture.md「AX-3（品質集計の placeholder 減点）は getRecoveryOutcome() を消費する後段 feature」・design-interview A5/A6・TASK-0325.md「後続タスク: AX-3 は getRecoveryOutcome() の消費側」）+ 実装検証（transcriber.ts:266 getter 消費者ゼロ・quality-estimators.ts:47-53 固定 0.90・main-pipeline.ts:398 / simple-pipeline.ts:612 / framework-integrated-pipeline.ts:342 の 3 経路・real-time-performance-monitor.ts REQ-368 除外決定）+ 番号空き確認（Phase 301 / REQ-430 は A6 予約番号の転用・REQ-431 / TC-424 空き）。
+
+- **信頼性への影響**:
+
+- REQ-430 追加（🔵・提案ベース未実施・TC-423-01〜04 は `- [ ]` のまま）— D-5 A6 の「正典採番残課題」を閉じ、fallback-recovery line に正典 REQ が付いた。
+- 既知の放置 drift を申告（A156〜A158 と同一）: `## 信頼性レベル分布`（🔵325件）と AC-10 末尾（🔵361件）は本 Phase でも未更新（REQ-430 の 🔵 1 件追加で実態はさらに +1・正典化は別 REQ 課題のまま）。
+- 残課題（引継ぎ）: Phase 301 の設計・実装（kairo-design → kairo-tasks → kairo-implement・TC-423-01〜04 RED→GREEN）。既存 Phase 196（REQ-425 wire-or-retire 実装待ち・REQ-426 のみ履行済み）・Phase 300（REQ-427〜429 実装待ち）と並ぶ requirements backlog。
+
+---
+
 ## 関連文書
 
 - **要件定義書**: [requirements.md](requirements.md)
