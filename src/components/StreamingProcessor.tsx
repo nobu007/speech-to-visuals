@@ -63,6 +63,10 @@ export const StreamingProcessor: React.FC<StreamingProcessorProps> = ({
   const [segments, setSegments] = useState<TranscriptionSegment[]>([]);
   const [scenes, setScenes] = useState<SceneGraph[]>([]);
   const [error, setError] = useState<string | null>(null);
+  // TASK-0321 / TC-408-03: set from the transcribeStream RESULT (not from
+  // onProgress) — whether the whole run went through the disclosed placeholder
+  // route is only decided when the result arrives.
+  const [isPlaceholderResult, setIsPlaceholderResult] = useState(false);
 
   // Real-time statistics
   const [stats, setStats] = useState<RealtimeStats>({
@@ -175,6 +179,7 @@ export const StreamingProcessor: React.FC<StreamingProcessorProps> = ({
       setError(null);
       setSegments([]);
       setScenes([]);
+      setIsPlaceholderResult(false);
       segmentsRef.current = [];
       scenesRef.current = [];
       startTime.current = performance.now();
@@ -213,6 +218,13 @@ export const StreamingProcessor: React.FC<StreamingProcessorProps> = ({
       // abandoned stream. Order matters: this must run BEFORE the
       // `setStatus('complete')` / `onComplete(...)` block below.
       if (!mountedRef.current) return;
+
+      // Route disclosure (TASK-0321 / TC-408-03): a placeholder result is a
+      // DISCLOSED outcome, not a failure — success stays `complete`. Record
+      // the route so the stats UI stops presenting the placeholder 0.75 as a
+      // measured confidence. `=== true` reads only an explicit true: result
+      // producers that omit the field entirely count as the real route.
+      setIsPlaceholderResult(result.placeholder === true);
 
       if (result.segments.length > 0) {
         setStatus('complete');
@@ -259,6 +271,7 @@ export const StreamingProcessor: React.FC<StreamingProcessorProps> = ({
       setError(null);
       setSegments([]);
       setScenes([]);
+      setIsPlaceholderResult(false);
       segmentsRef.current = [];
       scenesRef.current = [];
       startTime.current = performance.now();
@@ -379,6 +392,7 @@ export const StreamingProcessor: React.FC<StreamingProcessorProps> = ({
     segmentsRef.current = [];
     scenesRef.current = [];
     setError(null);
+    setIsPlaceholderResult(false);
     setProgress(null);
     setStats({
       segmentCount: 0,
@@ -571,7 +585,11 @@ export const StreamingProcessor: React.FC<StreamingProcessorProps> = ({
               </div>
               <div className="text-center p-3 bg-green-50 rounded-lg">
                 <div className="text-2xl font-bold text-green-600">
-                  {(stats.averageConfidence * 100).toFixed(0)}%
+                  {/* Placeholder runs report the disclosed 0.75 constant —
+                      that is NOT a measurement, so suppress the
+                      measured-looking % and disclose 未測定 instead
+                      (TASK-0321 / TC-408-03). Real runs keep the stats. */}
+                  {isPlaceholderResult ? '未測定' : `${(stats.averageConfidence * 100).toFixed(0)}%`}
                 </div>
                 <div className="text-xs text-green-600">Confidence</div>
               </div>
@@ -588,6 +606,21 @@ export const StreamingProcessor: React.FC<StreamingProcessorProps> = ({
                 <div className="text-xs text-orange-600">Elapsed</div>
               </div>
             </div>
+
+            {/* Placeholder route disclosure (TASK-0321 / TC-408-03): this run
+                completed WITHOUT ASR — the segments are disclosed placeholder
+                sentences, so the generated diagram is built on synthetic
+                input. Same disclosure policy as the server D-1 route /
+                README「音声認識の現状」. A disclosure, not an error. */}
+            {isPlaceholderResult && (
+              <div
+                role="note"
+                aria-label="transcription-placeholder-notice"
+                className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-sm text-yellow-800"
+              >
+                この経路では音声認識（ASR）が実行されていません。表示されるセグメントは開示済みプレースホルダーです（README「音声認識の現状」参照）。
+              </div>
+            )}
 
             {/* Current Segment */}
             {stats.currentSegment && (

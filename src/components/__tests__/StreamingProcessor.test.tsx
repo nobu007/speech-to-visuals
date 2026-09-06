@@ -23,6 +23,13 @@ import '@testing-library/jest-dom';
 // ---------------------------------------------------------------------------
 
 type SegmentHandler = (segment: { start: number; end: number; text: string }) => void;
+type ProgressHandler = (progress: {
+  processedDuration: number;
+  totalDuration: number;
+  currentSegment: { start: number; end: number; text: string; confidence?: number } | null;
+  segmentCount: number;
+  averageConfidence: number;
+}) => void;
 
 /**
  * Controlled StreamingTranscriber. `transcribeStream` is configured per-test via
@@ -234,5 +241,104 @@ describe('StreamingProcessor — onComplete scene propagation', () => {
 
     // No diagram keyword -> no scene built -> [] (and crucially not stale prior data).
     expect(onCompleteSpy.mock.calls[0][0]).toEqual([]);
+  });
+});
+
+describe('StreamingProcessor — placeholder result disclosure (TASK-0321 / TC-408-03 UI half)', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  /**
+   * 経路3 (disclosed placeholder): transcribeStream resolves with
+   * `placeholder: true` and its single completion progress event carries
+   * `averageConfidence` 0.75 — the disclosed PLACEHOLDER_CHUNK_CONFIDENCE
+   * constant, NOT a measurement. The UI must (1) render a notice naming the
+   * placeholder route and (2) suppress the `averageConfidence * 100`
+   * measured-looking stats display (0.75 is not a real reading).
+   */
+  it('renders a placeholder notice and suppresses the fake confidence stats when result.placeholder is true', async () => {
+    // Mirrors the 経路3 completion event: fixed placeholder sentence with the
+    // disclosed 0.75 confidence, averageConfidence reported as 0.75.
+    const placeholderSeg = { start: 0, end: 3000, text: 'Processed segment 0', confidence: 0.75 };
+    transcribeStreamMock.mockImplementation(
+      async (_file: unknown, onProgress: ProgressHandler, onSegment: SegmentHandler) => {
+        onProgress({
+          processedDuration: 3000,
+          totalDuration: 3000,
+          currentSegment: placeholderSeg,
+          segmentCount: 1,
+          averageConfidence: 0.75,
+        });
+        onSegment(placeholderSeg);
+        return { segments: [placeholderSeg], success: true, placeholder: true };
+      },
+    );
+
+    const { container } = render(
+      React.createElement(StreamingProcessor, { onComplete: jest.fn() }),
+    );
+
+    attachFakeFile(container);
+    const button = getProcessFileButton();
+
+    // Flush the microtask chain (mock resolution -> post-await completion
+    // branch) INSIDE act so the completion render is committed when act exits
+    // — the DOM assertions below read post-completion state, unlike the
+    // spy-based legs above which never needed the render to flush.
+    await act(async () => {
+      fireEvent.click(button);
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    // The placeholder route is disclosed via a note (screen-reader labeled).
+    expect(
+      screen.getByRole('note', { name: 'transcription-placeholder-notice' }),
+    ).toBeTruthy();
+    // The measured-looking run-level stat must NOT be displayed — 0.75 is the
+    // disclosed placeholder constant, not an ASR reading.
+    expect(screen.queryByText('75%')).toBeNull();
+    // Disclosure instead of a fabricated number: the confidence cell states
+    // the value is unmeasured.
+    expect(screen.getByText('未測定')).toBeTruthy();
+  });
+
+  it('keeps the measured confidence stats display and renders no notice on the real (placeholder: false) route', async () => {
+    const seg = { start: 0, end: 1500, text: 'first run process A then process B step by step', confidence: 0.92 };
+    transcribeStreamMock.mockImplementation(
+      async (_file: unknown, onProgress: ProgressHandler, onSegment: SegmentHandler) => {
+        onProgress({
+          processedDuration: 1500,
+          totalDuration: 1500,
+          currentSegment: seg,
+          segmentCount: 1,
+          averageConfidence: 0.92,
+        });
+        onSegment(seg);
+        return { segments: [seg], success: true, placeholder: false };
+      },
+    );
+
+    const { container } = render(
+      React.createElement(StreamingProcessor, { onComplete: jest.fn() }),
+    );
+
+    attachFakeFile(container);
+    const button = getProcessFileButton();
+
+    // Same act-wrapped microtask flush as the placeholder leg above: the
+    // post-completion DOM is the assertion target.
+    await act(async () => {
+      fireEvent.click(button);
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    // 経路1 is a real measurement — the stats display is justified, and no
+    // placeholder notice may appear.
+    expect(screen.getByText('92%')).toBeTruthy();
+    expect(screen.queryByRole('note')).toBeNull();
+    expect(screen.queryByText('未測定')).toBeNull();
   });
 });
