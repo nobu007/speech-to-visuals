@@ -2173,6 +2173,12 @@ describe('jest-pattern conformance (real @jest/pattern module) — eval follow-u
     expect(evaluateNpmTestPatterns('"concept[- ]sync"').ok).toBe(true);
   });
 
+  // One grammar, two readers: this leg's `.test()` checks the form, the
+  // binding census below reads the same capture groups, so the form contract
+  // and the pointer contract cannot drift into two definitions.
+  const CI_RUN_FORM =
+    /^ci-run:https:\/\/github\.com\/nobu007\/speech-to-visuals\/actions\/runs\/(\d+) \(PR #(\d+) checks 全 SUCCESS/;
+
   it('claims: ci-run preconditions stay machine-readable — scheme, run id, and PR binding are one grammar (2-phase closure evidence)', () => {
     // Test-stage follow-up (run 20260906-174248-544001): the 2-phase closure
     // 定型 (established by baseline iter3, PR #114) records a merged PR's CI
@@ -2196,8 +2202,6 @@ describe('jest-pattern conformance (real @jest/pattern module) — eval follow-u
     // new one REDs until the pin is consciously bumped. RED-verified by
     // mutation: stripping the `ci-run:` prefix trips the grammar leg;
     // reverting 8838e3dd's preconditions back to `[]` trips the census.
-    const CI_RUN_FORM =
-      /^ci-run:https:\/\/github\.com\/nobu007\/speech-to-visuals\/actions\/runs\/\d+ \(PR #\d+ checks 全 SUCCESS/;
     const ciRunClaimRunIds: string[] = [];
     const malformed: string[] = [];
     for (const line of claimLines) {
@@ -2222,6 +2226,39 @@ describe('jest-pattern conformance (real @jest/pattern module) — eval follow-u
       '2026-09-07T03:00:00Z', // PR #117 — phase-300 reland
       '2026-09-07T04:00:00Z', // PR #119 — core-split boundary reland (8838e3dd)
       '2026-09-07T06:00:00Z', // PR #123 — TASK-0322 post-merge baseline
+    ]);
+  });
+
+  it('claims: ci-run census binds each run_id to its exact actions run and PR — a rewritten URL REDs, not just a malformed one', () => {
+    // Test-stage follow-up (run 20260906-193657-756267, implement b304863b =
+    // PR #123's 3→4 census bump): the grammar leg above pins the FORM and the
+    // run_id census pins WHICH claims carry a URL, but neither pins the
+    // pointer itself — swapping any recorded URL for a different
+    // well-formed actions run id keeps both green while the machine-readable
+    // evidence silently points elsewhere. The 2-phase closure's audit value
+    // IS the pointer, so the census grows a binding axis: run_id →
+    // (actions run id, PR number), exact-pinned beside the run_id array it
+    // completes. A future URL append bumps BOTH pins in one conscious edit
+    // (adjacent legs, same file) — bumping one without the other REDs the
+    // stale leg. RED-verified by mutation: editing the run digits inside a
+    // claims.ndjson precondition (…34054608558 → …34054608559) trips ONLY
+    // this leg, with the grammar and census legs green.
+    const bindings: Array<[string, string, string]> = [];
+    for (const line of claimLines) {
+      const claim = JSON.parse(line) as Claim & {
+        run_id: string;
+        preconditions?: string[];
+      };
+      for (const entry of claim.preconditions ?? []) {
+        const matched = CI_RUN_FORM.exec(entry);
+        if (matched) bindings.push([claim.run_id, matched[1], matched[2]]);
+      }
+    }
+    expect(bindings).toEqual([
+      ['2026-09-07T02:00:00Z', '34044355255', '114'], // PR #114 — baseline iter3 (定型の初出)
+      ['2026-09-07T03:00:00Z', '34047886832', '117'], // PR #117 — phase-300 reland
+      ['2026-09-07T04:00:00Z', '34048776764', '119'], // PR #119 — core-split boundary reland
+      ['2026-09-07T06:00:00Z', '34054608558', '123'], // PR #123 — TASK-0322 post-merge baseline
     ]);
   });
 });
