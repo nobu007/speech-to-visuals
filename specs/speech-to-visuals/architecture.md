@@ -1029,6 +1029,8 @@ make-run steering feedback「371 → next-target delta is auditable without re-r
 - [unreachable-ui-wire-or-retire アーキテクチャ設計](../unreachable-ui-wire-or-retire/architecture.md)
 - [unreachable-ui-wire-or-retire データフロー設計](../unreachable-ui-wire-or-retire/dataflow.md)
 - [unreachable-ui-wire-or-retire タスク概要](../unreachable-ui-wire-or-retire/tasks/overview.md)
+- [asr-fallback-recovery-order アーキテクチャ設計](../asr-fallback-recovery-order/architecture.md)
+- [asr-fallback-recovery-order データフロー設計](../asr-fallback-recovery-order/dataflow.md)
 
 <!-- spine:children:end -->
 
