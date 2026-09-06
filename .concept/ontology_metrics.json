@@ -1,1 +1,1 @@
-{"run_id":"2026-09-07T00:00:00Z","total_terms":41,"by_layer":{"core":14,"domain":21,"aux":6},"draft_ratio":0.22,"invariants_total":37,"queue_pending":2,"claims_retained_lines":129,"decisions_md_lines":76,"gc_actions":{"merged":2,"deleted":0,"deprecated":0}}
+{"run_id":"2026-09-07T01:00:00Z","total_terms":41,"by_layer":{"core":14,"domain":21,"aux":6},"draft_ratio":0.22,"invariants_total":37,"queue_pending":2,"claims_retained_lines":130,"decisions_md_lines":76,"gc_actions":{"merged":2,"deleted":0,"deprecated":0}}
