@@ -40,6 +40,21 @@ export interface StreamingProcessorProps {
   className?: string;
 }
 
+/**
+ * Placeholder-route disclosure vocabulary (TASK-0321 / TC-408-03). Single
+ * source for the strings rendered when a run completed through the disclosed
+ * placeholder route (`result.placeholder === true`): the confidence cell
+ * states the value was never measured, and a note names the route citing the
+ * README section that documents the server D-1 disclosure convention too.
+ * Exported so tests pin the rendered text against these names instead of
+ * carrying a second copy of the sentence — vocabulary drift between the
+ * component render and the disclosure pin becomes a test failure.
+ */
+export const UNMEASURED_CONFIDENCE_LABEL = '未測定';
+export const PLACEHOLDER_NOTICE_ARIA_LABEL = 'transcription-placeholder-notice';
+export const PLACEHOLDER_NOTICE_TEXT =
+  'この経路では音声認識（ASR）が実行されていません。表示されるセグメントは開示済みプレースホルダーです（README「音声認識の現状」参照）。';
+
 type ProcessingMode = 'file' | 'live' | 'idle';
 type StreamingStatus = 'idle' | 'recording' | 'processing' | 'paused' | 'complete' | 'error';
 
@@ -589,7 +604,7 @@ export const StreamingProcessor: React.FC<StreamingProcessorProps> = ({
                       that is NOT a measurement, so suppress the
                       measured-looking % and disclose 未測定 instead
                       (TASK-0321 / TC-408-03). Real runs keep the stats. */}
-                  {isPlaceholderResult ? '未測定' : `${(stats.averageConfidence * 100).toFixed(0)}%`}
+                  {isPlaceholderResult ? UNMEASURED_CONFIDENCE_LABEL : `${(stats.averageConfidence * 100).toFixed(0)}%`}
                 </div>
                 <div className="text-xs text-green-600">Confidence</div>
               </div>
@@ -615,10 +630,10 @@ export const StreamingProcessor: React.FC<StreamingProcessorProps> = ({
             {isPlaceholderResult && (
               <div
                 role="note"
-                aria-label="transcription-placeholder-notice"
+                aria-label={PLACEHOLDER_NOTICE_ARIA_LABEL}
                 className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-sm text-yellow-800"
               >
-                この経路では音声認識（ASR）が実行されていません。表示されるセグメントは開示済みプレースホルダーです（README「音声認識の現状」参照）。
+                {PLACEHOLDER_NOTICE_TEXT}
               </div>
             )}
 
