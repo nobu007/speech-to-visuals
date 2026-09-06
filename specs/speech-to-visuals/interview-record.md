@@ -4698,6 +4698,26 @@ Phase 1-13 全13フェーズ完了（93/93タスク）。ソースファイル�
 
 ---
 
+### A158: Phase 300 — 品質記録 §3 の出典整合要件化（REQ-427〜429）と D-6 完了に伴う REQ-424/TC-408 status 同期（2026-09-07 第239回検証）
+
+1. **要件対象の選定**: D-6（TASK-0318〜0321）完了後の requirements 段 gap として、TASK-0315〜0317 は実装 task（real-audio-e2e-regression spec に分割済み・REQ-422/423 は Phase 194 で要件化済み）で新規 REQ 不要、REQ-425/426 は Phase 196 設計待ち（kairo-design TASK-0322〜）。src 側の測定契約（REQ-391〜395）が撲滅した同一 class の doc 側残件 — `docs/architecture/QUALITY_METRICS.md` §3 出典ゼロ Current 値（Phase 43 commit 4dc6a265・2025-10-15 由来）— を本 run の対象とした（steering anti-pattern「数値変更には実測 artifact が必須」の doc 側適用）。
+2. **§3 残存値の実装検証（全 item に出典確認を実施）**: (a) §3.2 Entity F1 85% / Relationship Accuracy 90% / Edge Completeness 88% — ground truth 測定なし（`src/analysis/gemini-analyzer.ts:264-267` は heuristic 自己推定・`ExtendedPipelineMetrics.entityExtractionF1Score` は REQ-392 (a) で field ごと削除済み）(b) §3.4 Animation Smoothness「60fps」— `DEFAULT_FPS = 30`（`src/remotion/scene-synchronizer.ts:26`・Root.tsx composition・SYSTEM_CONSTITUTION「1080p/30fps」）と矛盾 (c) §3.3 Readability 95% / Bounds Efficiency 85% — 出典ゼロだが `calculateQualityMetrics`（REQ-391 (g)）の既存単一ソースがあり測定基盤化可能 → REQ-428 (d) §3.4 Scene Transition 4.5/5.0・Caption Readability 100% — visual assessment artifact なし (e) §3.1 Language Detection 95%・§3.2 Fallback 5% / Model Selection 90% — footnote 自身が target と明記（測定ではない）(f) §3.5 全項 — REQ-422 / TASK-0316 E2E 実測待ち（本 Phase からは独立・記載整合のみ扱う）。
+3. **REQ 分割（REQ-427〜429・TC-420〜422）**: REQ-427 = §3 全 Current 値への出典分類強制（実測証跡 / 設計値参照 / 未測定 / PENDING の 4 分類・項目別処置付き）、REQ-428 = §3.3 測定基盤（D-3 diagram harness と同一契約 — 既存 single source 委譲・fail-loud・baseline pin・§8.7 記載）、REQ-429 = 出典台帳 guard（TC-407-02 / D-3 baseline pin / REQ-395 three-way と同型・mutation witness 付き）。全て提案ベース `- [ ]`（born-DONE 禁止・0.6）。
+4. **採番**: Phase header は **Phase 300** — Phase 197〜299 は census/meta-loop 帯（REQ-396〜420 系譜・boundary-operator-census ほかが「Phase 197 (REQ-398) で確立した規約」として参照・architecture.md「REQ 番号帯の分裂」節）が占拠するため、本 requirements.md 正典帯は Phase 196 の次に 300 を採る（採番注記を Phase 300 context に明記）。REQ-427〜429（実 REQ max 426・REQ-480 は A156 判定 4 で phantom 確認済み）・TC-420〜422（dead-idiom-batch-census が TC-411〜419 を使用）は specs / src / tests / scripts 全域 grep で空きを確認済み。
+5. **REQ-424 / TC-408-01〜04 の status 同期（stale 解消）**: D-6 完了（TASK-0318: 2026-09-04・TASK-0319: 09-05・TASK-0320: 09-06〔commit 8328934a〕・TASK-0321: 09-07〔PR #112/#113〕・overview.md 全 Phase ✅・D-6 完納宣言は TASK-0321 baseline chain 記録〔PR #114〕）に伴い、REQ-424 suffix を ✅実装済へ、TC-408-01〜04 を `- [x]` + 完了 annotation へ更新（要件・検証内容の文面は verbatim 保持し末尾 status 表記のみ置換）。
+6. **user-stories.md を更新しない（Phase 194/195/196 と同一判断）**: 本 Phase は品質記録 doc の出典整合であり新規 user-facing 機能の story 追加に相当しない。AC-1〜AC-5 の「全74ストーリー」pin を崩す価値なし。
+
+- **根拠**: QUALITY_METRICS.md §3.1〜§3.5 全行の出典確認（§3.2 Diagram Type のみ REQ-421 で実測置換済み・他は 4dc6a265 Phase 43 由来のまま）+ 実装検証（scene-synchronizer.ts:26・gemini-analyzer.ts:264-267・enhanced-zero-overlap-layout.ts calculateQualityMetrics・§3.5 対応測定実装の不存在）+ D-6 完了記録（specs/streaming-real-asr-inference/tasks/ overview.md・TASK-0318〜0321.md・PR #102〜#104/#112〜#114）+ 番号空き確認（Phase 300 / REQ-427〜429 / TC-420〜422）。
+
+- **信頼性への影響**:
+
+- REQ-427〜429 追加（🔵・提案ベース未実施・TC-420-01〜02 / TC-421-01〜03 / TC-422-01〜02 は `- [ ]` のまま）。
+- REQ-424（suffix を 🔵 ✅実装済へ）・TC-408-01〜04（`- [x]` + 完了 annotation）の status 同期 — D-6 完了（2026-09-07 baseline chain 記録）直後の解消。
+- 既知の放置 drift を申告（A156/A157 と同一）: `## 信頼性レベル分布`（🔵325件）と AC-10 末尾（🔵361件）は本 Phase でも未更新（REQ-427〜429 の 🔵 3 件追加で実態はさらに +3・正典化は別 REQ 課題のまま）。
+- 残課題（引継ぎ）: Phase 196 の設計（kairo-design — REQ-425/426・次回採番 TASK-0322〜）と Phase 300 の設計・実装（kairo-design → kairo-tasks → kairo-implement）。
+
+---
+
 ## 関連文書
 
 - **要件定義書**: [requirements.md](requirements.md)
