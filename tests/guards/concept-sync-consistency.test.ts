@@ -2230,6 +2230,7 @@ describe('jest-pattern conformance (real @jest/pattern module) — eval follow-u
       '2026-09-07T04:00:00Z', // PR #119 — core-split boundary reland (8838e3dd)
       '2026-09-07T06:00:00Z', // PR #123 — TASK-0322 post-merge baseline
       '2026-09-07T07:00:00Z', // PR #124 — ci-run binding leg (test stage)
+      '2026-09-07T08:00:00Z', // PR #126 — grammar prefix axis + dual-bump 再実測 (iter2)
     ]);
   });
 
@@ -2264,6 +2265,7 @@ describe('jest-pattern conformance (real @jest/pattern module) — eval follow-u
       ['2026-09-07T04:00:00Z', '34048776764', '119'], // PR #119 — core-split boundary reland
       ['2026-09-07T06:00:00Z', '34054608558', '123'], // PR #123 — TASK-0322 post-merge baseline
       ['2026-09-07T07:00:00Z', '34056353082', '124'], // PR #124 — binding leg 新設 (dual bump 初回)
+      ['2026-09-07T08:00:00Z', '34057620069', '126'], // PR #126 — grammar prefix axis (dual bump 2 回目)
     ]);
   });
 });
