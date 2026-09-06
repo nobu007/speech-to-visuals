@@ -1028,6 +1028,7 @@ make-run steering feedback「371 → next-target delta is auditable without re-r
 - [streaming-real-asr-inference タスク概要](../streaming-real-asr-inference/tasks/overview.md)
 - [unreachable-ui-wire-or-retire アーキテクチャ設計](../unreachable-ui-wire-or-retire/architecture.md)
 - [unreachable-ui-wire-or-retire データフロー設計](../unreachable-ui-wire-or-retire/dataflow.md)
+- [unreachable-ui-wire-or-retire タスク概要](../unreachable-ui-wire-or-retire/tasks/overview.md)
 
 <!-- spine:children:end -->
 
