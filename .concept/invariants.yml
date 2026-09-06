@@ -188,7 +188,7 @@ invariants:
     statement: "リファクタは verbatim 移動が原則（配線のみ書き換え）。コード移動後は readSource している guard のアンカーを新征程へ再指向する。挙動保存の証明は『ガード以外のテストを一つも直さず全部通る』こと"
     rationale: "guard の fail が移動漏れを自動検出する文化。証明可能なリファクタを担保する。"
     evidence:
-      - source: "AGENTS.md#L260-L267"
+      - source: "AGENTS.md#L266-L273"
         quote: "リファクタは verbatim 移動が原則。配線 (DI/callback) のみ書き換える。…「ガード以外のテストを一つも直さずに全部通る」ことが挙動保存の証明。"
     checks:
       - type: "test"

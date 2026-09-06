@@ -549,7 +549,7 @@ canonical_terms:
     evidence:
       - source: "tests/guards/source-anchor-cwd-discipline.test.ts#L80"
         quote: "describe('source-anchor cwd discipline (whisper-node chdir lesson, 16ed9ccf)', () => {"
-      - source: "AGENTS.md#L260-L263"
+      - source: "AGENTS.md#L266-L269"
         quote: "リファクタは verbatim 移動が原則。配線 (DI/callback) のみ書き換える。"
   SpecSpine:
     id: "TERM-SPEC-SPINE"
