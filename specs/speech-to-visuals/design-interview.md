@@ -4658,6 +4658,7 @@ interfaces.ts には既にこれらの主要型が反映済み。
 - [stv-core design sync 自動分析記録](../stv-core-design-sync/interview-record.md)
 - [real-audio-e2e-regression 設計自動分析記録](../real-audio-e2e-regression/design-interview.md)
 - [streaming-real-asr-inference 設計自動分析記録](../streaming-real-asr-inference/design-interview.md)
+- [unreachable-ui-wire-or-retire 設計自動分析記録](../unreachable-ui-wire-or-retire/design-interview.md)
 
 <!-- spine:children:end -->
 
