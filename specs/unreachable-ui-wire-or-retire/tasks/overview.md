@@ -43,7 +43,7 @@ A157（要件段階）の到達可能性全走査で確定した生産 UI の未
 
 ## 全体進捗
 
-- [ ] Phase 1: WIRE（ビデオプレビューの実体化）— TASK-0322
+- [x] Phase 1: WIRE（ビデオプレビューの実体化）— TASK-0322 完了 (2026-09-07)
 - [ ] Phase 2: RETIRE（機能重複 5 件の削除と参照整理）— TASK-0323
 - [ ] Phase 3: 到達性 guard（回帰防止の歯）— TASK-0324
 
@@ -63,7 +63,7 @@ A157（要件段階）の到達可能性全走査で確定した生産 UI の未
 
 ### タスク一覧
 
-- [ ] [TASK-0322: WIRE — VideoPreview の Index complete state 結線と page test（TC-410 完結）](TASK-0322.md) - 4h (TDD) 🔵
+- [x] [TASK-0322: WIRE — VideoPreview の Index complete state 結線と page test（TC-410 完結）](TASK-0322.md) - 4h (TDD) 🔵 ✅ 2026-09-07 完了
 
 ### 依存関係
 

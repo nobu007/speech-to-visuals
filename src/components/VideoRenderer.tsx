@@ -7,7 +7,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Play, Download, ExternalLink, Settings } from 'lucide-react';
 import { SceneGraph } from '@stv/core/types/diagram';
 import { videoRenderer, VideoRenderProgress } from '@/components/videoRenderer';
-import { Player } from '@remotion/player';
 import { logger } from '@stv/core/utils/logger';
 import { toast } from 'sonner';
 
