@@ -32,12 +32,12 @@
 
 「Whisper による高精度文字起こし（精度90-95%）」という旧記載は実装と整合しないため、以下の実態に置き換えました（2026-08 時点）。
 
-- サーバー優先経路 `src/transcription/whisper-transcriber.ts` は、コンパイル済み whisper.cpp バイナリ（`node_modules/whisper-node/lib/whisper.cpp/main`）と ggml モデル（`STV_WHISPER_MODEL` または `models/ggml-<model>.bin`）が**両方存在する場合のみ** whisper-node による実推論を試み、成功時は `placeholder: false`・実測タイムスタンプ付きセグメントを返します（confidence は whisper.cpp 出力に存在しないため未測定のまま）。バイナリ/モデルが無い環境（CI を含む）や推論失敗時は固定文（`generateHighQualityTranscript()`）を返し、結果には `placeholder: true` が開示されます（confidence は `PLACEHOLDER_SEGMENT_CONFIDENCE` の単一ソース）。モデルは `npx whisper-node download` で取得できます。
+- サーバー優先経路 `src/transcription/whisper-transcriber.ts` は、コンパイル済み whisper.cpp バイナリ（`node_modules/whisper-node/lib/whisper.cpp/main`）と ggml モデル（`STV_WHISPER_MODEL` または `models/ggml-<model>.bin`）が**両方存在する場合のみ** whisper-node による実推論を試み、成功時は `placeholder: false`・実測タイムスタンプ付きセグメントを返します（confidence は whisper.cpp 出力に存在しないため未測定のまま）。バイナリ/モデルが無い環境（CI を含む）や推論失敗時は固定文（`generateHighQualityTranscript()`）を返し、結果には `placeholder: true` が開示されます（confidence は `PLACEHOLDER_SEGMENT_CONFIDENCE` の単一ソース）。モデルは `npx whisper-node download` で取得できます。実行時は whisper-node の既知の 2 上流問題を回避しています: stdout parser が最初のトランスクリプト行を欠落させる（`-osrt` サイドカーを第一ソースにして解消）点と、シェル層が相対パス `./main` を lib/whisper.cpp 内から実行する前提なのを呼び出し側の cwd 復元で吸収する点。
 - 上記の存在ゲートは whisper-node の**モジュール読み込み自体を保護**しています。whisper-node は読み込み時にプロセスの cwd を書き換え、バイナリ未コンパイルなら同期的に `make` を実行して失敗すると `process.exit(1)` します。以前の実装は起動時に無条件でこの import を行っていましたが、現在はゲート通過後のみ遅延読み込みし、読み込み後は cwd を復元します。
 - パイプライン `src/transcription/transcriber.ts` は推論を伴わない `placeholder` 結果を「成功」として採用せず、ブラウザ環境では Web Speech API（`src/transcription/browser-transcriber.ts`）へフォールバックします。全経路が失敗するとプレースホルダー（`[Transcription unavailable - placeholder content]`、confidence 0）を返します。サーバー経路はファイルパス文字列入力も受け付けます（Node ではディスクから読み取り）。
 - 精度測定ハーネス `scripts/measure-transcription-accuracy.ts`（`npx tsx scripts/measure-transcription-accuracy.ts --corpus <dir>`）は、参照文字起こし（`<name>.txt`）との WER/CER を算出し JSON 証跡を出力します。実推論が一度も走らなかった実行は測定ではないとみなし exit 1 で拒否します（プレースホルダー実行を精度記録に混入させない）。
 - そのため実音声に対する文字起こし精度は**未測定**です（評価コーパス `public/audio` が未整備のため実測証跡が無い）。WER ベースの記録値は [QUALITY_METRICS.md](docs/architecture/QUALITY_METRICS.md) §3.1 の `~85%`（目標 >85%）を参照してください（旧 README 記載の「90-95%」とは一致しません）。
-- `npm run transcribe`（`public/jfk.wav`）はバイナリ/モデルが無ければ同じ固定文生成経路を通るため、実測には使えません。実測に必要な残課題は、評価コーパスの整備（ライセンス適合の実音声 + 参照文字起こし）と、実推論実行による WER 証跡の QUALITY_METRICS §3.1 記録です。
+- `npm run transcribe`（`public/jfk.wav`）はバイナリ/モデルが揃えば実推論経路で動作します（追跡成果物 `public/srt/jfk.srt` は 2026-09 に実推論出力へ再生成済み）。バイナリ/モデルが無い環境では固定文生成経路を通ります。実測に必要な残課題は、評価コーパスの整備（ライセンス適合の実音声 + 参照文字起こし）と、実推論実行による WER 証跡の QUALITY_METRICS §3.1 記録です。
 
 **処理時間**: Phase 29 実行では総処理 35.62 秒（`public/jfk.wav`・動画生成込み。経時的な測定記録は [QUALITY_METRICS.md](docs/architecture/QUALITY_METRICS.md) §4.2 と [ITERATION_LOG.md](docs/architecture/ITERATION_LOG.md) を参照）
 **システムステータス**: Phase 29 実施 - 実音声ファイルによるシステム検証（Phase 29 の測定条件は下記「システム品質」を参照）

@@ -20,6 +20,7 @@ import {
   WhisperTranscriber,
   PLACEHOLDER_SEGMENT_CONFIDENCE,
   convertWhisperRows,
+  parseWhisperSrtSidecar,
   parseWhisperTimestampToMs,
   resolveWhisperInferencePaths,
   type RawWhisperRow,
@@ -325,5 +326,100 @@ describe('resolveWhisperInferencePaths', () => {
     });
 
     expect(paths?.binaryPath).toBe(`${CPP}/main`);
+  });
+});
+
+describe('SRT sidecar (whisper-node first-row-drop defense)', () => {
+  // whisper-node's stdout parser `shift()`s the first transcript row away
+  // (upstream tsToArray); a backend that resolved the tail row while
+  // whisper.cpp wrote the complete `-osrt` sidecar is the real success shape.
+  const SIDECAR_SRT = [
+    '1',
+    '00:00:00,000 --> 00:00:08,000',
+    'And so, my fellow Americans, ask not what your country can do for you,',
+    '',
+    '2',
+    '00:00:08,000 --> 00:00:11,000',
+    'ask what you can do for your country.',
+    '',
+  ].join('\n');
+
+  it('prefers the complete sidecar over the first-row-dropped stdout rows', async () => {
+    const fs = await import('fs');
+    const transcriber = makeTranscriber(async (path) => {
+      fs.writeFileSync(`${path}.srt`, SIDECAR_SRT);
+      return [REAL_ROWS[1]];
+    });
+
+    const result = await transcriber.transcribe(createValidMp3());
+
+    expect(result.placeholder).toBe(false);
+    expect(result.segments).toHaveLength(2);
+    expect(result.segments[0]).toMatchObject({ start: 0, end: 8000 });
+    expect(result.segments[0]?.text).toContain('ask not what your country');
+    expect(result.segments[1]).toMatchObject({ start: 8000, end: 11000 });
+    expect(result.segments[1]?.text).toContain('ask what you can do for your country');
+  });
+
+  it('removes the sidecar together with the staged temp file', async () => {
+    const fs = await import('fs');
+    let sidecar = '';
+    const transcriber = makeTranscriber(async (path) => {
+      sidecar = `${path}.srt`;
+      fs.writeFileSync(sidecar, SIDECAR_SRT);
+      return REAL_ROWS;
+    });
+
+    await transcriber.transcribe(createValidMp3());
+
+    expect(fs.existsSync(sidecar)).toBe(false);
+  });
+
+  it('puts the process cwd back after the backend call (whisper-node execs "./main" from its own dir)', async () => {
+    // whisper-node's shell layer execs the RELATIVE "./main", so the real
+    // backend runs with the process inside lib/whisper.cpp. The transcriber
+    // must leave the cwd where the caller started it, or every later
+    // cwd-relative write (scripts, pipeline artifacts) lands in node_modules.
+    const os = await import('os');
+    const before = process.cwd();
+    const transcriber = makeTranscriber(async () => {
+      process.chdir(os.tmpdir());
+      return REAL_ROWS;
+    });
+
+    try {
+      const result = await transcriber.transcribe(createValidMp3());
+
+      expect(result.placeholder).toBe(false);
+      expect(process.cwd()).toBe(before);
+    } finally {
+      if (process.cwd() !== before) process.chdir(before);
+    }
+  });
+});
+
+describe('parseWhisperSrtSidecar', () => {
+  it('normalizes comma-millisecond SRT stamps to the dot form the row parser accepts', () => {
+    const rows = parseWhisperSrtSidecar(
+      ['1', '00:00:00,000 --> 00:00:01,500', 'one', '', '2', '00:00:01,500 --> 00:00:02,000', 'two', ''].join('\n')
+    );
+
+    expect(rows).toEqual([
+      { start: '00:00:00.000', end: '00:00:01.500', speech: 'one' },
+      { start: '00:00:01.500', end: '00:00:02.000', speech: 'two' },
+    ]);
+  });
+
+  it('skips blocks without a stamp line and joins multi-line speech', () => {
+    const rows = parseWhisperSrtSidecar(
+      ['junk preamble', '', '3', '00:00:05,000 --> 00:00:09,000', 'first line', 'second line', ''].join('\n')
+    );
+
+    expect(rows).toEqual([{ start: '00:00:05.000', end: '00:00:09.000', speech: 'first line second line' }]);
+  });
+
+  it('returns an empty array for content with no usable block (falls through to stdout rows)', () => {
+    expect(parseWhisperSrtSidecar('')).toEqual([]);
+    expect(parseWhisperSrtSidecar('no stamps here')).toEqual([]);
   });
 });

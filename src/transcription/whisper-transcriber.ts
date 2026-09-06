@@ -61,7 +61,7 @@ export type WhisperBackend = (
   filePath: string,
   options?: {
     modelPath?: string;
-    whisperOptions?: { language?: string; word_timestamps?: boolean };
+    whisperOptions?: { language?: string; word_timestamps?: boolean; gen_file_subtitle?: boolean };
   }
 ) => Promise<RawWhisperRow[] | null | undefined>;
 
@@ -117,6 +117,36 @@ export function convertWhisperRows(rows: RawWhisperRow[] | null | undefined): Tr
     segments.push({ id: segments.length, start, end, text });
   }
   return segments.length > 0 ? segments : null;
+}
+
+/**
+ * Parse the SRT sidecar whisper.cpp writes next to its input file (`-osrt`)
+ * into RawWhisperRow shape. whisper-node's stdout parser unconditionally
+ * drops the first transcript row (upstream tsToArray `shift()` — the opening
+ * line of every transcription), while the sidecar is written complete, so
+ * attemptRealInference reads this first and only falls back to the returned
+ * rows. SRT stamps are comma-millisecond ("HH:MM:SS,mmm") and normalized
+ * here to the dot form parseWhisperTimestampToMs accepts (its comma
+ * rejection is pinned by contract tests).
+ */
+export function parseWhisperSrtSidecar(content: string): RawWhisperRow[] {
+  const rows: RawWhisperRow[] = [];
+  const stampPattern = /^(\d{2}:\d{2}:\d{2}[,.]\d{3})\s*-->\s*(\d{2}:\d{2}:\d{2}[,.]\d{3})$/;
+  for (const block of content.split(/\n\s*\n/)) {
+    const lines = block.split('\n').map((line) => line.trim());
+    const stampIndex = lines.findIndex((line) => stampPattern.test(line));
+    if (stampIndex === -1) continue;
+    const match = lines[stampIndex].match(stampPattern);
+    const speech = lines.slice(stampIndex + 1).join(' ').trim();
+    if (match && speech.length > 0) {
+      rows.push({
+        start: match[1].replace(',', '.'),
+        end: match[2].replace(',', '.'),
+        speech,
+      });
+    }
+  }
+  return rows;
 }
 
 /**
@@ -232,18 +262,69 @@ export class WhisperTranscriber {
     const backend = await this.loadBackend();
     if (!backend) return null;
     const staged = await this.stageAudioForWhisper(audioInput);
+    const sidecarPath = `${staged.path}.srt`;
+    // whisper-node's shell layer execs the RELATIVE "./main", so the call
+    // only works while the process sits inside lib/whisper.cpp — the chdir
+    // loadBackend undid after the import (an open gate still produced
+    // "./main: not found"). Re-enter for the call, then put the process back.
+    const path = await import('path');
+    const fs = await import('fs');
+    const inferenceCwd = path.dirname(paths.binaryPath);
+    const cwdBeforeInference = process.cwd();
+    if (fs.existsSync(inferenceCwd) && process.cwd() !== inferenceCwd) {
+      process.chdir(inferenceCwd);
+    }
     try {
-      const whisperOptions =
+      const language =
         this.config.language && this.config.language !== 'auto'
           ? { language: this.config.language }
-          : undefined;
-      const rows = await backend(staged.path, { modelPath: paths.modelPath, whisperOptions });
-      return convertWhisperRows(rows);
+          : {};
+      const rows = await backend(staged.path, {
+        modelPath: paths.modelPath,
+        whisperOptions: {
+          // -osrt sidecar: whisper-node's stdout parser drops the first
+          // transcript row (upstream tsToArray `shift()`); the sidecar is
+          // written complete and read back as the primary source.
+          gen_file_subtitle: true,
+          // Sentence-grain rows (whisper-node's default options object would
+          // pass `-ml 1` = one word per row when whisperOptions is undefined).
+          word_timestamps: false,
+          ...language,
+        },
+      });
+      const sidecarRows = await this.readSidecarRows(sidecarPath);
+      return convertWhisperRows(sidecarRows !== null && sidecarRows.length > 0 ? sidecarRows : rows);
     } catch (error) {
       logger.warn('[WhisperTranscriber] whisper.cpp inference failed, using disclosed placeholder:', error);
       return null;
     } finally {
+      if (process.cwd() !== cwdBeforeInference) process.chdir(cwdBeforeInference);
       await staged.cleanup();
+      await this.removeSidecar(sidecarPath);
+    }
+  }
+
+  /**
+   * Read and parse the `-osrt` sidecar whisper.cpp wrote next to the staged
+   * audio. Null when missing/unreadable (backend fakes, a whisper.cpp build
+   * without -osrt) — the caller then uses the rows the backend returned.
+   */
+  private async readSidecarRows(sidecarPath: string): Promise<RawWhisperRow[] | null> {
+    const fs = await import('fs');
+    try {
+      return parseWhisperSrtSidecar(fs.readFileSync(sidecarPath, 'utf8'));
+    } catch {
+      return null;
+    }
+  }
+
+  /** Remove the consumed sidecar; best-effort, same policy as the staged temp file. */
+  private async removeSidecar(sidecarPath: string): Promise<void> {
+    const fs = await import('fs');
+    try {
+      fs.rmSync(sidecarPath, { force: true });
+    } catch {
+      // best-effort sidecar cleanup
     }
   }
 

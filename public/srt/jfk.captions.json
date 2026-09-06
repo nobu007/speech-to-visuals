@@ -1,20 +1,16 @@
 [
   {
-    "text": "Let's explore our organizational hierarchy structure. The company has different levels including management, departments, and teams with clear parent-child relationships.",
+    "text": "And so, my fellow Americans, ask not what your country can do for you,",
     "startMs": 0,
-    "endMs": 6000,
-    "confidence": 0.95
+    "endMs": 8000,
+    "timestampMs": 0,
+    "confidence": null
   },
   {
-    "text": "Now we'll examine the development timeline and chronology. The project evolution spans multiple phases over several years, from conception in 2020 to deployment in 2024.",
-    "startMs": 6000,
-    "endMs": 12000,
-    "confidence": 0.88
-  },
-  {
-    "text": "Finally, this continuous process forms a recurring cycle that returns to the beginning. The workflow loops back to the initial stage, creating an ongoing, cyclical pattern.",
-    "startMs": 12000,
-    "endMs": 18000,
-    "confidence": 0.92
+    "text": "ask what you can do for your country.",
+    "startMs": 8000,
+    "endMs": 11000,
+    "timestampMs": 8000,
+    "confidence": null
   }
 ]

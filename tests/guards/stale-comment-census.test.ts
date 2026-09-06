@@ -203,9 +203,9 @@ const ALLOWED: Record<string, string> = {
   // ── CONFESSION axis (would-be-calculated / simulated / placeholder narration)
   'src/monitoring/performance-dashboard.ts:230':
     '`0.95 // Would be calculated from actual results` — quoted inside a backtick narration of REQ-391 history; the dashboard NO LONGER publishes that number, the comment narrates the fix.',
-  'src/transcription/whisper-transcriber.ts:507':
+  'src/transcription/whisper-transcriber.ts:588':
     '`placeholder text with no ASR behind it` — DISCLOSURE of the deliberate fallback emitter: when the gated whisper.cpp inference (attemptRealInference) is unavailable or failed, this path emits fixed sentences and the result carries `placeholder: true` (README「音声認識の現状」); the comment documents that limit.',
-  'src/transcription/whisper-transcriber.ts:406':
+  'src/transcription/whisper-transcriber.ts:487':
     '`placeholder emitters below.` — same disclosure family one branch up: the transcribe() narration of where control lands when the real inference attempt returns null; the `placeholder: true` that branch sets is the pipeline\'s routing signal, not a confession of dead code.',
   'src/visualization/enhanced-zero-overlap-layout.ts:1199':
     '`// Simulated` constants published frozen numbers as readings` — quoted inside a backtick narration of REQ-391 history; the layout NO LONGER publishes simulated constants, the comment narrates the fix.',
