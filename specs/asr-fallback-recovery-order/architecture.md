@@ -171,11 +171,11 @@ tests/transcription/
 
 **信頼性**: 🔵 *development_direction D-5 acceptance 文（「推論失敗を注入したテストでフォールバック順序が守られ、最終placeholderは confidence 0 で開示されることが既存テストスイートで検証される（新規テストはこのギャップ分のみ）」）との対応関係より*
 
-- [ ] **AC-D5-1**（D-5）: フォールバック順序が `RecoveryStrategyChain` の step 列（whisper-inference → web-speech-file → disclosed-placeholder・browser 環境のみ step 2 注册）として単一ソースで表現され、実行順序が `ChainOutcome.trace` で機械検証可能であること。検証（履行時）: trace の attempted step id 列を環境別に pin する test が RED→GREEN
-- [ ] **AC-D5-2**（D-5）: whisper 推論の**throw 注入**と placeholder 結果注入の両方で次 step へ移行すること、Node 環境では web-speech step が登録されず browser engine が construct されないこと。検証（履行時）: throw 注入 leg（既存 4 leg に存在しないギャップ分）が RED→GREEN・既存「browser engine 非 construct」leg が無変更 green
-- [ ] **AC-D5-3**（D-5）: 全 engine 失敗時に terminal 開示 step が勝利し（`winningStepId === 'disclosed-placeholder'`・`fallbackUsed === true`・`confidence === 0`）、結果が `fallback: true`・`success: false`・`segments[0].confidence === 0` で開示されること。chain が budget 枯渇等で失敗しても pipeline 側の開示 placeholder が返ること。検証（履行時）: 全滅注入 leg + 開示最終保証 leg が RED→GREEN
-- [ ] **AC-D5-4**（D-5・順序権威）: `minConfidence` が 0 固定であること — 実測 confidence を持たない（undefined）whisper 実推論結果が confidence 値によって下位 engine に逆転されないこと。検証（履行時）: whisper real（confidence undefined → step confidence 0）で whisper が勝つことを pin する test が RED→GREEN
-- [ ] **AC-D5-5**（D-5・error-recovery 接続）: step 実行が `errorRecoveryEventBus` へ `stage: 'transcription'` で `recovery:attempt` / `recovery:success` / `recovery:failure` を emit し、`getRecoveryOutcome()` が直近 `transcribe()` の `ChainOutcome` を返すこと。検証（履行時）: event 順序 witness + getter pin の test が RED→GREEN
+- [x] **AC-D5-1**（D-5）: フォールバック順序が `RecoveryStrategyChain` の step 列（whisper-inference → web-speech-file → disclosed-placeholder・browser 環境のみ step 2 注册）として単一ソースで表現され、実行順序が `ChainOutcome.trace` で機械検証可能であること。検証（履行時）: trace の attempted step id 列を環境別に pin する test が RED→GREEN
+- [x] **AC-D5-2**（D-5）: whisper 推論の**throw 注入**と placeholder 結果注入の両方で次 step へ移行すること、Node 環境では web-speech step が登録されず browser engine が construct されないこと。検証（履行時）: throw 注入 leg（既存 4 leg に存在しないギャップ分）が RED→GREEN・既存「browser engine 非 construct」leg が無変更 green
+- [x] **AC-D5-3**（D-5）: 全 engine 失敗時に terminal 開示 step が勝利し（`winningStepId === 'disclosed-placeholder'`・`fallbackUsed === true`・`confidence === 0`）、結果が `fallback: true`・`success: false`・`segments[0].confidence === 0` で開示されること。chain が budget 枯渇等で失敗しても pipeline 側の開示 placeholder が返ること。検証（履行時）: 全滅注入 leg + 開示最終保証 leg が RED→GREEN
+- [x] **AC-D5-4**（D-5・順序権威）: `minConfidence` が 0 固定であること — 実測 confidence を持たない（undefined）whisper 実推論結果が confidence 値によって下位 engine に逆転されないこと。検証（履行時）: whisper real（confidence undefined → step confidence 0）で whisper が勝つことを pin する test が RED→GREEN
+- [x] **AC-D5-5**（D-5・error-recovery 接続）: step 実行が `errorRecoveryEventBus` へ `stage: 'transcription'` で `recovery:attempt` / `recovery:success` / `recovery:failure` を emit し、`getRecoveryOutcome()` が直近 `transcribe()` の `ChainOutcome` を返すこと。検証（履行時）: event 順序 witness + getter pin の test が RED→GREEN
 
 ## 信頼性レベルサマリー
 

@@ -16,7 +16,7 @@
 
 ## 関連文書
 
-- **設計文書**: [📐 architecture.md](../architecture.md)（Acceptance criteria: AC-D5-1〜05・すべて未達 `- [ ]`）
+- **設計文書**: [📐 architecture.md](../architecture.md)（Acceptance criteria: AC-D5-1〜05・すべて達成済み）
 - **データフロー図**: [🔄 dataflow.md](../dataflow.md)（機能1〜3・エラーハンドリングフロー）
 - **分析記録**: [🧠 design-interview.md](../design-interview.md) A1〜A6
 - **要件出典**: development_direction D-5（`.audit/development_direction.yml`）— REQ-430 / TC-423 への正典採番は requirements phase の残課題（A6）
@@ -40,7 +40,7 @@ kairo-design（PR #128・2026-09-07 merge）が、development_direction D-5「�
 
 ## 全体進捗
 
-- [ ] Phase 1: chain 接続と失敗注入検証 — TASK-0325
+- [x] Phase 1: chain 接続と失敗注入検証 — TASK-0325
 
 ## マイルストーン
 
@@ -56,7 +56,7 @@ kairo-design（PR #128・2026-09-07 merge）が、development_direction D-5「�
 
 ### タスク一覧
 
-- [ ] [TASK-0325: ASR フォールバック順序の RecoveryStrategyChain 接続と失敗注入検証（AC-D5-1〜05）](TASK-0325.md) - 6h (TDD) 🔵（budget 枯渇注入の具体機構のみ実装時判断）
+- [x] [TASK-0325: ASR フォールバック順序の RecoveryStrategyChain 接続と失敗注入検証（AC-D5-1〜05）](TASK-0325.md) - 6h (TDD) 🔵（完了 — budget 枯渇注入は Date.now 進行 spy で実装・計 8 leg green）
 
 ### 依存関係
 
