@@ -45,7 +45,7 @@ D-1〜D-3 は main 済み（e5853217 / dda5c055）・D-4/D-5 は specs/real-audi
 
 - [x] Phase 1: 基盤（Web Speech file engine 単一ソース化）— TASK-0318 完了 (2026-09-04)
 - [x] Phase 2: 経路実質化（routing 3 分岐 + confidence semantics）— TASK-0319 完了 (2026-09-05)・TASK-0320 完了 (2026-09-06)
-- [ ] Phase 3: UI 開示（placeholder notice + 偽 stats 抑制）
+- [x] Phase 3: UI 開示（placeholder notice + 偽 stats 抑制）— TASK-0321 完了 (2026-09-07)
 
 ## マイルストーン
 
@@ -103,7 +103,7 @@ TASK-0320 と TASK-0321 は並行可能
 
 ### タスク一覧
 
-- [ ] [TASK-0321: UI 開示 — StreamingProcessor の placeholder notice と偽品質 stats 表示の抑制](TASK-0321.md) - 4h (TDD) 🔵（notice 形状のみ 🟡）
+- [x] [TASK-0321: UI 開示 — StreamingProcessor の placeholder notice と偽品質 stats 表示の抑制](TASK-0321.md) - 4h (TDD) 🔵（notice 形状のみ 🟡） ✅ 2026-09-07 完了
 
 ### 依存関係
 
