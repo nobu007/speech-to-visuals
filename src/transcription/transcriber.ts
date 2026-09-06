@@ -3,7 +3,37 @@ import { BrowserTranscriber } from './browser-transcriber';
 import { WhisperTranscriber, type WhisperConfig } from './whisper-transcriber';
 import { Caption } from '@remotion/captions';
 import { detectTranscriptionLanguage } from './language-detection';
+import { ChainBuilder, RecoveryStrategyChain, type ChainOutcome, type StrategyChain } from '../quality/recovery-strategy-chain';
+import { meanSegmentConfidence } from '../pipeline/quality-estimators';
 import { logger } from '@stv/core/utils/logger';
+
+/** Recovery-chain step ids — the fallback order as machine-verifiable trace keys. */
+const STEP_ID_WHISPER_INFERENCE = 'whisper-inference';
+const STEP_ID_WEB_SPEECH_FILE = 'web-speech-file';
+const STEP_ID_DISCLOSED_PLACEHOLDER = 'disclosed-placeholder';
+
+/**
+ * Wall-clock budget for the whole transcription recovery chain. The chain
+ * default (30s) would cut off real whisper.cpp CPU inference mid-run; 120s
+ * covers base-model inference while still bounding a stuck backend. If the
+ * budget still expires, runWhisperTranscription() discloses placeholder
+ * segments itself — disclosure never depends on chain health.
+ */
+const TRANSCRIPTION_RECOVERY_TIME_BUDGET_MS = 120_000;
+
+/**
+ * Single source for "this result is a real, inference-backed transcription":
+ * success with at least one segment that was not produced by the no-backend
+ * placeholder emitter (README「音声認識の現状」). The recovery chain's first
+ * step and downstream consumers (AX-3 quality aggregation) share this ONE
+ * judgment — a successful-looking placeholder must never shadow the real
+ * browser engine or be reported downstream as measured content.
+ */
+export function isRealTranscriptionResult(
+  result: Pick<TranscriptionResult, 'success' | 'segments' | 'placeholder'>
+): boolean {
+  return result.success === true && result.segments.length > 0 && result.placeholder !== true;
+}
 
 /**
  * Whisper-based transcription service with iterative improvement capabilities
@@ -15,6 +45,10 @@ export class TranscriptionPipeline {
   private browserTranscriber?: BrowserTranscriber;
   private whisperTranscriber: WhisperTranscriber;
   private isBrowser: boolean;
+  private readonly recoveryChain: RecoveryStrategyChain;
+  private lastRecoveryOutcome: ChainOutcome | null = null;
+  /** Audio input for the current transcribe() call, read by the chain steps. */
+  private audioInput: File | string | null = null;
 
   constructor(config: Partial<TranscriptionConfig> = {}) {
     this.config = {
@@ -42,6 +76,12 @@ export class TranscriptionPipeline {
       enableTimestamps: true,
       maxSegmentLength: this.config.chunkSizeMs
     });
+
+    // Per-instance recovery chain (NOT the globalRecoveryChain singleton):
+    // keeps per-instance stats isolated from other pipelines/tests while
+    // events still flow to the singleton errorRecoveryEventBus (AC-D5-5).
+    this.recoveryChain = new RecoveryStrategyChain();
+    this.recoveryChain.register('transcription', this.buildRecoveryChain());
   }
 
   /**
@@ -117,54 +157,114 @@ export class TranscriptionPipeline {
   }
 
   /**
-   * Enhanced transcription using Whisper with fallback strategies
-   * Returns segments and whether they came from fallback.
+   * Enhanced transcription executed as the 'transcription' recovery chain.
+   * The chain runs the fallback order (whisper-inference → web-speech-file →
+   * disclosed-placeholder) and yields trace/stats/errorRecoveryEventBus events
+   * for free; throws inside a step are caught by the chain and recorded as a
+   * failed step instead of aborting the order. minConfidence stays fixed at 0:
+   * real whisper inference segments carry no measured confidence (undefined →
+   * step confidence 0), so any threshold would let a lower engine outrank a
+   * successful inference — the step order and isRealTranscriptionResult are
+   * the only authorities here. Returns segments and whether they came from
+   * the disclosed placeholder fallback.
    */
   private async runWhisperTranscription(audioPath: string): Promise<{ segments: TranscriptionSegment[]; isFallback: boolean }> {
+    this.audioInput = audioPath;
 
-    try {
-      // Priority 1: Use enhanced Whisper transcriber
+    const outcome = await this.recoveryChain.execute('transcription', {
+      stage: 'transcription',
+      timeBudgetMs: TRANSCRIPTION_RECOVERY_TIME_BUDGET_MS,
+      minConfidence: 0
+    });
+    this.lastRecoveryOutcome = outcome;
 
-      let audioInput: File | string = audioPath;
-
-      // Convert blob URL to File if needed
-      if (audioPath.startsWith('blob:')) {
-        audioInput = await this.blobUrlToFile(audioPath);
-      }
-
-      const whisperResult = await this.whisperTranscriber.transcribe(audioInput);
-
-      // Priority 1: only an inference-backed whisper result is authoritative.
-      // WhisperTranscriber returns `success: true` with `placeholder: true`
-      // segments when no ASR backend exists (README「音声認識の現状」); treating
-      // that as real made the browser engine below unreachable dead code and
-      // reported fabricated placeholder content as a successful transcription.
-      const whisperIsReal =
-        whisperResult.success === true &&
-        whisperResult.segments.length > 0 &&
-        whisperResult.placeholder !== true;
-      if (whisperIsReal) {
-        return { segments: whisperResult.segments, isFallback: false };
-      }
-
-      // Priority 2: Fallback to browser transcriber (only in browser environment)
-      if (this.isBrowser && this.browserTranscriber && (audioPath.startsWith('blob:') || (audioPath as unknown) instanceof File)) {
-        const audioFile = (audioPath as unknown) instanceof File ? audioPath : await this.blobUrlToFile(audioPath);
-        const result = await this.browserTranscriber.transcribeAudioFile(audioFile);
-
-        if (result.success && result.segments.length > 0) {
-          return { segments: result.segments, isFallback: false };
-        }
-      }
-
-      // Priority 3: Enhanced fallback transcription
-      logger.warn('[Transcription] All transcription methods exhausted, returning placeholder fallback segments');
-      return { segments: this.getFallbackSegments(), isFallback: true };
-
-    } catch (error) {
-      logger.warn(`[Transcription] All transcription methods failed, using fallback:`, error);
-      return { segments: this.getFallbackSegments(), isFallback: true };
+    if (outcome.success && outcome.winningStepId !== null) {
+      const segments = (outcome.result as { segments: TranscriptionSegment[] }).segments;
+      return { segments, isFallback: outcome.winningStepId === STEP_ID_DISCLOSED_PLACEHOLDER };
     }
+
+    // Disclosure guarantee (SD4): the chain ended without a winning step
+    // (e.g. the time budget expired before even the terminal step ran). The
+    // pipeline still discloses placeholder segments — disclosure never
+    // depends on chain health.
+    logger.warn('[Transcription] Recovery chain ended without a winning step, returning placeholder fallback segments');
+    return { segments: this.getFallbackSegments(), isFallback: true };
+  }
+
+  /**
+   * Single declarative source of the ASR fallback order (D-5): real whisper
+   * inference first, browser Web Speech only when the pipeline was
+   * constructed in a browser environment (the step is not registered in
+   * Node, so the browser engine is never constructed there), and the
+   * always-succeeding disclosed placeholder as the terminal step. Step
+   * confidence derives from meanSegmentConfidence (REQ-393 canonical
+   * estimator — unmeasured segments contribute 0) with no new frozen
+   * decimals.
+   */
+  private buildRecoveryChain(): StrategyChain {
+    const builder = ChainBuilder.start('transcription-recovery')
+      .then(STEP_ID_WHISPER_INFERENCE, 'Whisper real inference', async () => {
+        let audioInput: File | string = this.audioInput ?? '';
+
+        // Convert blob URL to File if needed
+        if (typeof audioInput === 'string' && audioInput.startsWith('blob:')) {
+          audioInput = await this.blobUrlToFile(audioInput);
+        }
+
+        const whisperResult = await this.whisperTranscriber.transcribe(audioInput);
+        if (!isRealTranscriptionResult(whisperResult)) {
+          return undefined;
+        }
+        return {
+          result: { segments: whisperResult.segments },
+          fallbackUsed: false,
+          confidence: meanSegmentConfidence(whisperResult.segments)
+        };
+      });
+
+    if (this.isBrowser && this.browserTranscriber) {
+      const browserTranscriber = this.browserTranscriber;
+      builder.thenOptional(STEP_ID_WEB_SPEECH_FILE, 'Browser Web Speech API', async () => {
+        const input = this.audioInput;
+        const audioFile =
+          input instanceof File
+            ? input
+            : typeof input === 'string' && input.startsWith('blob:')
+              ? await this.blobUrlToFile(input)
+              : undefined;
+        if (!audioFile) {
+          return undefined;
+        }
+
+        const result = await browserTranscriber.transcribeAudioFile(audioFile);
+        if (!(result.success && result.segments.length > 0)) {
+          return undefined;
+        }
+        return {
+          result: { segments: result.segments },
+          fallbackUsed: false,
+          confidence: meanSegmentConfidence(result.segments)
+        };
+      });
+    }
+
+    return builder
+      .then(STEP_ID_DISCLOSED_PLACEHOLDER, 'Disclosed placeholder fallback', async () => ({
+        result: { segments: this.getFallbackSegments() },
+        fallbackUsed: true,
+        confidence: 0
+      }))
+      .build();
+  }
+
+  /**
+   * Outcome of the most recent transcribe() recovery-chain run, or null
+   * before the first run. Holds the latest outcome only — cumulative stats
+   * live on the chain itself (getStats). AX-3 (quality aggregation) reads
+   * fallbackUsed / winningStepId / trace from here.
+   */
+  getRecoveryOutcome(): ChainOutcome | null {
+    return this.lastRecoveryOutcome;
   }
 
   /**
