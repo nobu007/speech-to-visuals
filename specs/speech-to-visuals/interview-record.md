@@ -4736,6 +4736,24 @@ Phase 1-13 全13フェーズ完了（93/93タスク）。ソースファイル�
 
 ---
 
+### A160: Phase 302 — 品質集計実測信号の monitor 接続要件化（REQ-431 / TC-424・REQ-430 後段）（2026-09-07 第241回検証）
+
+1. **要件対象の選定**: make-run feedback のゼロコミット判定を受け、steering prioritized deliverables の残状況を再確認 — D-1（gated real whisper 推論・PR #96/#127）・D-2（WER harness・PR #96）・D-3（placeholder 減点・REQ-430/PR #134）・D-5（RecoveryStrategyChain 接続・PR #131）は main 済み、D-4（実ASR E2E 再検証）は Phase 194 で REQ-422/423 として要件化済みかつ `specs/real-audio-e2e-regression/` に設計（architecture.md・AC-D4/D5）と TASK-0315〜0317 split が存在する実装待ち状態 = 要件段階の再対象化は重複。よって Phase 301 が明示的に残した monitor 側後段（A159 実装検証 (e)「real-time-performance-monitor は REQ-368 設計決定で estimator proxy を意図的に消費しないため減点対象外」）のうち、REQ-430 の merge で除外根拠が消滅した transcriptionAccuracy producer を選定。feedback の anchor parentage 正式化・inject-spine-anchors 拒否指定は make-run 実行系（hub 側 harness）への指示であり本 repo には適用対象 file が存在しないため HIGH-LEVEL direction のみ採用（対象シンボル grep ゼロヒットを確認済み）。
+2. **実装検証（gap が実在することの確認）**: (a) monitor `getSnapshot().quality.transcriptionAccuracy` は real-time-performance-monitor.ts:718 で無条件 `null` — REQ-364 の finite-or-null 契約のまま producer なし (b) REQ-430 wiring（b8660230）は 3 経路とも `recordPipelineQuality` と同一の定義点で減点後値を計算済み（main-pipeline.ts:398-412・simple-pipeline.ts:608-620・framework-integrated-pipeline.ts:288 + 347-350 の private 委譲）— monitor へは scenes/overlap のみ報告し減点後 accuracy は破棄されている (c) REQ-368 除外の根拠（field doc real-time-performance-monitor.ts:163-168「estimator proxy の 0.90 は 0.85 blocker threshold を常に上回る」）は REQ-430 の 0.5 減点で消滅 — 信号は ASR 生存 run（0.90）と ASR 全滅 run（placeholder 終端 0.5・失敗 0）を区別する (d) adaptive Transcription Accuracy gate（gte 0.85・blocker・adaptable）は METRIC UNAVAILABLE 恒久で実値評価が一度もなく、`updateAdaptiveThresholds` は null round skip（REQ-364）のまま実 round を学習していない (e) `avgSceneQuality` に正典 formula なし（`estimateLabelReadability`・`countNodeOverflow`・`countDanglingLayoutEdges` は実測できるが重み付け構成は未裁決）→ scope 外継続が正当。REQ-372 設計決定の「将来の計装 TASK が fail-closed 表示を消すトリガー」は transcriptionAccuracy について発火済み。
+3. **REQ 分割（REQ-431 単一・TC-424-01〜04）**: producer wiring は単一 deliverable であり分割の根拠なし（Phase 301 と同構造）。要件は (a) 報告値単一ソース・(b) 3 経路・(c) finite-or-null 継続・(d) gate 実値評価と適応学習・(e) avgSceneQuality scope 外・(f) 外部契約不変・(g) mutation witness の 7 項。全て提案ベース `- [ ]`（born-DONE 禁止・0.6）。
+4. **採番**: Phase 302・REQ-431・TC-424 は specs / src / tests / scripts / docs 全域 grep で空きを確認済み（A159 が次番として申告済みの番号をそのまま使用・予約番号の転用なし）。A160 は interview 連番（第241回検証）。
+5. **user-stories.md を更新しない（Phase 194〜301 と同一判断）**: 本 Phase は内部監視信号の実測化（operator 面の fail-closed 解消）であり新規 user-facing 機能の story 追加に相当しない。既存 story pin を崩す価値なし。
+
+- **根拠**: REQ-364/368（producer-less fail-closed 設計決定）+ REQ-372（layoutOverlapRate producer の同型実装・「将来の計装 TASK がトリガー」明記）+ REQ-430 実装（b8660230・PR #134・2026-09-07 merge — estimator 減点の単一ソース確立）+ 実装検証（real-time-performance-monitor.ts:718 無条件 null・:163-168 除外根拠 doc・3 経路の減点後値計算 site）+ 番号空き確認（Phase 302 / REQ-431 / TC-424 / A160）。
+
+- **信頼性への影響**:
+
+- REQ-431 追加（🔵・提案ベース未実施・TC-424-01〜04 は `- [ ]` のまま）— REQ-372 が定義した計装トリガーの transcriptionAccuracy 側の発火を正典 REQ として記録。
+- 既知の放置 drift を申告（A156〜A159 と同一）: `## 信頼性レベル分布`（🔵325件）と AC-10 末尾（🔵361件）は本 Phase でも未更新（REQ-431 の 🔵 1 件追加で実態はさらに +1・正典化は別 REQ 課題のまま）。
+- 残課題（引継ぎ）: Phase 302 の設計・実装（kairo-design → kairo-tasks → kairo-implement・TC-424-01〜04 RED→GREEN）。既存 requirements backlog と並列: Phase 196（REQ-425 wire-or-retire）・Phase 300（REQ-427〜429）・Phase 194（REQ-422/423 = steering D-4 実ASR E2E・TASK-0315〜0317 実装待ち）・`avgSceneQuality` 正典 formula の設計裁決（将来 Phase）。
+
+---
+
 ## 関連文書
 
 - **要件定義書**: [requirements.md](requirements.md)
