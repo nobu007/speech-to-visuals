@@ -1034,6 +1034,7 @@ make-run steering feedback「371 → next-target delta is auditable without re-r
 - [asr-fallback-recovery-order タスク概要](../asr-fallback-recovery-order/tasks/overview.md)
 - [rtpm-transcription-accuracy-producer アーキテクチャ設計](../rtpm-transcription-accuracy-producer/architecture.md)
 - [rtpm-transcription-accuracy-producer データフロー設計](../rtpm-transcription-accuracy-producer/dataflow.md)
+- [rtpm-transcription-accuracy-producer タスク概要](../rtpm-transcription-accuracy-producer/tasks/overview.md)
 
 <!-- spine:children:end -->
 
