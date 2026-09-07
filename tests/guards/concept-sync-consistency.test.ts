@@ -2235,6 +2235,7 @@ describe('jest-pattern conformance (real @jest/pattern module) — eval follow-u
       '2026-09-07T10:00:00Z', // PR #134 — REQ-430 implement stage (dual bump 4 回目)
       '2026-09-07T11:00:00Z', // PR #135 — dual-bump 5 回目 (test stage 検証)
       '2026-09-07T12:00:00Z', // PR #136 — dual-bump 6 回目 (test stage iter2 検証)
+      '2026-09-07T13:00:00Z', // PR #137 — dual-bump 7 回目 (baseline 検証)
     ]);
   });
 
@@ -2274,6 +2275,7 @@ describe('jest-pattern conformance (real @jest/pattern module) — eval follow-u
       ['2026-09-07T10:00:00Z', '34071349412', '134'], // PR #134 — REQ-430 implement (dual bump 4 回目)
       ['2026-09-07T11:00:00Z', '34072961120', '135'], // PR #135 — dual bump 5 回目 (test stage 検証)
       ['2026-09-07T12:00:00Z', '34074316933', '136'], // PR #136 — dual bump 6 回目 (test stage iter2 検証)
+      ['2026-09-07T13:00:00Z', '34075810809', '137'], // PR #137 — dual bump 7 回目 (baseline 検証)
     ]);
   });
 });
