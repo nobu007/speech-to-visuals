@@ -992,6 +992,34 @@ make-run steering feedback「371 → next-target delta is auditable without re-r
 - [Speech-to-Visuals 要件定義書](requirements.md)
 - [speech-to-visuals タスク概要](tasks/overview.md)
 - [Speech-to-Visuals ユーザストーリー](user-stories.md)
+- [stochastic-layout-seeding アーキテクチャ設計](../stochastic-layout-seeding/architecture.md)
+- [finite-safe-aggregation アーキテクチャ設計](../finite-safe-aggregation/architecture.md)
+- [finite-safe-aggregation データフロー図](../finite-safe-aggregation/dataflow.md)
+- [finite-safe-aggregation 要件定義書（軽量版）](../finite-safe-aggregation/requirements.md)
+- [finite-safe-aggregation タスク概要](../finite-safe-aggregation/tasks/overview.md)
+- [table-driven ガードハーネス抽出と fold 収束 census アーキテクチャ設計](../guard-harness-fold-census/architecture.md)
+- [table-driven ガードハーネス抽出と fold 収束 census データフロー設計](../guard-harness-fold-census/dataflow.md)
+- [table-driven ガードハーネス抽出と fold 収束 census 要件定義書](../guard-harness-fold-census/requirements.md)
+- [guard-harness-fold-census タスク概要](../guard-harness-fold-census/tasks/overview.md)
+- [audit-pass-first census 第5 facet（stale-comment・type-narrow-as-any・any 漏出）要件定義書（軽量版）](../audit-pass-first-census-facet-5/requirements.md)
+- [audit-pass-first-census-facet-5 タスク概要](../audit-pass-first-census-facet-5/tasks/overview.md)
+- [boundary strictness census（同一 metric×threshold の strict/inclusive 演算子混在）要件定義書（軽量版）](../boundary-operator-census/requirements.md)
+- [boundary-operator-census タスク概要](../boundary-operator-census/tasks/overview.md)
+- [rounding-mode census（同一式への Math.round/floor/ceil 混在）要件定義書（軽量版）](../rounding-mode-census/requirements.md)
+- [rounding-mode-census タスク概要](../rounding-mode-census/tasks/overview.md)
+- [spine edge 双方向 census（SPEC_LANDING_ATOMICITY 構造化）要件定義書（軽量版）](../spine-edge-bidirectional-census/requirements.md)
+- [spine-edge-bidirectional-census タスク概要](../spine-edge-bidirectional-census/tasks/overview.md)
+- [fallback-default census（同一 chain への primitive literal fallback 混在）要件定義書（軽量版）](../fallback-default-census/requirements.md)
+- [fallback-default-census タスク概要](../fallback-default-census/tasks/overview.md)
+- [sort-receiver-mutation census（破壊的配列操作の receiver 判別）要件定義書（軽量版）](../sort-receiver-mutation-census/requirements.md)
+- [sort-receiver-mutation-census タスク概要](../sort-receiver-mutation-census/tasks/overview.md)
+- [spine registry title-sync census（親 index 表題 ↔ 対象 doc H1 一致）要件定義書（軽量版）](../spine-registry-title-sync/requirements.md)
+- [spine-registry-title-sync タスク概要](../spine-registry-title-sync/tasks/overview.md)
+- [dead-idiom-batch-census タスク概要](../dead-idiom-batch-census/tasks/overview.md)
+- [dead-idiom batch census（複数 confirmed-zero イディオム class の一括 pin）要件定義書（軽量版）](../dead-idiom-batch-census/requirements.md)
+- [spine-edge-bidirectional-census アーキテクチャ設計](../spine-edge-bidirectional-census/architecture.md)
+- [stv-core-design-sync タスク概要](../stv-core-design-sync/tasks/overview.md)
+- [stv-core design sync（設計正本の出典パス現勢性）要件定義書（軽量版）](../stv-core-design-sync/requirements.md)
 
 <!-- spine:children:end -->
 
@@ -999,8 +1027,7 @@ make-run steering feedback「371 → next-target delta is auditable without re-r
 <!-- spine:references:begin -->
 ## Spine: external references
 
+- [speech-to-visuals API エンドポイント仕様](api-endpoints.md)
 - [guard-harness-fold-census コンテキストノート](../guard-harness-fold-census/note.md)
-- [stv-core design sync（設計正本の出典パス現勢性）要件定義書（軽量版）](../stv-core-design-sync/requirements.md)
-- [stv-core-design-sync タスク概要](../stv-core-design-sync/tasks/overview.md)
 
 <!-- spine:references:end -->
