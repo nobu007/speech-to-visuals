@@ -2238,6 +2238,7 @@ describe('jest-pattern conformance (real @jest/pattern module) — eval follow-u
       '2026-09-07T13:00:00Z', // PR #137 — dual-bump 7 回目 (baseline 検証)
       '2026-09-07T14:00:00Z', // PR #142 — dual-bump 8 回目 (baseline 検証・7 回目 RED は closure commit で実測)
       '2026-09-07T15:00:00Z', // PR #144 — dual-bump 9 回目 (test stage 検証)
+      '2026-09-07T16:00:00Z', // PR #145 — dual-bump 10 回目 (test stage 検証)
     ]);
   });
 
@@ -2280,6 +2281,7 @@ describe('jest-pattern conformance (real @jest/pattern module) — eval follow-u
       ['2026-09-07T13:00:00Z', '34075810809', '137'], // PR #137 — dual bump 7 回目 (baseline 検証)
       ['2026-09-07T14:00:00Z', '34084302232', '142'], // PR #142 — dual bump 8 回目 (baseline 検証・7 回目 RED は closure commit で実測)
       ['2026-09-07T15:00:00Z', '34087008200', '144'], // PR #144 — dual bump 9 回目 (test stage 検証)
+      ['2026-09-07T16:00:00Z', '34088039373', '145'], // PR #145 — dual bump 10 回目 (test stage 検証)
     ]);
   });
 });
