@@ -153,6 +153,8 @@ const ALLOWED: Record<string, string> = {
     'The canonical density→score scale (0.90/0.70/0.50) over the MEASURED nodes-per-scene — the documented band contract both extraction sites delegate to (REQ-389); callers guard count>0 before the 0.50 degenerate leg.',
   'src/pipeline/quality-estimators.ts::estimateRelationAccuracy':
     'Measured edges-per-scene band (≥1 → 0.85, else 0.60) with a fail-0 guard — the literal legs are the documented scale of a measured input.',
+  'src/pipeline/quality-estimators.ts::DISCLOSED_PLACEHOLDER_TRANSCRIPTION_ACCURACY':
+    'REQ-430 (AX-3) fail-closed penalty floor for transcription runs whose measurement is impossible (recovery chain ended at the disclosed placeholder) — a disclosed band deliberately below the 0.85 gate, consumed only via the named constant so aggregation sites cannot drift from it; it never stands in for an unmade measurement on a real-engine run.',
   // --- measured-adjustment heuristic bases (disclosed base ± MEASURED deltas) ---
   'src/analysis/gemini-analyzer.ts::INITIAL_LLM_CONFIDENCE':
     'Named heuristic prior for the LLM detection-time confidence, decremented 0.1 per MEASURED structural defect (sparse edgeRatio, disconnected nodes, unexpected cycles) — a disclosed base of a measured-penalty band, not a published reading.',

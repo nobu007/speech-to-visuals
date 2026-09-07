@@ -14,6 +14,10 @@ import { jest } from '@jest/globals';
 const mockMainPipelineCtor = jest.fn<(...args: unknown[]) => unknown>().mockImplementation(() => ({
   execute: jest.fn(),
   nextIteration: jest.fn(),
+  // REQ-430 (AX-3): the SUT reads the inner pipeline's transcription recovery
+  // outcome through this getter to feed the canonical estimator's placeholder
+  // penalty. Default null = "no transcribe() ran" (no penalty).
+  getTranscriptionRecoveryOutcome: jest.fn().mockReturnValue(null),
 }));
 
 jest.unstable_mockModule('@/pipeline/main-pipeline', () => ({
@@ -116,6 +120,8 @@ jest.unstable_mockModule('@/framework/auto-improvement-engine', () => ({
 let FrameworkIntegratedPipeline: typeof import('@/pipeline/framework-integrated-pipeline').FrameworkIntegratedPipeline;
 let createFrameworkIntegratedPipeline: typeof import('@/pipeline/framework-integrated-pipeline').createFrameworkIntegratedPipeline;
 let MAX_PIPELINE_HISTORY: number;
+/** REQ-430: named penalty constant from the (unmocked) canonical estimator module. */
+let DISCLOSED_PLACEHOLDER_TRANSCRIPTION_ACCURACY: number;
 // Real (unmocked) singleton — same module instance the SUT reports to, so a
 // method spy observes the REQ-373 producer wiring.
 let realTimeMonitor: typeof import('@/monitoring/real-time-performance-monitor').realTimeMonitor;
@@ -125,6 +131,9 @@ beforeAll(async () => {
   FrameworkIntegratedPipeline = mod.FrameworkIntegratedPipeline;
   createFrameworkIntegratedPipeline = mod.createFrameworkIntegratedPipeline;
   MAX_PIPELINE_HISTORY = mod.MAX_PIPELINE_HISTORY;
+  DISCLOSED_PLACEHOLDER_TRANSCRIPTION_ACCURACY = (
+    await import('@/pipeline/quality-estimators')
+  ).DISCLOSED_PLACEHOLDER_TRANSCRIPTION_ACCURACY;
   realTimeMonitor = (await import('@/monitoring/real-time-performance-monitor')).realTimeMonitor;
 });
 
@@ -294,6 +303,41 @@ describe('FrameworkIntegratedPipeline', () => {
     it('should return 0.50 for successful result with empty scenes', () => {
       const result = makeResult({ success: true, scenes: [] });
       expect((pipeline as unknown as PipelinePrivateMethods).estimateTranscriptionAccuracy(result)).toBeCloseTo(0.50);
+    });
+
+    // ── REQ-430 (AX-3 / D-3): disclosed-placeholder penalty — TC-423-01/03.
+    // The FIP delegate must consult the inner pipeline's recovery outcome and
+    // forward it to the canonical estimator; this is the third of the three
+    // aggregation paths (MainPipeline / SimplePipeline / FIP).
+    function stubInnerRecoveryOutcome(winningStepId: string | null): void {
+      const inner = (pipeline as unknown as {
+        pipeline: { getTranscriptionRecoveryOutcome: { mockReturnValue: (v: unknown) => unknown } };
+      }).pipeline;
+      inner.getTranscriptionRecoveryOutcome.mockReturnValue({
+        success: winningStepId !== null,
+        winningStepId,
+        fallbackUsed: winningStepId === 'disclosed-placeholder',
+        confidence: 0,
+        stepsAttempted: 3,
+        stepsSkipped: 0,
+        trace: [],
+        totalDurationMs: 0,
+        stage: 'transcription',
+      });
+    }
+
+    it('REQ-430 TC-423-01: a placeholder-terminated inner outcome yields the penalized accuracy (< 0.85 gate)', () => {
+      stubInnerRecoveryOutcome('disclosed-placeholder');
+      const result = makeResult({ success: true, scenes: [makeScene()] });
+      const accuracy = (pipeline as unknown as PipelinePrivateMethods).estimateTranscriptionAccuracy(result);
+      expect(accuracy).toBe(DISCLOSED_PLACEHOLDER_TRANSCRIPTION_ACCURACY);
+      expect(accuracy).toBeLessThan(0.85);
+    });
+
+    it('REQ-430 TC-423-03: a real whisper-inference inner outcome keeps the 0.90 success value', () => {
+      stubInnerRecoveryOutcome('whisper-inference');
+      const result = makeResult({ success: true, scenes: [makeScene()] });
+      expect((pipeline as unknown as PipelinePrivateMethods).estimateTranscriptionAccuracy(result)).toBeCloseTo(0.90);
     });
   });
 

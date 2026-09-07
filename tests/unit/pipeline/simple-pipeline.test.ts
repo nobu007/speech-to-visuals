@@ -9,7 +9,24 @@ import { SimplePipeline, simplePipeline } from '@/pipeline/simple-pipeline';
 import { getQualityMonitor } from '@/pipeline/quality-monitor';
 import { realTimeMonitor } from '@/monitoring/real-time-performance-monitor';
 import { continuousLearner } from '@/framework/continuous-learner';
+import { DISCLOSED_PLACEHOLDER_TRANSCRIPTION_ACCURACY } from '@/pipeline/quality-estimators';
+import type { ChainOutcome } from '@/quality/recovery-strategy-chain';
 import type { SceneGraph } from '@stv/core/types/diagram';
+
+/** Minimal ChainOutcome fixture pinned to one winning step (REQ-430 wiring legs). */
+function recoveryOutcomeAt(winningStepId: string | null): ChainOutcome {
+  return {
+    success: winningStepId !== null,
+    winningStepId,
+    fallbackUsed: winningStepId === 'disclosed-placeholder',
+    confidence: 0,
+    stepsAttempted: 3,
+    stepsSkipped: 0,
+    trace: [],
+    totalDurationMs: 0,
+    stage: 'transcription',
+  };
+}
 
 // ---------------------------------------------------------------------------
 // Mocks – must come before the import above is evaluated by ts-jest
@@ -525,12 +542,27 @@ describe('SimplePipeline — Phase 27 quality metrics delegate to canonical esti
     segmentConfidences?: number[];
     /** Confidence the segmenter stamps on each ContentSegment (default: none). */
     contentConfidence?: number;
+    /**
+     * REQ-430: stub the transcription collaborator's recovery outcome
+     * (getRecoveryOutcome) instead of its real null default. Undefined →
+     * no stub (pre-first-run state, no penalty).
+     */
+    transcriptionRecoveryOutcome?: ChainOutcome;
   }): Promise<{
     recordMetrics: jest.MockInstance<void, unknown[]>;
     recordPipelineQuality: jest.MockInstance<void, [number, number]>;
   }> {
     const pipeline = createPipeline();
     const cols = collaborators(pipeline);
+
+    if (fixture.transcriptionRecoveryOutcome !== undefined) {
+      jest
+        .spyOn(
+          cols.transcription as unknown as { getRecoveryOutcome: () => ChainOutcome | null },
+          'getRecoveryOutcome',
+        )
+        .mockReturnValue(fixture.transcriptionRecoveryOutcome);
+    }
 
     jest.spyOn(cols.transcription, 'transcribe').mockResolvedValue({
       success: true,
@@ -634,6 +666,33 @@ describe('SimplePipeline — Phase 27 quality metrics delegate to canonical esti
     // 2–10 scenes (+0.15) with 2s average duration (+0.15) → 1.0.
     expect(payload.sceneSegmentationF1).toBe(1);
     expect(payload.layoutOverlap).toBe(0);
+  });
+
+  // ── REQ-430 (AX-3 / D-3): disclosed-placeholder penalty on the SimplePipeline
+  // aggregation path — TC-423-01/03. The success-path payload must reflect the
+  // transcription recovery chain's terminal state via the canonical estimator;
+  // a run that fell to the disclosed placeholder can no longer record 0.90.
+  it('REQ-430 TC-423-01: a placeholder-terminated recovery chain records the penalized accuracy (< 0.85 gate)', async () => {
+    const { recordMetrics: spy } = await runSuccessPath({
+      segmentTexts: ['first segment text', 'second segment text'],
+      segmentMs: 2000,
+      layoutNodes: [],
+      transcriptionRecoveryOutcome: recoveryOutcomeAt('disclosed-placeholder'),
+    });
+    const payload = qualityPayload(spy);
+    expect(payload.transcriptionAccuracy).toBe(DISCLOSED_PLACEHOLDER_TRANSCRIPTION_ACCURACY);
+    expect(payload.transcriptionAccuracy).toBeLessThan(0.85);
+  });
+
+  it('REQ-430 TC-423-03: a real whisper-inference terminal outcome keeps the 0.90 success value', async () => {
+    const { recordMetrics: spy } = await runSuccessPath({
+      segmentTexts: ['first segment text', 'second segment text'],
+      segmentMs: 2000,
+      layoutNodes: [],
+      transcriptionRecoveryOutcome: recoveryOutcomeAt('whisper-inference'),
+    });
+    const payload = qualityPayload(spy);
+    expect(payload.transcriptionAccuracy).toBe(0.9);
   });
 
   // ── REQ-373: the same measured overlap count is REPORTED to the real-time

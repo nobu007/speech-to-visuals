@@ -9,6 +9,9 @@ import { createHash } from 'crypto';
 import { MainPipeline } from '@/pipeline/main-pipeline';
 import { realTimeMonitor } from '@/monitoring/real-time-performance-monitor';
 import { PipelineConfig, PipelineInput, PipelineResult } from '@/pipeline/types';
+import { DISCLOSED_PLACEHOLDER_TRANSCRIPTION_ACCURACY } from '@/pipeline/quality-estimators';
+import { TranscriptionPipeline } from '@/transcription';
+import type { ChainOutcome } from '@/quality/recovery-strategy-chain';
 import type { SceneGraph } from '@stv/core/types/diagram';
 
 /**
@@ -635,6 +638,73 @@ describe('MainPipeline', () => {
         1000,
       );
       expect(metrics.transcriptionAccuracy).toBe(0.50);
+    });
+
+    // ------------------------------------------------------------------
+    // REQ-430 (AX-3 / D-3): disclosed-placeholder penalty wiring — TC-423-01.
+    // buildQualityMetrics must consult the transcriber's recovery outcome
+    // (getRecoveryOutcome — the single-source terminal state) and feed the
+    // canonical estimator; a run that fell all the way to the disclosed
+    // placeholder can no longer aggregate 0.90 transcriptionAccuracy.
+    // ------------------------------------------------------------------
+    /** Minimal ChainOutcome fixture pinned to one winning step. */
+    const recoveryOutcomeAt = (winningStepId: string | null): ChainOutcome =>
+      ({
+        success: winningStepId !== null,
+        winningStepId,
+        fallbackUsed: winningStepId === 'disclosed-placeholder',
+        confidence: 0,
+        stepsAttempted: 3,
+        stepsSkipped: 0,
+        trace: [],
+        totalDurationMs: 0,
+        stage: 'transcription',
+      }) as ChainOutcome;
+
+    it('REQ-430 TC-423-01: a placeholder-terminated recovery chain yields the penalized accuracy (< 0.85 gate)', () => {
+      const pipeline = new MainPipeline();
+      jest
+        .spyOn(
+          (pipeline as unknown as { transcriber: TranscriptionPipeline }).transcriber,
+          'getRecoveryOutcome',
+        )
+        .mockReturnValue(recoveryOutcomeAt('disclosed-placeholder'));
+      const metrics = (pipeline as unknown as PrivatePipelineAccess).buildQualityMetrics(
+        result({ scenes: [scene()] }),
+        1000,
+      );
+      expect(metrics.transcriptionAccuracy).toBe(DISCLOSED_PLACEHOLDER_TRANSCRIPTION_ACCURACY);
+      expect(metrics.transcriptionAccuracy).toBeLessThan(0.85);
+    });
+
+    it('REQ-430 TC-423-03: a real whisper-inference terminal outcome keeps the 0.90 success value', () => {
+      const pipeline = new MainPipeline();
+      jest
+        .spyOn(
+          (pipeline as unknown as { transcriber: TranscriptionPipeline }).transcriber,
+          'getRecoveryOutcome',
+        )
+        .mockReturnValue(recoveryOutcomeAt('whisper-inference'));
+      const metrics = (pipeline as unknown as PrivatePipelineAccess).buildQualityMetrics(
+        result({ scenes: [scene()] }),
+        1000,
+      );
+      expect(metrics.transcriptionAccuracy).toBe(0.90);
+    });
+
+    it('REQ-430 TC-423-03: a null recovery outcome (no transcribe() yet) keeps the 0.90 success value', () => {
+      const pipeline = new MainPipeline();
+      jest
+        .spyOn(
+          (pipeline as unknown as { transcriber: TranscriptionPipeline }).transcriber,
+          'getRecoveryOutcome',
+        )
+        .mockReturnValue(null);
+      const metrics = (pipeline as unknown as PrivatePipelineAccess).buildQualityMetrics(
+        result({ scenes: [scene()] }),
+        1000,
+      );
+      expect(metrics.transcriptionAccuracy).toBe(0.90);
     });
 
     it('real layout overlaps are COUNTED — gate now FIRES (old: always 0)', () => {

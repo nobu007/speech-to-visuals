@@ -43,6 +43,8 @@ import {
   estimateSegmentationQuality,
   countLayoutOverlaps,
 } from './quality-estimators';
+import { endedAtDisclosedPlaceholder } from '@/transcription';
+import type { ChainOutcome } from '@/quality/recovery-strategy-chain';
 import { realTimeMonitor } from '@/monitoring/real-time-performance-monitor';
 // Phase 34: Persistent iteration logging system
 import { globalIterationLogger } from '@/framework/iteration-logger';
@@ -395,13 +397,36 @@ export class MainPipeline {
     // monitor side, so an unmeasured run can never pass the eq-0 gate.
     realTimeMonitor.recordPipelineQuality(result.scenes?.length ?? 0, layoutOverlap);
     return {
-      transcriptionAccuracy: sanitizeFinite(estimateTranscriptionAccuracy(result), 0),
+      // REQ-430 (AX-3): consult the transcriber's recovery-chain terminal
+      // state (the single-source getter) — a run that fell all the way to the
+      // disclosed placeholder (e.g. after handlePipelineFailure recovered a
+      // minimal success result) must aggregate the penalized accuracy, not
+      // the structural proxy's 0.90.
+      transcriptionAccuracy: sanitizeFinite(
+        estimateTranscriptionAccuracy(result, {
+          endedAtDisclosedPlaceholder: endedAtDisclosedPlaceholder(
+            this.transcriber.getRecoveryOutcome(),
+          ),
+        }),
+        0,
+      ),
       sceneSegmentationF1: sanitizeFinite(estimateSegmentationQuality(result), 0),
       layoutOverlap,
       renderTime,
       memoryUsage: getHeapUsed(),
       timestamp: new Date(),
     };
+  }
+
+  /**
+   * REQ-430 (a): terminal state of the transcription recovery chain for this
+   * pipeline's most recent transcribe() — the single-source quality-aggregation
+   * input. Public because {@link FrameworkIntegratedPipeline} owns this
+   * pipeline and forwards the outcome into the canonical estimator's
+   * disclosed-placeholder penalty (the third aggregation path).
+   */
+  public getTranscriptionRecoveryOutcome(): ChainOutcome | null {
+    return this.transcriber.getRecoveryOutcome();
   }
 
   /**

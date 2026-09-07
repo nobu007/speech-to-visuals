@@ -46,7 +46,13 @@ jest.unstable_mockModule('@/transcription', () => {
   return {
     TranscriptionPipeline: jest.fn<any>().mockImplementation(() => ({
       transcribe: mockTranscribe,
+      // REQ-430 (AX-3): the pipelines read the recovery outcome via this getter.
+      getRecoveryOutcome: jest.fn<any>().mockReturnValue(null),
     })),
+    // REQ-430 (AX-3): the pipelines import this predicate from the barrel —
+    // the ESM mock must export every name the consumer reads.
+    endedAtDisclosedPlaceholder: (outcome: unknown) =>
+      (outcome as { winningStepId: string | null } | null)?.winningStepId === 'disclosed-placeholder',
     __mockTranscribe: mockTranscribe,
   };
 });

@@ -12,9 +12,15 @@ import type { PipelineProgress, FallbackStrategy } from '@/pipeline/pipeline-orc
 // ---------- Mocks ----------
 
 jest.unstable_mockModule('@/transcription', () => ({
+  // REQ-430 (AX-3): the pipelines import this predicate from the barrel —
+  // the ESM mock must export every name the consumer reads.
+  endedAtDisclosedPlaceholder: (outcome: unknown) =>
+    (outcome as { winningStepId: string | null } | null)?.winningStepId === 'disclosed-placeholder',
   TranscriptionPipeline: jest.fn<any>().mockImplementation(() => ({
     // REQ-045/046: runTranscription syncs config via updateConfig before transcribing.
     updateConfig: jest.fn(),
+    // REQ-430 (AX-3): the pipelines read the recovery outcome via this getter.
+    getRecoveryOutcome: jest.fn<any>().mockReturnValue(null),
     transcribe: jest.fn<any>().mockResolvedValue({
       text: 'テスト文字起こし結果',
       segments: [{ start: 0, end: 2, text: 'テスト' }],

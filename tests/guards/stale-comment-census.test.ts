@@ -167,10 +167,10 @@ const ALLOWED: Record<string, string> = {
     '`legacy 0 return silently classified the metric` — HISTORICAL confession that the fix (REQ-178) already addressed; the file now returns null on Infinity, the comment is the WHY.',
   'src/visualization/layout-utils.ts:616':
     '`legacy LayoutEngine→DagreLayoutStrategy` — descriptive reference to the predecessor strategy that the new engine delegates to.',
-  'src/pipeline/main-pipeline.ts:647':
+  'src/pipeline/main-pipeline.ts:672':
     '`adaptive processor deprecated` paired with the still-callable function body — the call site keeps the public surface working while the inner implementation moved out; the in-source `executeWithAdaptation` removed in the same line set is the resolution (resolved).',
-  'src/pipeline/main-pipeline.ts:682':
-    '`executeWithAdaptation() removed as adaptive processor deprecated` — this IS the resolution comment for line 647; the comment documents the done state.',
+  'src/pipeline/main-pipeline.ts:707':
+    '`executeWithAdaptation() removed as adaptive processor deprecated` — this IS the resolution comment for the sister entry above; the comment documents the done state.',
   'src/visualization/strategies/DagreLayoutStrategy.ts:62':
     '`deprecated w/h` describes the OUTPUT contract that the upstream dagre library still emits — not the local code; the local strategy reads `width`/`height` and the comment notes the upstream still echoes the old names.',
   'src/quality/regression-detector.ts:318':

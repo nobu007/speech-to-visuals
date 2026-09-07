@@ -1,4 +1,4 @@
-export { TranscriptionPipeline } from './transcriber';
+export { TranscriptionPipeline, endedAtDisclosedPlaceholder } from './transcriber';
 export { WhisperTranscriber, whisperTranscriber } from './whisper-transcriber';
 export { BrowserTranscriber } from './browser-transcriber';
 export { StreamingTranscriber, createStreamingTranscriber, validateStreamingSupport } from './streaming-transcriber';

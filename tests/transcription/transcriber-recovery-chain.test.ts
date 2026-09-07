@@ -98,7 +98,11 @@ jest.unstable_mockModule('@/transcription/browser-transcriber', () => ({
   },
 }));
 
-const { TranscriptionPipeline, isRealTranscriptionResult } = await import('@/transcription/transcriber');
+const { TranscriptionPipeline, isRealTranscriptionResult, endedAtDisclosedPlaceholder } = await import('@/transcription/transcriber');
+const {
+  estimateTranscriptionAccuracy,
+  DISCLOSED_PLACEHOLDER_TRANSCRIPTION_ACCURACY,
+} = await import('@/pipeline/quality-estimators');
 
 // ---- environment helpers (same shape as the priority contract test) ----
 
@@ -357,5 +361,49 @@ describe('TranscriptionPipeline recovery chain (AC-D5-5: event witness + getter)
     };
     await pipeline.transcribe('blob:second-call');
     expect(pipeline.getRecoveryOutcome()?.winningStepId).toBe('whisper-inference');
+  });
+});
+
+describe('TranscriptionPipeline → AX-3 quality seam (REQ-430 / TC-423-01)', () => {
+  it('a total engine wipe terminates at disclosed-placeholder and flows through the canonical estimator as the penalized accuracy', async () => {
+    setBrowserEnv(true);
+    const pipeline = new TranscriptionPipeline();
+    whisperState.result = { success: false, segments: [], language: 'en', duration: 0, error: 'no-backend' };
+    browserState.result = { success: false, segments: [], language: 'en', duration: 0, error: 'no-speech' };
+
+    const result = await pipeline.transcribe('blob:total-wipe');
+
+    // TranscriptionResult itself marks the placeholder run as NOT a real
+    // success (fallback disclosed) — but the chain outcome is still a win
+    // for the terminal step, and a recovered pipeline path can aggregate a
+    // nominally-successful PipelineResult for exactly this run.
+    expect(result.success).toBe(false);
+    expect(result.fallback).toBe(true);
+    // The getter reports the terminal placeholder state — the single-source
+    // input REQ-430 (a) pins for quality aggregation.
+    const outcome = pipeline.getRecoveryOutcome();
+    expect(outcome?.winningStepId).toBe('disclosed-placeholder');
+    expect(endedAtDisclosedPlaceholder(outcome)).toBe(true);
+
+    // The quality seam: that SAME outcome, derived through the exported
+    // predicate, feeds the canonical estimator's penalty — an
+    // all-engines-dead run aggregates BELOW the 0.85 gate band instead of
+    // the structural proxy's 0.90. The signals fixture mirrors what a
+    // recovered pipeline path (e.g. handlePipelineFailure → createMinimal
+    // result) hands the estimator: pipeline-level success with scenes.
+    const accuracy = estimateTranscriptionAccuracy(
+      {
+        success: true,
+        scenes: [{ type: 'flow', nodes: [], edges: [], startMs: 0, durationMs: 4000, summary: '', keyphrases: [] }],
+        duration: 4000,
+      } as Parameters<typeof estimateTranscriptionAccuracy>[0],
+      { endedAtDisclosedPlaceholder: endedAtDisclosedPlaceholder(outcome) },
+    );
+    expect(accuracy).toBe(DISCLOSED_PLACEHOLDER_TRANSCRIPTION_ACCURACY);
+    expect(accuracy).toBeLessThan(0.85);
+  });
+
+  it('the predicate authority: a null outcome (pre-first-run) reads as false', () => {
+    expect(endedAtDisclosedPlaceholder(null)).toBe(false);
   });
 });
