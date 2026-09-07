@@ -17,6 +17,7 @@ import {
   estimateSegmentationQuality,
   estimateEntityExtractionQuality,
   scoreNodeDensity,
+  DISCLOSED_PLACEHOLDER_TRANSCRIPTION_ACCURACY,
   type PipelineQualitySignals,
 } from '../quality-estimators';
 
@@ -403,6 +404,58 @@ describe('estimateTranscriptionAccuracy', () => {
 
   it('returns 0.50 for a successful run with no scenes', () => {
     expect(estimateTranscriptionAccuracy({ success: true, scenes: [], duration: 0 })).toBe(0.5);
+  });
+
+  it('returns 0.90 for a run with scenes but NO recovery context (pre-chain callers unchanged)', () => {
+    // The context parameter is optional: callers that have no recovery chain
+    // (or run before any transcribe()) must see the historical values.
+    expect(
+      estimateTranscriptionAccuracy({ success: true, scenes: [], duration: 0 }, undefined),
+    ).toBe(0.5);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// REQ-430 (AX-3 / D-3): disclosed-placeholder penalty — TC-423-01/02/03 unit
+// legs. A run whose transcription recovery chain terminated at the
+// disclosed-placeholder step is nominally successful (the terminal step always
+// succeeds, scenes exist), so the structural proxy alone would keep returning
+// 0.90 — above the 0.85 learner/monitor gate band, letting an all-engines-dead
+// run pass quality aggregation green. The penalty is applied HERE (single
+// source) from a context flag whose derivation is single-sourced in
+// transcriber.ts (endedAtDisclosedPlaceholder — the same authority as the
+// isFallback read at the transcribe() site).
+// ---------------------------------------------------------------------------
+describe('estimateTranscriptionAccuracy — REQ-430 disclosed-placeholder penalty', () => {
+  const signalsWithScene = {
+    success: true,
+    scenes: [
+      { type: 'flow' as const, nodes: [], edges: [], startMs: 0, durationMs: 5000, summary: '', keyphrases: [] },
+    ],
+    duration: 5000,
+  } as unknown as PipelineQualitySignals;
+
+  it('TC-423-01: penalizes a placeholder-terminated run to the named constant even with scenes present', () => {
+    expect(
+      estimateTranscriptionAccuracy(signalsWithScene, { endedAtDisclosedPlaceholder: true }),
+    ).toBe(DISCLOSED_PLACEHOLDER_TRANSCRIPTION_ACCURACY);
+  });
+
+  it('TC-423-02: the penalty constant sits BELOW the 0.85 improvement/blocker threshold band (fail-closed)', () => {
+    expect(DISCLOSED_PLACEHOLDER_TRANSCRIPTION_ACCURACY).toBeLessThan(0.85);
+    expect(DISCLOSED_PLACEHOLDER_TRANSCRIPTION_ACCURACY).toBeGreaterThan(0);
+  });
+
+  it('TC-423-03: a real-engine terminal outcome leaves the success value untouched', () => {
+    expect(
+      estimateTranscriptionAccuracy(signalsWithScene, { endedAtDisclosedPlaceholder: false }),
+    ).toBe(0.9);
+  });
+
+  it('a failed run stays 0 even when a (stale) placeholder context is supplied — failure dominates', () => {
+    expect(
+      estimateTranscriptionAccuracy({ success: false, scenes: [], duration: 0 }, { endedAtDisclosedPlaceholder: true }),
+    ).toBe(0);
   });
 });
 

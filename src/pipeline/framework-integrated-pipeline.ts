@@ -16,6 +16,7 @@
 
 import { MainPipeline } from './main-pipeline';
 import { PipelineInput, PipelineResult, PipelineConfig } from './types';
+import { endedAtDisclosedPlaceholder } from '@/transcription';
 import { getHeapUsed } from '@stv/core/utils/memory-usage';
 import { logger } from '@stv/core/utils/logger';
 import * as qualityEstimators from './quality-estimators';
@@ -338,9 +339,17 @@ export class FrameworkIntegratedPipeline {
   // implementation shared with MainPipeline.buildQualityMetrics — previously
   // MainPipeline re-derived these from dead fields and diverged.
 
-  /** Estimate transcription accuracy — delegates to the canonical module. */
+  /** Estimate transcription accuracy — delegates to the canonical module.
+   * REQ-430 (AX-3): forwards the inner pipeline's transcription recovery
+   * outcome through the same single-source predicate the other two
+   * aggregation paths use, so a placeholder-terminated run aggregates the
+   * penalized accuracy here too (MISSED-SIBLING-SITE). */
   private estimateTranscriptionAccuracy(result: PipelineResult): number {
-    return qualityEstimators.estimateTranscriptionAccuracy(result);
+    return qualityEstimators.estimateTranscriptionAccuracy(result, {
+      endedAtDisclosedPlaceholder: endedAtDisclosedPlaceholder(
+        this.pipeline.getTranscriptionRecoveryOutcome(),
+      ),
+    });
   }
 
   /** Estimate segmentation quality — delegates to the canonical module. */

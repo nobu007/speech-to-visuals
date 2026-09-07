@@ -21,9 +21,15 @@ import type { RunRecoveryReport } from '@/quality/pipeline-run-recovery-tracker'
 // Mock external dependencies to isolate error classification behavior.
 
 jest.unstable_mockModule('@/transcription', () => ({
+  // REQ-430 (AX-3): the pipelines import this predicate from the barrel —
+  // the ESM mock must export every name the consumer reads.
+  endedAtDisclosedPlaceholder: (outcome: unknown) =>
+    (outcome as { winningStepId: string | null } | null)?.winningStepId === 'disclosed-placeholder',
   TranscriptionPipeline: jest.fn().mockImplementation(() => ({
     // REQ-045/046: runTranscription syncs config via updateConfig before transcribing.
     updateConfig: jest.fn(),
+    // REQ-430 (AX-3): the pipelines read the recovery outcome via this getter.
+    getRecoveryOutcome: jest.fn().mockReturnValue(null),
     transcribe: jest.fn<() => Promise<unknown>>().mockResolvedValue({
       success: true,
       segments: [

@@ -4,7 +4,7 @@
  * Focus: Working end-to-end flow from audio to video
  */
 
-import { TranscriptionPipeline } from '@/transcription';
+import { TranscriptionPipeline, endedAtDisclosedPlaceholder } from '@/transcription';
 import { SceneSegmenter, DiagramDetector, ContentSegment, DEFAULT_MIN_SEGMENT_LENGTH_MS, DEFAULT_MAX_SEGMENT_LENGTH_MS, meetsGoodDetectionConfidence } from '@/analysis';
 import { LayoutEngine } from '@/visualization';
 import { EnhancedZeroOverlapLayoutEngine } from '@/visualization/enhanced-zero-overlap-layout';
@@ -609,7 +609,14 @@ export class SimplePipeline {
       qualityMonitor.recordMetrics({
         processingTime,
         memoryUsage: getHeapUsed() / (1024 * 1024),
-        transcriptionAccuracy: estimateTranscriptionAccuracy(qualitySignals),
+        // REQ-430 (AX-3): same single-source recovery wiring as MainPipeline —
+        // a placeholder-terminated transcription run aggregates the penalized
+        // accuracy instead of the structural proxy's 0.90.
+        transcriptionAccuracy: estimateTranscriptionAccuracy(qualitySignals, {
+          endedAtDisclosedPlaceholder: endedAtDisclosedPlaceholder(
+            this.transcription.getRecoveryOutcome(),
+          ),
+        }),
         sceneSegmentationF1: estimateSegmentationQuality(qualitySignals),
         layoutOverlap,
         errorCount: 0,

@@ -38,17 +38,53 @@ import { sizeLabel } from '@/visualization/smart-label-sizer';
 export type PipelineQualitySignals = Pick<PipelineResult, 'success' | 'scenes' | 'duration'>;
 
 /**
+ * REQ-430 (c): transcription accuracy credited to a run whose recovery chain
+ * terminated at the disclosed-placeholder step. A named constant — the value
+ * sits at a threshold boundary and must never be re-inlined at a call site —
+ * chosen at the existing "success without evidenced content" band (the
+ * successful-run-with-no-scenes value): a placeholder run IS nominally
+ * successful with scenes, but its transcription content is a disclosed fixed
+ * sentence, so it carries no more real accuracy evidence than a run that
+ * produced nothing. Crucially it sits BELOW the 0.85 improvement/blocker
+ * threshold band (learner improvement, monitor blocker), so an
+ * all-engines-dead run can no longer pass those gates green.
+ */
+export const DISCLOSED_PLACEHOLDER_TRANSCRIPTION_ACCURACY = 0.5;
+
+/**
+ * REQ-430 (a): quality-aggregation context derived SOLELY from the
+ * transcription recovery chain's terminal state via
+ * `endedAtDisclosedPlaceholder(transcriber.getRecoveryOutcome())` — the same
+ * authority as the transcribe() site's `isFallback` read. No second
+ * estimation path (segment-text matching etc.) may feed this flag.
+ */
+export interface TranscriptionAccuracyContext {
+  endedAtDisclosedPlaceholder: boolean;
+}
+
+/**
  * Estimate transcription accuracy from a pipeline result.
  *
  * A real score needs ground-truth comparison; in its absence we derive a
  * conservative signal from success + scene presence.
  *
  * - failed run → 0 (worst case)
+ * - successful run whose recovery chain terminated at the disclosed
+ *   placeholder → {@link DISCLOSED_PLACEHOLDER_TRANSCRIPTION_ACCURACY}
+ *   (REQ-430 — the nominal success must not aggregate above the 0.85 gates)
  * - successful run with ≥1 scene → 0.90
  * - successful run with no scenes → 0.50
+ *
+ * The recovery context is optional: callers that run before any transcribe()
+ * (or aggregate results from pipelines without a recovery chain) keep the
+ * historical values — a null outcome is absence of a run, not a penalty.
  */
-export function estimateTranscriptionAccuracy(result: PipelineQualitySignals): number {
+export function estimateTranscriptionAccuracy(
+  result: PipelineQualitySignals,
+  context?: TranscriptionAccuracyContext,
+): number {
   if (!result.success) return 0;
+  if (context?.endedAtDisclosedPlaceholder) return DISCLOSED_PLACEHOLDER_TRANSCRIPTION_ACCURACY;
   return (result.scenes?.length ?? 0) > 0 ? 0.90 : 0.50;
 }
 

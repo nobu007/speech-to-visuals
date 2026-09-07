@@ -36,6 +36,19 @@ export function isRealTranscriptionResult(
 }
 
 /**
+ * Single authority for "this chain run ended at the disclosed placeholder"
+ * (REQ-430 (a)): reads the terminal state `getRecoveryOutcome()` exposes and
+ * compares against the same step id the transcribe() site uses for its
+ * `isFallback` derivation — one judgment shared by the transcription result
+ * path and the quality-aggregation (AX-3) consumers, so no second estimation
+ * path (segment-text matching etc.) can drift from it. A null outcome
+ * (no transcribe() yet) reads as false — absence of a run is not a penalty.
+ */
+export function endedAtDisclosedPlaceholder(outcome: ChainOutcome | null): boolean {
+  return outcome !== null && outcome.winningStepId === STEP_ID_DISCLOSED_PLACEHOLDER;
+}
+
+/**
  * Whisper-based transcription service with iterative improvement capabilities
  * Follows the development philosophy of small implementations with clear evaluation
  */
@@ -180,7 +193,7 @@ export class TranscriptionPipeline {
 
     if (outcome.success && outcome.winningStepId !== null) {
       const segments = (outcome.result as { segments: TranscriptionSegment[] }).segments;
-      return { segments, isFallback: outcome.winningStepId === STEP_ID_DISCLOSED_PLACEHOLDER };
+      return { segments, isFallback: endedAtDisclosedPlaceholder(outcome) };
     }
 
     // Disclosure guarantee (SD4): the chain ended without a winning step
