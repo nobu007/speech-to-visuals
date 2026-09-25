@@ -33,3 +33,9 @@ status: generated
 contracts の llm-wiki-discipline 原則に基づき、relations.md に親候補（business_operation_notes・推定）を追記した。既存の生成スナップショット wiki（index.md その他の生成ページ）は変更していない。
 
 - **Verification**: README.md の処理フロー記載、原則 `registry/principles/llm-wiki-discipline.yaml`（contracts リポ commit 3ab5768）。
+
+## 2026-09-26 — 親の確定（jinno確定）
+
+relations.md の親草案を確定版へ訂正した（親: business_operation_notes）。
+
+**Verification**: contracts registry `registry/organization/repositories/speech-to-visuals.yaml` の spec.parent と一致することを確認（contracts commit ecbc226、validate/lint 0 errors 済み）。
