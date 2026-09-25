@@ -27,3 +27,9 @@ status: generated
   - [[File Inventory]]
   - [[Repo Wiki Schema]]
 - decision_reason: Generated during extract-skill-meta planning so repository understanding and risk context compound alongside skill extraction.
+
+## 2026-09-26 — 親候補の推定草案を追記
+
+contracts の llm-wiki-discipline 原則に基づき、relations.md に親候補（business_operation_notes・推定）を追記した。既存の生成スナップショット wiki（index.md その他の生成ページ）は変更していない。
+
+- **Verification**: README.md の処理フロー記載、原則 `registry/principles/llm-wiki-discipline.yaml`（contracts リポ commit 3ab5768）。
